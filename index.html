@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Salivary Gland Diagnostic Tool v3.1</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }
+        .header h1 { font-size: 28px; margin-bottom: 5px; }
+        .header p { font-size: 13px; opacity: 0.9; }
+        .progress-bar { height: 4px; background: #e0e0e0; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); transition: width 0.3s ease; }
+        .content { padding: 40px; }
+        .step { display: none; }
+        .step.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        h3 { font-size: 22px; color: #333; margin-bottom: 20px; font-weight: 600; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; color: #333; font-weight: 500; font-size: 14px; }
+        input[type="number"], input[type="text"], select { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+        input[type="number"]:focus, input[type="text"]:focus, select:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
+        .radio-group, .checkbox-group { margin-top: 10px; }
+        .radio-group label, .checkbox-group label { display: flex; align-items: center; margin: 8px 0; cursor: pointer; }
+        input[type="radio"], input[type="checkbox"] { margin-right: 8px; }
+        .info-box { background: #f0f4ff; border-left: 4px solid #667eea; padding: 15px; margin: 20px 0; border-radius: 4px; font-size: 13px; color: #444; }
+        .critical-box { background: #f8d7da; border-left: 4px solid #dc3545; padding: 15px; margin: 20px 0; font-size: 13px; color: #721c24; }
+        .buttons { display: flex; gap: 12px; margin-top: 40px; }
+        button { padding: 12px 24px; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; }
+        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; flex: 1; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3); }
+        .btn-secondary { background: #e0e0e0; color: #333; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 15px 0; }
+        th { background: #f0f4ff; padding: 10px; text-align: left; font-weight: 600; border-bottom: 2px solid #667eea; }
+        td { padding: 10px; border-bottom: 1px solid #ddd; }
+        .diagnosis-rank { background: #f8f9fa; border: 1px solid #ddd; border-left: 5px solid #ffc107; border-radius: 8px; padding: 15px; margin: 12px 0; cursor: pointer; }
+        .diagnosis-rank.high { border-left-color: #28a745; }
+        .diagnosis-rank.low { border-left-color: #dc3545; }
+        .diagnosis-rank.expanded .rationale { display: block; }
+        .rationale { display: none; font-size: 12px; color: #555; margin-top: 10px; }
+        .footer { text-align: center; font-size: 12px; color: #999; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔬 Salivary Gland Diagnostic Tool</h1>
+            <p>v3.1 FINAL - Supporto decisionale per neoplasie ghiandole salivari</p>
+        </div>
+        
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        
+        <div class="content" id="mainContent">
+            <!-- Rendered by JavaScript -->
+        </div>
+        
+        <div class="footer">
+            <p>⚠️ Tool di supporto diagnostico. NON è uno strumento decisionale definitivo. v3.1 © 2025</p>
+        </div>
+    </div>
+
+    <script>
+        let currentStep = 1, totalSteps = 8, formData = {};
+
+        const patterns = {
+            basaloid: { name: "Basaloide", markers: ["SOX10", "CD117", "BCL2", "β-catenina nucleare", "LEF1 (NEGATIVO in ACC!)"] },
+            cribriform: { name: "Cribriforme", markers: ["CD117", "PAS+D membrana basale", "SOX10", "LEF1 negativo"] },
+            acinic: { name: "Acinare", markers: ["DOG1", "Mammaglobina", "Amilasi", "Pan-TRK"] },
+            oncocytic: { name: "Oncocitario", markers: ["DOG1", "CEA", "Amilasi"] },
+            mucoepidermoid: { name: "Mucoepidermoide", markers: ["CK5/6", "MUC5AC", "MAML2"] },
+            pleomorphic: { name: "Pleomorfo", markers: ["PLAG1", "HMGA2", "GFAP", "LEF1 (POSITIVO in PA!)"] },
+            clear_cell: { name: "Cellule Chiare", markers: ["EWSR1-ATF1", "RAS Q61R"] },
+            squamous: { name: "Squamoso", markers: ["CK5/6", "CK7", "p16"] },
+            ductal: { name: "Duttale", markers: ["AR", "HER2", "GCDFP-15"] }
+        };
+
+        function updateProgress() {
+            document.getElementById('progressFill').style.width = (currentStep / totalSteps) * 100 + '%';
+        }
+
+        function nextStep() {
+            // SAVE EVERYTHING from current Step BEFORE changing DOM
+            const pattern = document.querySelector('input[name="pattern"]:checked')?.value;
+            const specimenType = document.querySelector('input[name="specimenType"]:checked')?.value;
+            const pni = document.querySelector('input[name="pni"]:checked')?.value;
+            const cytology = document.querySelector('input[name="cytology"]:checked')?.value;
+            const necrosis = document.querySelector('input[name="necrosis"]:checked')?.value;
+            const ki67 = document.getElementById('ki67')?.value;
+            const p63 = document.querySelector('input[name="p63"]:checked')?.value;
+            const sma = document.querySelector('input[name="sma"]:checked')?.value;
+            const calponin = document.querySelector('input[name="calponin"]:checked')?.value;
+            const ck7 = document.querySelector('input[name="ck7"]:checked')?.value;
+            const s100 = document.querySelector('input[name="s100"]:checked')?.value;
+            const dog1 = document.querySelector('input[name="dog1"]:checked')?.value;
+            const clinicalSuspicion = document.getElementById('clinicalSuspicion')?.value;
+            
+            // Save immediately
+            if (pattern) formData.pattern = pattern;
+            if (specimenType) formData.specimenType = specimenType;
+            if (pni) formData.pni = pni;
+            if (cytology) formData.cytology = cytology;
+            if (necrosis) formData.necrosis = necrosis;
+            if (ki67) formData.ki67 = ki67;
+            if (p63) formData.p63 = p63;
+            if (sma) formData.sma = sma;
+            if (calponin) formData.calponin = calponin;
+            if (ck7) formData.ck7 = ck7;
+            if (s100) formData.s100 = s100;
+            if (dog1) formData.dog1 = dog1;
+            if (clinicalSuspicion) formData.clinicalSuspicion = clinicalSuspicion;
+            
+            console.log('SAVED before render:', formData.pattern); // DEBUG
+            
+            if (validateStep()) {
+                currentStep++;
+                if (currentStep > totalSteps) currentStep = totalSteps;
+                render();
+            }
+        }
+
+        function prevStep() {
+            currentStep--;
+            if (currentStep < 1) currentStep = 1;
+            render();
+        }
+
+        function validateStep() {
+            if (currentStep === 1) {
+                if (!document.querySelector('input[name="specimenType"]:checked') || !document.getElementById('gland')?.value) {
+                    alert('Compila campi obbligatori');
+                    return false;
+                }
+            }
+            if (currentStep === 4 && !document.getElementById('ki67')?.value) {
+                alert('Inserisci Ki-67');
+                return false;
+            }
+            if (currentStep === 3 && !document.querySelector('input[name="pattern"]:checked')) {
+                alert('Seleziona pattern');
+                return false;
+            }
+            saveData();
+            console.log('Step', currentStep, '- Pattern saved:', formData.pattern); // DEBUG
+            return true;
+        }
+
+        function saveData() {
+            const specimen = document.querySelector('input[name="specimenType"]:checked')?.value;
+            const gland = document.getElementById('gland')?.value;
+            const ki67 = document.getElementById('ki67')?.value;
+            const pattern = document.querySelector('input[name="pattern"]:checked')?.value;
+            const myb = document.querySelector('input[name="myb"]:checked')?.value;
+            const nr4a3 = document.querySelector('input[name="nr4a3"]:checked')?.value;
+            const etv6 = document.querySelector('input[name="etv6"]:checked')?.value;
+            const maml2 = document.querySelector('input[name="maml2"]:checked')?.value;
+            const pni = document.querySelector('input[name="pni"]:checked')?.value;
+            const cytology = document.querySelector('input[name="cytology"]:checked')?.value;
+            const necrosis = document.querySelector('input[name="necrosis"]:checked')?.value;
+            const p63 = document.querySelector('input[name="p63"]:checked')?.value;
+            const sma = document.querySelector('input[name="sma"]:checked')?.value;
+            const calponin = document.querySelector('input[name="calponin"]:checked')?.value;
+            const ck7 = document.querySelector('input[name="ck7"]:checked')?.value;
+            const s100 = document.querySelector('input[name="s100"]:checked')?.value;
+            const dog1 = document.querySelector('input[name="dog1"]:checked')?.value;
+            
+            // Only update if value exists, don't overwrite with undefined
+            if (specimen) formData.specimenType = specimen;
+            if (gland) formData.gland = gland;
+            if (ki67) formData.ki67 = ki67;
+            if (pattern) formData.pattern = pattern;
+            if (myb) formData.myb = myb;
+            if (nr4a3) formData.nr4a3 = nr4a3;
+            if (etv6) formData.etv6 = etv6;
+            if (maml2) formData.maml2 = maml2;
+            if (pni) formData.pni = pni;
+            if (cytology) formData.cytology = cytology;
+            if (necrosis) formData.necrosis = necrosis;
+            if (p63) formData.p63 = p63;
+            if (sma) formData.sma = sma;
+            if (calponin) formData.calponin = calponin;
+            if (ck7) formData.ck7 = ck7;
+            if (s100) formData.s100 = s100;
+            if (dog1) formData.dog1 = dog1;
+        }
+
+        function computeResults() {
+            let paScore = 0, accScore = 0;
+            
+            // PATTERN
+            if (formData.pattern === 'pleomorphic') paScore += 3;
+            if (formData.pattern === 'basaloid' || formData.pattern === 'cribriform') accScore += 4;
+            
+            // MYOEPITHELIAL LAYER (p63, SMA, Calponina = mantello mioepiteliale)
+            const p63 = formData.p63;
+            const sma = formData.sma;
+            const cal = document.querySelector('input[name="calponin"]:checked')?.value;
+            
+            const myoIntact = (p63 === 'pos' || p63 === 'focal') && (sma === 'pos' || sma === 'focal') && (cal === 'pos' || cal === 'focal');
+            const myoLost = (p63 === 'neg' && sma === 'neg') || (p63 === 'nd' && sma === 'nd');
+            
+            if (myoIntact) paScore += 3;
+            if (myoLost) accScore += 4;
+            
+            // KI-67
+            const ki67 = parseFloat(formData.ki67) || 0;
+            if (ki67 <= 10) paScore += 2;
+            if (ki67 > 15) accScore += 3;
+            if (ki67 >= 25) accScore += 2; // extra peso per >25%
+            
+            // INFILTRAZIONE PERINEURALE - STRONGEST DISCRIMINATOR
+            if (formData.pni === 'no') paScore += 3;
+            if (formData.pni === 'yes') accScore += 5; // CRITICO!
+            
+            // PATTERN CRIBRIFORME SPECIFICO
+            if (formData.pattern === 'cribriform') accScore += 3;
+            
+            // IHC DISCRIMINANTI - LEF1 è il gold standard
+            const lef1 = document.querySelector('input[name="m4"]:checked')?.value; // LEF1
+            
+            if (lef1 === 'pos') paScore += 4; // LEF1+ = PA (esclude ACC)
+            if (lef1 === 'neg') accScore += 3;
+            
+            // MYB-NFIB VIENE DA MOLECOLARE (Step 6), non da IHC
+            const myb = formData.myb; // Letto da Step 6, non da discriminanti
+            if (myb === 'pos') accScore += 4; // MYB+ = ACC
+            if (myb === 'neg') paScore += 1;
+            
+            // CK7 (PA spesso focale, ACC variabile)
+            const ck7 = formData.ck7;
+            if (ck7 === 'focal') paScore += 1;
+            
+            // S100 (può essere in entrambi, ma considera il pattern)
+            const s100 = formData.s100;
+            if (s100 === 'pos' && formData.pattern === 'pleomorphic') paScore += 1;
+            
+            // CITOLOGIA
+            if (formData.cytology === 'low') paScore += 1;
+            if (formData.cytology === 'high') accScore += 2;
+            
+            // NECROSI (marker di malignità)
+            if (formData.necrosis === 'no') paScore += 1;
+            if (formData.necrosis === 'yes') accScore += 3;
+            
+            // % SOLIDA (se basaloide: >30% = ACC grado III)
+            const solidPct = parseFloat(formData.solidPercentage) || 0;
+            if (solidPct > 30) accScore += 2;
+            
+            // RESULTS
+            let results = [];
+            
+            if (paScore > accScore) {
+                results.push({
+                    diagnosis: 'Adenoma Pleomorfo (Benigno)',
+                    score: paScore,
+                    conf: 'high',
+                    rationale: [
+                        `Score PA: ${paScore} > ACC: ${accScore}`,
+                        myoIntact ? '✓ Mantello mioepiteliale INTATTO' : '',
+                        formData.pni === 'no' ? '✓ NO infiltrazione perineurale' : '',
+                        lef1 === 'pos' ? '✓ LEF1 POSITIVO (esclude ACC)' : '',
+                        formData.pattern === 'pleomorphic' ? '✓ Pattern pleomorfo tipico' : '',
+                        ki67 <= 10 ? '✓ Ki-67 basso (<10%)' : ''
+                    ].filter(x => x)
+                });
+                results.push({
+                    diagnosis: 'Adenoidocistico (Maligno)',
+                    score: accScore,
+                    conf: 'low',
+                    rationale: ['Score basso per ACC', 'Escludere per esclusione basato su criteri PA']
+                });
+            } else if (accScore > paScore) {
+                results.push({
+                    diagnosis: 'Adenoidocistico (Maligno)',
+                    score: accScore,
+                    conf: 'high',
+                    rationale: [
+                        `Score ACC: ${accScore} > PA: ${paScore}`,
+                        formData.pni === 'yes' ? '⚠️ INFILTRAZIONE PERINEURALE PRESENTE' : '',
+                        formData.pattern === 'cribriform' || formData.pattern === 'basaloid' ? '✓ Pattern basaloide/cribriforme' : '',
+                        myoLost ? '✓ Mantello mioepiteliale PERSO' : '',
+                        myb === 'pos' ? '✓ MYB-NFIB POSITIVO' : '',
+                        lef1 === 'neg' ? '✓ LEF1 NEGATIVO' : '',
+                        ki67 > 15 ? `✓ Ki-67 ELEVATO (${ki67}%)` : ''
+                    ].filter(x => x)
+                });
+                results.push({
+                    diagnosis: 'Adenoma Pleomorfo (Benigno)',
+                    score: paScore,
+                    conf: 'low',
+                    rationale: ['Score basso per PA', 'Caratteristiche suggestive di malignità presenti']
+                });
+            } else {
+                results.push({
+                    diagnosis: '⚠️ RISULTATI BORDERLINE',
+                    score: paScore,
+                    conf: 'moderate',
+                    rationale: [
+                        `Score PA = ACC (entrambi ${paScore})`,
+                        'Consider: molecolare aggiuntiva (FISH MYB, LEF1 IHC se non fatto)',
+                        'Consider: second opinion o ricampionamento'
+                    ]
+                });
+            }
+            
+            // Assign confidence based on score and gap
+            results.forEach((r, idx) => {
+                const gap = idx > 0 ? (results[idx - 1].score - r.score) : 999;
+                
+                if (r.score >= 15 && gap >= 5) {
+                    r.conf = 'high';
+                } else if (r.score >= 10 && gap >= 2) {
+                    r.conf = 'moderate';
+                } else if (r.score >= 10) {
+                    r.conf = 'moderate';
+                } else {
+                    r.conf = 'low';
+                }
+            });
+            
+            return results.sort((a, b) => b.score - a.score);
+        }
+
+        // Synonym mapping for clinical suspicion matching
+        const tumorSynonyms = {
+            'warthin': ['tumore di warthin', 'warthin', 'cistoadenolinfoma', 'adenolinfoma', 'papillare cistadenolinfa'],
+            'adenoma pleomorfo': ['adenoma pleomorfo', 'pleomorfo', 'tumore misto', 'mixed tumor'],
+            'adenoidocistico': ['acc', 'adenoidocistico', 'adenoid cystic', 'carcinoma adenoidocistico'],
+            'carcinoma acinare': ['acinare', 'acinico', 'carcinoma acinare', 'acinic'],
+            'mucoepidermoide': ['mec', 'mucoepidermoide', 'carcinoma mucoepidermoide', 'mucoepidermoid'],
+            'carcinoma duttale': ['carcinoma duttale', 'salivary duct', 'sdc', 'carcinoma duttale salivare'],
+            'adenoma oncocitario': ['oncocitario', 'oncocitoma', 'adenoma oncocitario'],
+            'masc': ['masc', 'mammary analog secretory', 'carcinoma secretorio']
+        };
+        
+        function normalizeForMatching(text) {
+            return text.toLowerCase().trim();
+        }
+        
+        function findTumorMatch(suspicion, diagnosis) {
+            const suspLower = normalizeForMatching(suspicion);
+            const diagLower = normalizeForMatching(diagnosis);
+            
+            // Exact match
+            if (diagLower.includes(suspLower) || suspLower.includes(diagLower)) {
+                return true;
+            }
+            
+            // Synonym match
+            for (const [mainName, synonyms] of Object.entries(tumorSynonyms)) {
+                const suspicionInSynonyms = synonyms.some(syn => normalizeForMatching(syn).includes(suspLower) || suspLower.includes(normalizeForMatching(syn)));
+                const diagnosisInSynonyms = synonyms.some(syn => normalizeForMatching(syn).includes(diagLower) || diagLower.includes(normalizeForMatching(syn)));
+                
+                if (suspicionInSynonyms && diagnosisInSynonyms) {
+                    return true;
+                }
+            }
+            
+            return false;
+        }
+
+        function exportPDF() {
+            saveData();
+            const results = computeResults();
+            const html = `<div style="padding:20px"><h1>REPORT DIAGNOSTICO</h1>
+                <p><b>Campione:</b> ${formData.specimenType}</p>
+                <p><b>Ghiandola:</b> ${formData.gland}</p>
+                <p><b>Ki-67:</b> ${formData.ki67}%</p>
+                <h2>Diagnosi Differenziale</h2>
+                ${results.map((r,i) => `<p>${i+1}. ${r.diagnosis} (${r.conf}) - ${r.score}/20</p>`).join('')}
+            </div>`;
+            html2pdf().set({ filename: `salivary_${new Date().toISOString().slice(0,10)}.pdf`, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4' } }).from(html).save();
+        }
+
+        function updateLocationOptions() {
+            const gland = document.getElementById('gland')?.value;
+            const select = document.getElementById('location');
+            const opts = {
+                parotid: ['-- Seleziona --', 'Lobo superficiale parotide', 'Lobo profondo parotide', 'Coda della parotide'],
+                submandibular: ['-- Seleziona --', 'Corpo principale sottomandibolare', 'Ilo sottomandibolare'],
+                sublingual: ['-- Seleziona --', 'Corpo principale sottolinguale', 'Porzione ventrale', 'Porzione laterale'],
+                minor: ['-- Seleziona --', 'Palato duro', 'Labbra', 'Guancia/mucosa', 'Lingua']
+            };
+            select.innerHTML = (opts[gland] || ['-- Seleziona --']).map(o => `<option>${o}</option>`).join('');
+        }
+
+        function render() {
+            let html = '';
+            if (currentStep === 1) {
+                html = `<div class="step active"><h3>Contesto Clinico</h3>
+                    <div class="form-group"><label>Tipo campione:</label>
+                    <div class="radio-group" style="flex-direction:column">
+                        <label><input type="radio" name="specimenType" value="trucut"> <b>Trucut</b> - Margini NON valutatibili</label>
+                        <label><input type="radio" name="specimenType" value="surgical"> <b>Pezzo operatorio</b> - Completo</label>
+                        <label><input type="radio" name="specimenType" value="fnab"> <b>FNAB</b> - Citologia</label>
+                    </div></div>
+                    <div class="form-group"><label>Ghiandola:</label>
+                    <select id="gland" onchange="updateLocationOptions()"><option>-- Seleziona --</option><option value="parotid">Parotide (20% malignità)</option><option value="submandibular">Sottomandibolare (45-50%)</option><option value="sublingual">Sottolinguale (50-75%)</option><option value="minor">Minori (50-75%)</option></select></div>
+                    <div class="form-group"><label>Localizzazione intraghiandolare:</label>
+                    <select id="location"><option>-- Seleziona ghiandola prima --</option></select></div>
+                    <div class="buttons"><button class="btn-secondary" disabled>← Indietro</button><button class="btn-primary" onclick="nextStep()">Avanti →</button></div></div>`;
+            } else if (currentStep === 2) {
+                html = `<div class="step active"><h3>Malignità e Citologia</h3>
+                    <div class="form-group"><label>Infiltrazione perineurale:</label>
+                    <div class="radio-group"><label><input type="radio" name="pni" value="no"> Assente</label><label><input type="radio" name="pni" value="yes"> Presente (CRITICO!)</label></div></div>
+                    <div class="form-group"><label>Citologia HE:</label>
+                    <div class="radio-group"><label><input type="radio" name="cytology" value="low"> Bassa atipia</label><label><input type="radio" name="cytology" value="high"> Alta atipia</label></div></div>
+                    <div class="form-group"><label>Necrosi:</label>
+                    <div class="radio-group"><label><input type="radio" name="necrosis" value="no"> Assente</label><label><input type="radio" name="necrosis" value="yes"> Presente</label></div></div>
+                    <div class="buttons"><button class="btn-secondary" onclick="prevStep()">← Indietro</button><button class="btn-primary" onclick="nextStep()">Avanti →</button></div></div>`;
+            } else if (currentStep === 3) {
+                html = `<div class="step active"><h3>Pattern Architetturale HE</h3>
+                    <div class="form-group"><label>Pattern predominante:</label>
+                    <div class="radio-group" style="flex-direction:column">
+                        <label><input type="radio" name="pattern" value="basaloid"> <b>Basaloide</b> - Cellule basali uniformi</label>
+                        <label><input type="radio" name="pattern" value="cribriform"> <b>Cribriforme</b> - Pseudocisti ialino-rivestite (CRITICO per ACC)</label>
+                        <label><input type="radio" name="pattern" value="acinic"> <b>Acinare</b> - Cellule sierose con zimogeni</label>
+                        <label><input type="radio" name="pattern" value="oncocytic"> <b>Oncocitario</b> - Cellule eosinofile ricche mitocondri</label>
+                        <label><input type="radio" name="pattern" value="mucoepidermoid"> <b>Mucoepidermoide</b> - Mix mucose, intermedie, squamose</label>
+                        <label><input type="radio" name="pattern" value="pleomorphic"> <b>Pleomorfo</b> - Epiteliale, mioepiteliale, stroma mixoide</label>
+                        <label><input type="radio" name="pattern" value="clear_cell"> <b>Cellule Chiare</b> - Citoplasma chiaro</label>
+                        <label><input type="radio" name="pattern" value="squamous"> <b>Squamoso</b> - Epitelio squamoso stratificato</label>
+                        <label><input type="radio" name="pattern" value="ductal"> <b>Duttale</b> - Strutture duttali apocrino</label>
+                    </div></div>
+                    <div class="form-group"><label>% componente solida (se presente):</label><input type="number" id="solidPercentage" min="0" max="100" placeholder="0-100%"></div>
+                    <div class="buttons"><button class="btn-secondary" onclick="prevStep()">← Indietro</button><button class="btn-primary" onclick="nextStep()">Avanti →</button></div></div>`;
+            } else if (currentStep === 4) {
+                html = `<div class="step active"><h3>IHC Base</h3>
+                    <table><tr><th>Marcatore</th><th>+</th><th>-</th><th>Focale</th><th>Non eseguito</th></tr>
+                    <tr><td><b>p63</b></td><td><input type="radio" name="p63" value="pos"></td><td><input type="radio" name="p63" value="neg"></td><td><input type="radio" name="p63" value="focal"></td><td><input type="radio" name="p63" value="nd"></td></tr>
+                    <tr><td><b>SMA</b></td><td><input type="radio" name="sma" value="pos"></td><td><input type="radio" name="sma" value="neg"></td><td><input type="radio" name="sma" value="focal"></td><td><input type="radio" name="sma" value="nd"></td></tr>
+                    <tr><td><b>Calponina</b></td><td><input type="radio" name="calponin" value="pos"></td><td><input type="radio" name="calponin" value="neg"></td><td><input type="radio" name="calponin" value="focal"></td><td><input type="radio" name="calponin" value="nd"></td></tr>
+                    <tr><td><b>CK7</b></td><td><input type="radio" name="ck7" value="pos"></td><td><input type="radio" name="ck7" value="neg"></td><td><input type="radio" name="ck7" value="focal"></td><td><input type="radio" name="ck7" value="nd"></td></tr>
+                    <tr><td><b>S100</b></td><td><input type="radio" name="s100" value="pos"></td><td><input type="radio" name="s100" value="neg"></td><td><input type="radio" name="s100" value="focal"></td><td><input type="radio" name="s100" value="nd"></td></tr>
+                    <tr><td><b>DOG1</b></td><td><input type="radio" name="dog1" value="pos"></td><td><input type="radio" name="dog1" value="neg"></td><td><input type="radio" name="dog1" value="focal"></td><td><input type="radio" name="dog1" value="nd"></td></tr></table>
+                    <div class="form-group" style="margin-top: 20px;"><label><b>Ki-67 Index (%)</b>:</label><input type="number" id="ki67" min="0" max="100" step="0.1"></div>
+                    <div class="info-box">≤10% benigno | 11-15% borderline | >15% maligno | >25% pessima prognosi</div>
+                    <div class="buttons"><button class="btn-secondary" onclick="prevStep()">← Indietro</button><button class="btn-primary" onclick="nextStep()">Avanti →</button></div></div>`;
+            } else if (currentStep === 5) {
+                // Pattern dovrebbe già essere salvato da Step 3
+                const pat = patterns[formData.pattern] || {};
+                const markers = pat.markers || [];
+                
+                if (!formData.pattern || !pat.name) {
+                    html = `<div class="step active"><h3>IHC Discriminanti</h3>
+                        <div class="critical-box">❌ Nessun pattern salvato. Pattern attuale: "${formData.pattern}"<br>Torna a Step 3 e seleziona un pattern.</div>
+                        <div class="buttons"><button class="btn-secondary" onclick="prevStep()">← Indietro a Step 3</button></div></div>`;
+                } else {
+                    html = `<div class="step active"><h3>IHC Discriminanti (Pattern-Specifici)</h3>
+                        <p style="margin-bottom:15px;"><b>Pattern selezionato:</b> ${pat.name} (${markers.length} marcatori)</p>
+                        <div class="info-box">Solo i marcatori chiave per discriminare diagnosi nel pattern scelto</div>
+                        ${markers.length > 0 ? `<table><tr><th>Marcatore Discriminante</th><th>+</th><th>-</th><th>Focale</th><th>Non eseguito</th></tr>
+                        ${markers.map((m,i) => `<tr><td><b>${m}</b></td><td><input type="radio" name="m${i}" value="pos"></td><td><input type="radio" name="m${i}" value="neg"></td><td><input type="radio" name="m${i}" value="focal"></td><td><input type="radio" name="m${i}" value="nd"></td></tr>`).join('')}
+                        </table>` : '<div class="critical-box">Nessun marcatore disponibile</div>'}
+                        <div class="buttons"><button class="btn-secondary" onclick="prevStep()">← Indietro</button><button class="btn-primary" onclick="nextStep()">Avanti →</button></div></div>`;
+                }
+            } else if (currentStep === 6) {
+                html = `<div class="step active"><h3>Studi Molecolari</h3>
+                    <div class="critical-box">⚠️ NEGATIVO NON ESCLUDE - Integra sempre con morfologia! FISH/PCR/NGS, non IHC</div>
+                    <div class="form-group"><label>MYB-NFIB FISH (ACC):</label>
+                    <div class="radio-group"><label><input type="radio" name="myb" value="pos"> Positivo (~80% ACC)</label><label><input type="radio" name="myb" value="neg"> Negativo</label><label><input type="radio" name="myb" value="nd"> N/D</label></div></div>
+                    <div class="form-group"><label>NR4A3 FISH (Carcinoma Acinare):</label>
+                    <div class="radio-group"><label><input type="radio" name="nr4a3" value="pos"> Positivo (gold standard)</label><label><input type="radio" name="nr4a3" value="neg"> Negativo</label><label><input type="radio" name="nr4a3" value="nd"> N/D</label></div></div>
+                    <div class="form-group"><label>ETV6-NTRK3 FISH (MASC - Mammary Analog Secretory Carcinoma):</label>
+                    <div class="radio-group"><label><input type="radio" name="etv6" value="pos"> Positivo (specifico MASC)</label><label><input type="radio" name="etv6" value="neg"> Negativo</label><label><input type="radio" name="etv6" value="nd"> N/D</label></div></div>
+                    <div class="form-group"><label>MAML2 (Mucoepidermoide Carcinoma):</label>
+                    <div class="radio-group"><label><input type="radio" name="maml2" value="pos"> Positivo (50-70% MEC)</label><label><input type="radio" name="maml2" value="neg"> Negativo</label><label><input type="radio" name="maml2" value="nd"> N/D</label></div></div>
+                    <div class="buttons"><button class="btn-secondary" onclick="prevStep()">← Indietro</button><button class="btn-primary" onclick="nextStep()">Avanti →</button></div></div>`;
+            } else if (currentStep === 7) {
+                html = `<div class="step active"><h3>Sospetto Clinico (Opzionale)</h3>
+                    <div class="form-group"><label>Diagnosi sospettata:</label><input type="text" id="clinicalSuspicion" placeholder="Es: Adenoma pleomorfo"></div>
+                    <div class="buttons"><button class="btn-secondary" onclick="prevStep()">← Indietro</button><button class="btn-primary" onclick="nextStep()">Visualizza Risultati →</button></div></div>`;
+            } else if (currentStep === 8) {
+                const results = computeResults();
+                const suspicion = document.getElementById('clinicalSuspicion')?.value || '';
+                
+                // Compare suspicion with results using synonym matching
+                let concordanceHTML = '';
+                if (suspicion) {
+                    let matchFound = false;
+                    let matchIndex = -1;
+                    
+                    results.forEach((r, idx) => {
+                        if (findTumorMatch(suspicion, r.diagnosis)) {
+                            matchFound = true;
+                            matchIndex = idx + 1;
+                        }
+                    });
+                    
+                    if (matchFound) {
+                        if (matchIndex === 1) {
+                            concordanceHTML = `<div style="background: #d4edda; border-left: 4px solid #28a745; padding: 15px; margin: 20px 0; border-radius: 4px;">
+                                <strong>✅ PERFETTA CONCORDANZA</strong><br>
+                                Sospetto clinico: <strong>"${suspicion}"</strong><br>
+                                Diagnosi top rankizzata: <strong>"${results[0].diagnosis}"</strong><br>
+                                Eccellente accordo tra clinica e patologia!
+                            </div>`;
+                        } else if (matchIndex <= 3) {
+                            concordanceHTML = `<div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 4px;">
+                                <strong>⚠️ PARZIALE CONCORDANZA</strong><br>
+                                Sospetto clinico: <strong>"${suspicion}"</strong> (posizione #${matchIndex} nella DDx)<br>
+                                Diagnosi più probabile: <strong>"${results[0].diagnosis}"</strong> (score ${results[0].score}/20)<br>
+                                Considera la diagnosi top ma "${suspicion}" rimane in differenziale.
+                            </div>`;
+                        } else {
+                            concordanceHTML = `<div style="background: #f8d7da; border-left: 4px solid #dc3545; padding: 15px; margin: 20px 0; border-radius: 4px;">
+                                <strong>❌ DISCORDANZA SIGNIFICATIVA</strong><br>
+                                Sospetto clinico: <strong>"${suspicion}"</strong> (posizione #${matchIndex} nella DDx)<br>
+                                Diagnosi più probabile: <strong>"${results[0].diagnosis}"</strong> (score ${results[0].score}/20)<br>
+                                Morfologia e IHC NON supportano il sospetto clinico. Riconsiderare!
+                            </div>`;
+                        }
+                    } else {
+                        concordanceHTML = `<div style="background: #f8d7da; border-left: 4px solid #dc3545; padding: 15px; margin: 20px 0; border-radius: 4px;">
+                            <strong>❌ SOSPETTO NON RICONOSCIUTO</strong><br>
+                            Sospetto: <strong>"${suspicion}"</strong><br>
+                            Non corrisponde a nessuna diagnosi nella DDx.<br>
+                            Top diagnosi: ${results.slice(0, 3).map((r, i) => `${i+1}. ${r.diagnosis}`).join(', ')}
+                        </div>`;
+                    }
+                }
+                
+                html = `<div class="step active"><h3>Diagnosi Differenziale Rankizzata</h3>
+                    ${concordanceHTML}
+                    ${results.map((r,i) => `<div class="diagnosis-rank ${r.conf}" onclick="this.classList.toggle('expanded')">
+                        <div><b>${i+1}. ${r.diagnosis}</b> <span style="float:right">${r.conf.toUpperCase()} (${r.score}/20)</span></div>
+                        <div class="rationale">${r.rationale.join(' • ')}</div>
+                    </div>`).join('')}
+                    <div style="margin-top:30px"><button class="btn-primary" onclick="exportPDF()" style="margin-right:10px">📄 Esporta PDF</button><button class="btn-secondary" onclick="location.reload()">↻ Nuovo Caso</button></div></div>`;
+            }
+            document.getElementById('mainContent').innerHTML = html;
+            document.querySelector('.step')?.classList.add('active');
+            updateProgress();
+        }
+
+        render();
+    </script>
+</body>
+</html>
