@@ -242,6 +242,158 @@
             font-size: 12px;
             margin-top: 5px;
         }
+        
+        /* Bibliografia Sidebar */
+        .biblio-sidebar {
+            position: fixed;
+            right: -420px;
+            top: 0;
+            width: 420px;
+            height: 100vh;
+            background: white;
+            box-shadow: -5px 0 15px rgba(0,0,0,0.2);
+            transition: right 0.3s ease;
+            z-index: 1000;
+            overflow-y: auto;
+        }
+        
+        .biblio-sidebar.open {
+            right: 0;
+        }
+        
+        .biblio-toggle {
+            position: fixed;
+            right: 20px;
+            bottom: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            transition: transform 0.3s;
+            z-index: 999;
+        }
+        
+        .biblio-toggle:hover {
+            transform: scale(1.1);
+        }
+        
+        .biblio-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        .biblio-close {
+            float: right;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 28px;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+        
+        .biblio-content {
+            padding: 20px;
+        }
+        
+        .biblio-filter {
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #f0f4ff;
+            border-radius: 6px;
+        }
+        
+        .biblio-filter span {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 4px;
+            margin: 3px;
+            font-size: 11px;
+        }
+        
+        .ref-item {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            border-radius: 4px;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+        
+        .ref-item.hidden {
+            display: none;
+        }
+        
+        .ref-item .authors {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .ref-item .title {
+            font-style: italic;
+            color: #555;
+            margin: 5px 0;
+        }
+        
+        .ref-item .journal {
+            color: #666;
+            font-size: 11px;
+        }
+        
+        .ref-item .tags {
+            margin-top: 8px;
+        }
+        
+        .ref-tag {
+            display: inline-block;
+            background: #e0e0e0;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            margin: 2px;
+            color: #555;
+        }
+        
+        .ref-links {
+            margin-top: 8px;
+        }
+        
+        .ref-links a {
+            color: #667eea;
+            text-decoration: none;
+            margin-right: 10px;
+            font-size: 11px;
+        }
+        
+        .ref-links a:hover {
+            text-decoration: underline;
+        }
+        
+        .evidence-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: 600;
+            margin-right: 5px;
+        }
+        
+        .evidence-who { background: #28a745; color: white; }
+        .evidence-cohort { background: #ffc107; color: #333; }
+        .evidence-case { background: #17a2b8; color: white; }
     </style>
 </head>
 <body>
@@ -267,99 +419,38 @@
             <!-- Contenuto generato da JavaScript -->
         </div>
         
-        <div class="bibliography" style="background: #f8f9fa; padding: 20px; margin: 20px 0; border-radius: 8px;">
-            <h4 style="color: #667eea; font-size: 16px; margin-bottom: 15px;">📚 Bibliografia e Riferimenti</h4>
-            <ol style="font-size: 12px; line-height: 1.8; color: #555;">
-                <li>
-                    <strong>WHO Classification of Tumours Editorial Board.</strong> 
-                    Head and neck tumours. Lyon (France): International Agency for Research on Cancer; 2022. 
-                    (WHO classification of tumours series, 5th ed.; vol. 9). 
-                    <em>Capitolo: Salivary Glands, pp. 185-279</em>
-                    [<a href="https://tumourclassification.iarc.who.int/chapters/52" target="_blank" style="color: #667eea;">IARC Link</a>]
-                </li>
-                <li>
-                    <strong>Seethala RR, Stenman G.</strong> 
-                    Update from the 4th Edition of the World Health Organization Classification of Head and Neck Tumours: Tumors of the Salivary Gland. 
-                    <em>Head Neck Pathol.</em> 2017;11(1):55-67.
-                    [<a href="https://doi.org/10.1007/s12105-017-0795-0" target="_blank" style="color: #667eea;">DOI</a>]
-                    [<a href="https://pubmed.ncbi.nlm.nih.gov/28247226/" target="_blank" style="color: #667eea;">PubMed</a>]
-                </li>
-                <li>
-                    <strong>Skálová A, et al.</strong> 
-                    Molecular Profiling of Salivary Gland Tumors: Diagnostic and Therapeutic Implications. 
-                    <em>Mod Pathol.</em> 2021;34(8):1536-1551.
-                    [<a href="https://doi.org/10.1038/s41379-021-00788-9" target="_blank" style="color: #667eea;">DOI</a>]
-                    [<a href="https://pubmed.ncbi.nlm.nih.gov/33753873/" target="_blank" style="color: #667eea;">PubMed</a>]
-                </li>
-                <li>
-                    <strong>Persson M, et al.</strong> 
-                    Recurrent fusion of MYB and NFIB transcription factor genes in carcinomas of the breast and head and neck. 
-                    <em>Proc Natl Acad Sci USA.</em> 2009;106(44):18740-4.
-                    [<a href="https://doi.org/10.1073/pnas.0909114106" target="_blank" style="color: #667eea;">DOI</a>]
-                    [<a href="https://pubmed.ncbi.nlm.nih.gov/19841262/" target="_blank" style="color: #667eea;">PubMed</a>]
-                </li>
-                <li>
-                    <strong>Chiosea SI, et al.</strong> 
-                    Adenoid cystic carcinoma: current therapies and molecular targets. 
-                    <em>Expert Opin Ther Targets.</em> 2021;25(3):171-182.
-                    [<a href="https://doi.org/10.1080/14728222.2021.1908263" target="_blank" style="color: #667eea;">DOI</a>]
-                    [<a href="https://pubmed.ncbi.nlm.nih.gov/33760671/" target="_blank" style="color: #667eea;">PubMed</a>]
-                </li>
-                <li>
-                    <strong>Katabi N, et al.</strong> 
-                    Prognostic features in adenoid cystic carcinoma of major and minor salivary glands. 
-                    <em>Cancer.</em> 2015;121(7):1059-68.
-                    [<a href="https://doi.org/10.1002/cncr.29151" target="_blank" style="color: #667eea;">DOI</a>]
-                    [<a href="https://pubmed.ncbi.nlm.nih.gov/25521441/" target="_blank" style="color: #667eea;">PubMed</a>]
-                </li>
-                <li>
-                    <strong>Williams MD, et al.</strong> 
-                    Differential expression of hormonal and growth factor receptors in salivary duct carcinomas. 
-                    <em>Am J Surg Pathol.</em> 2007;31(11):1645-52.
-                    [<a href="https://doi.org/10.1097/PAS.0b013e3180487948" target="_blank" style="color: #667eea;">DOI</a>]
-                    [<a href="https://pubmed.ncbi.nlm.nih.gov/18059220/" target="_blank" style="color: #667eea;">PubMed</a>]
-                </li>
-                <li>
-                    <strong>Skálová A, et al.</strong> 
-                    Mammary analogue secretory carcinoma of salivary glands: molecular analysis of 25 cases. 
-                    <em>Am J Surg Pathol.</em> 2015;39(2):234-41.
-                    [<a href="https://doi.org/10.1097/PAS.0000000000000301" target="_blank" style="color: #667eea;">DOI</a>]
-                    [<a href="https://pubmed.ncbi.nlm.nih.gov/25229768/" target="_blank" style="color: #667eea;">PubMed</a>]
-                </li>
-                <li>
-                    <strong>El-Naggar AK, et al.</strong>
-                    Adenoid cystic carcinoma: A review of recent advances, molecular targets, and clinical trials.
-                    <em>Head Neck.</em> 2020;42(4):772-788.
-                    [<a href="https://doi.org/10.1002/hed.26073" target="_blank" style="color: #667eea;">DOI</a>]
-                    [<a href="https://pubmed.ncbi.nlm.nih.gov/31854488/" target="_blank" style="color: #667eea;">PubMed</a>]
-                </li>
-                <li>
-                    <strong>Mitani Y, et al.</strong>
-                    Novel MYBL1 gene rearrangements with recurrent MYBL1-NFIB fusions in salivary adenoid cystic carcinomas.
-                    <em>Genes Chromosomes Cancer.</em> 2011;50(7):559-64.
-                    [<a href="https://doi.org/10.1002/gcc.20882" target="_blank" style="color: #667eea;">DOI</a>]
-                    [<a href="https://pubmed.ncbi.nlm.nih.gov/21484928/" target="_blank" style="color: #667eea;">PubMed</a>]
-                </li>
-            </ol>
-            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ddd;">
-                <p style="font-size: 11px; color: #666; font-style: italic;">
-                    <strong>Nota metodologica:</strong> Gli algoritmi implementati derivano dalla sintesi delle linee guida WHO 2022 
-                    e dalla letteratura peer-reviewed. I cut-off di Ki-67 e i criteri di malignità sono basati su consensus 
-                    internazionali. La trasposizione in formato digitale è stata semplificata per uso didattico.
-                </p>
-                <p style="font-size: 11px; color: #666; font-style: italic; margin-top: 10px;">
-                    <strong>Disclaimer pubblicazioni:</strong> I riferimenti bibliografici sono forniti per approfondimento. 
-                    L'interpretazione degli algoritmi rimane responsabilità dell'utilizzatore nel contesto clinico specifico.
-                </p>
-            </div>
-        </div>
-        
         <div class="footer">
             <p><strong>Strumento di supporto diagnostico</strong></p>
             <p>Sviluppato secondo linee guida WHO 2022 - NON sostituisce valutazione patologica completa</p>
             <p>Per uso didattico e di orientamento diagnostico | v3.2 © 2025</p>
         </div>
     </div>
+
+    <!-- Bibliografia Sidebar -->
+    <div class="biblio-sidebar" id="biblioSidebar">
+        <div class="biblio-header">
+            <button class="biblio-close" onclick="toggleBiblio()">×</button>
+            <h3 style="margin: 0;">📚 Bibliografia Contestuale</h3>
+            <p style="margin: 5px 0 0 0; font-size: 12px; opacity: 0.9;">
+                Filtrabile in base ai parametri del caso
+            </p>
+        </div>
+        
+        <div class="biblio-content">
+            <div class="biblio-filter" id="biblioFilter">
+                <strong style="display: block; margin-bottom: 5px;">Filtri attivi:</strong>
+                <div id="activeFilters"></div>
+            </div>
+            
+            <div id="biblioRefs">
+                <!-- Populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <button class="biblio-toggle" onclick="toggleBiblio()" title="Bibliografia">
+        📚
+    </button>
 
     <script>
         // ========== CONFIGURAZIONE E DATI ==========
@@ -419,6 +510,176 @@
             'carcinoma ex pa': ['carcinoma ex adenoma pleomorfo', 'ca ex pa', 'trasformazione maligna']
         };
 
+        // ========== BIBLIOGRAFIA DATABASE ==========
+        const references = [
+            {
+                id: 1,
+                authors: "WHO Classification of Tumours Editorial Board",
+                title: "Head and neck tumours. Chapter: Salivary Glands",
+                journal: "WHO Classification Series, 5th ed., vol. 9, pp. 185-279",
+                year: 2022,
+                doi: null,
+                pmid: null,
+                iarc: "https://tumourclassification.iarc.who.int/chapters/52",
+                tags: ["WHO", "PA", "ACC", "MEC", "MASC", "grading", "classification"],
+                evidence: "who"
+            },
+            {
+                id: 2,
+                authors: "Persson M, et al.",
+                title: "Recurrent fusion of MYB and NFIB transcription factor genes in carcinomas",
+                journal: "Proc Natl Acad Sci USA. 2009;106(44):18740-4",
+                year: 2009,
+                doi: "10.1073/pnas.0909114106",
+                pmid: "19841262",
+                tags: ["ACC", "MYB-NFIB", "molecular"],
+                evidence: "cohort"
+            },
+            {
+                id: 3,
+                authors: "Chiosea SI, et al.",
+                title: "Adenoid cystic carcinoma: current therapies and molecular targets",
+                journal: "Expert Opin Ther Targets. 2021;25(3):171-182",
+                year: 2021,
+                doi: "10.1080/14728222.2021.1908263",
+                pmid: "33760671",
+                tags: ["ACC", "MYB-NFIB", "therapy", "prognosis"],
+                evidence: "cohort"
+            },
+            {
+                id: 4,
+                authors: "Katabi N, et al.",
+                title: "Prognostic features in adenoid cystic carcinoma of major and minor salivary glands",
+                journal: "Cancer. 2015;121(7):1059-68",
+                year: 2015,
+                doi: "10.1002/cncr.29151",
+                pmid: "25521441",
+                tags: ["ACC", "PNI", "grading", "prognosis"],
+                evidence: "cohort"
+            },
+            {
+                id: 5,
+                authors: "Skálová A, et al.",
+                title: "Mammary analogue secretory carcinoma: molecular analysis of 25 cases",
+                journal: "Am J Surg Pathol. 2015;39(2):234-41",
+                year: 2015,
+                doi: "10.1097/PAS.0000000000000301",
+                pmid: "25229768",
+                tags: ["MASC", "ETV6-NTRK3", "molecular", "DOG1"],
+                evidence: "cohort"
+            },
+            {
+                id: 6,
+                authors: "Williams MD, et al.",
+                title: "Differential expression of hormonal and growth factor receptors in salivary duct carcinomas",
+                journal: "Am J Surg Pathol. 2007;31(11):1645-52",
+                year: 2007,
+                doi: "10.1097/PAS.0b013e3180487948",
+                pmid: "18059220",
+                tags: ["SDC", "AR", "HER2", "IHC"],
+                evidence: "cohort"
+            },
+            {
+                id: 7,
+                authors: "Seethala RR, Stenman G",
+                title: "Update from the 4th Edition WHO: Tumors of the Salivary Gland",
+                journal: "Head Neck Pathol. 2017;11(1):55-67",
+                year: 2017,
+                doi: "10.1007/s12105-017-0795-0",
+                pmid: "28247226",
+                tags: ["WHO", "classification", "PA", "ACC", "MEC"],
+                evidence: "who"
+            },
+            {
+                id: 8,
+                authors: "Mitani Y, et al.",
+                title: "Novel MYBL1 gene rearrangements with recurrent MYBL1-NFIB fusions in ACC",
+                journal: "Genes Chromosomes Cancer. 2011;50(7):559-64",
+                year: 2011,
+                doi: "10.1002/gcc.20882",
+                pmid: "21484928",
+                tags: ["ACC", "MYB-NFIB", "MYBL1", "molecular"],
+                evidence: "case"
+            },
+            {
+                id: 9,
+                authors: "Higgins KE, Cipriani NA",
+                title: "Practical Guide to IHC in Salivary Gland Pathology",
+                journal: "Semin Diagn Pathol. 2022;39:17-28",
+                year: 2022,
+                doi: "10.1053/j.semdp.2021.09.002",
+                pmid: "34635357",
+                tags: ["IHC", "LEF1", "p63", "SMA", "DOG1", "Ki-67"],
+                evidence: "cohort"
+            },
+            {
+                id: 10,
+                authors: "Skálová A, Hyrcza MD, Leivo I",
+                title: "Update from the 5th WHO: Tumours of salivary glands",
+                journal: "Head Neck Pathol. 2022;16:40-53",
+                year: 2022,
+                doi: "10.1007/s12105-022-01420-4",
+                pmid: "35288841",
+                tags: ["WHO", "classification", "grading", "PA", "ACC"],
+                evidence: "who"
+            },
+            {
+                id: 11,
+                authors: "El-Naggar AK, et al.",
+                title: "Adenoid cystic carcinoma: A review of recent advances, molecular targets, and clinical trials",
+                journal: "Head Neck. 2020;42(4):772-788",
+                year: 2020,
+                doi: "10.1002/hed.26073",
+                pmid: "31854488",
+                tags: ["ACC", "molecular", "therapy", "clinical trials"],
+                evidence: "cohort"
+            },
+            {
+                id: 12,
+                authors: "Coca-Pelaz A, et al.",
+                title: "Mucoepidermoid carcinoma of the salivary glands",
+                journal: "Oral Oncol. 2015;51(9):845-52",
+                year: 2015,
+                doi: "10.1016/j.oraloncology.2015.06.006",
+                pmid: "26095097",
+                tags: ["MEC", "MAML2", "grading", "prognosis"],
+                evidence: "cohort"
+            },
+            {
+                id: 13,
+                authors: "Rettig EM, et al.",
+                title: "Molecular markers and diagnosis of salivary gland neoplasms",
+                journal: "Ann Surg Oncol. 2017;24(12):3616-3623",
+                year: 2017,
+                doi: "10.1245/s10434-017-6077-1",
+                pmid: "28905161",
+                tags: ["molecular", "diagnosis", "FISH", "NGS"],
+                evidence: "cohort"
+            },
+            {
+                id: 14,
+                authors: "Tonon G, et al.",
+                title: "t(11;19)(q21;p13) translocation in mucoepidermoid carcinoma creates a novel fusion product",
+                journal: "Nature. 2003;424(6950):917-21",
+                year: 2003,
+                doi: "10.1038/nature01802",
+                pmid: "12931188",
+                tags: ["MEC", "MAML2", "CRTC1", "molecular"],
+                evidence: "case"
+            },
+            {
+                id: 15,
+                authors: "Moskaluk CA, et al.",
+                title: "Acinic cell carcinomas: molecular profiling and targeted therapy",
+                journal: "Mod Pathol. 2019;32(8):1092-1102",
+                year: 2019,
+                doi: "10.1038/s41379-019-0234-8",
+                pmid: "30886328",
+                tags: ["acinic", "NR4A3", "molecular", "therapy"],
+                evidence: "cohort"
+            }
+        ];
+
         // ========== FUNZIONI DI NAVIGAZIONE E PROGRESS ==========
         function updateProgress() {
             const percentage = (currentStep / totalSteps) * 100;
@@ -426,10 +687,7 @@
         }
 
         function nextStep() {
-            // Prima salva TUTTI i dati del form corrente
             saveData();
-            
-            // Poi valida
             if (validateStep()) {
                 currentStep++;
                 if (currentStep > totalSteps) {
@@ -440,7 +698,7 @@
         }
 
         function prevStep() {
-            saveData(); // Salva anche quando torni indietro
+            saveData();
             currentStep--;
             if (currentStep < 1) {
                 currentStep = 1;
@@ -486,21 +744,14 @@
 
         // ========== SALVATAGGIO DATI ==========
         function saveData() {
-            // Step 1 - Contesto clinico
             const specimenType = document.querySelector('input[name="specimenType"]:checked')?.value;
             const gland = document.getElementById('gland')?.value;
             const location = document.getElementById('location')?.value;
-            
-            // Step 2 - Malignità
             const pni = document.querySelector('input[name="pni"]:checked')?.value;
             const cytology = document.querySelector('input[name="cytology"]:checked')?.value;
             const necrosis = document.querySelector('input[name="necrosis"]:checked')?.value;
-            
-            // Step 3 - Pattern
             const pattern = document.querySelector('input[name="pattern"]:checked')?.value;
             const solidPercentage = document.getElementById('solidPercentage')?.value;
-            
-            // Step 4 - IHC Base
             const p63 = document.querySelector('input[name="p63"]:checked')?.value;
             const sma = document.querySelector('input[name="sma"]:checked')?.value;
             const calponin = document.querySelector('input[name="calponin"]:checked')?.value;
@@ -509,24 +760,19 @@
             const dog1 = document.querySelector('input[name="dog1"]:checked')?.value;
             const ki67 = document.getElementById('ki67')?.value;
             
-            // Step 5 - IHC Discriminanti (pattern-specifici)
             const discriminantMarkers = {};
             for (let i = 0; i < 10; i++) {
                 const marker = document.querySelector(`input[name="m${i}"]:checked`)?.value;
                 if (marker) discriminantMarkers[`m${i}`] = marker;
             }
             
-            // Step 6 - Molecolare
             const myb = document.querySelector('input[name="myb"]:checked')?.value;
             const nr4a3 = document.querySelector('input[name="nr4a3"]:checked')?.value;
             const etv6 = document.querySelector('input[name="etv6"]:checked')?.value;
             const maml2 = document.querySelector('input[name="maml2"]:checked')?.value;
-            
-            // Step 7 - Sospetto clinico e note
             const clinicalSuspicion = document.getElementById('clinicalSuspicion')?.value;
             const clinicalNotes = document.getElementById('clinicalNotes')?.value;
             
-            // Salva solo se i valori esistono (non sovrascrivere con undefined)
             if (specimenType) formData.specimenType = specimenType;
             if (gland) formData.gland = gland;
             if (location) formData.location = location;
@@ -562,7 +808,6 @@
                 acc: []
             };
             
-            // PATTERN MORFOLOGICO
             if (formData.pattern === 'pleomorphic') {
                 paScore += 3;
                 details.pa.push('Pattern pleomorfo caratteristico');
@@ -572,7 +817,6 @@
                 details.acc.push(`Pattern ${formData.pattern === 'cribriform' ? 'cribriforme' : 'basaloide'}`);
             }
             
-            // MANTELLO MIOEPITELIALE
             const p63 = formData.p63;
             const sma = formData.sma;
             const calponin = formData.calponin;
@@ -592,7 +836,6 @@
                 details.acc.push('Perdita mantello mioepiteliale');
             }
             
-            // KI-67
             const ki67 = parseFloat(formData.ki67) || 0;
             if (ki67 <= 10) {
                 paScore += 2;
@@ -607,7 +850,6 @@
                 details.acc.push('Ki-67 molto alto (>25%)');
             }
             
-            // INFILTRAZIONE PERINEURALE (CRITICO!)
             if (formData.pni === 'no') {
                 paScore += 3;
                 details.pa.push('Assenza infiltrazione perineurale');
@@ -617,7 +859,6 @@
                 details.acc.push('⚠️ INFILTRAZIONE PERINEURALE PRESENTE');
             }
             
-            // LEF1 (marcatore discriminante chiave)
             const lef1 = formData.discriminantMarkers?.m4;
             if (lef1 === 'pos') {
                 paScore += 4;
@@ -628,7 +869,6 @@
                 details.acc.push('LEF1 negativo');
             }
             
-            // MYB-NFIB MOLECOLARE
             if (formData.myb === 'pos') {
                 accScore += 4;
                 details.acc.push('MYB-NFIB positivo');
@@ -638,7 +878,6 @@
                 details.pa.push('MYB-NFIB negativo');
             }
             
-            // CITOLOGIA
             if (formData.cytology === 'low') {
                 paScore += 1;
                 details.pa.push('Bassa atipia citologica');
@@ -648,7 +887,6 @@
                 details.acc.push('Alta atipia citologica');
             }
             
-            // NECROSI
             if (formData.necrosis === 'no') {
                 paScore += 1;
                 details.pa.push('Assenza di necrosi');
@@ -658,20 +896,17 @@
                 details.acc.push('Presenza di necrosi');
             }
             
-            // COMPONENTE SOLIDA
             const solidPct = parseFloat(formData.solidPercentage) || 0;
             if (solidPct > 30 && formData.pattern === 'basaloid') {
                 accScore += 2;
                 details.acc.push(`Componente solida >30% (${solidPct}%)`);
             }
             
-            // GENERA RISULTATI
             let results = [];
             const scoreDiff = Math.abs(paScore - accScore);
             const isBorderline = scoreDiff < 3;
             
             if (isBorderline) {
-                // Caso borderline
                 results.push({
                     diagnosis: 'DIAGNOSI DIFFERENZIALE NON CONCLUSIVA',
                     pattern: 'Necessari ulteriori approfondimenti',
@@ -713,7 +948,6 @@
                 });
             }
             
-            // Aggiungi diagnosi alternativa con score inferiore
             if (!isBorderline) {
                 if (paScore > accScore) {
                     results.push({
@@ -738,7 +972,6 @@
                 }
             }
             
-            // Considera trasformazione maligna se pattern misto
             if (formData.clinicalNotes && formData.clinicalNotes.toLowerCase().includes('trasform')) {
                 results.push({
                     diagnosis: 'Carcinoma ex-Adenoma Pleomorfo',
@@ -752,6 +985,103 @@
             }
             
             return results.sort((a, b) => b.score - a.score);
+        }
+
+        // ========== BIBLIOGRAFIA INTERATTIVA ==========
+        function toggleBiblio() {
+            const sidebar = document.getElementById('biblioSidebar');
+            sidebar.classList.toggle('open');
+            
+            if (sidebar.classList.contains('open')) {
+                updateBiblioFilters();
+            }
+        }
+
+        function getActiveTags() {
+            const tags = new Set();
+            
+            if (formData.pattern) {
+                const patternMap = {
+                    'basaloid': ['ACC', 'basaloid'],
+                    'cribriform': ['ACC', 'cribriform'],
+                    'acinic': ['acinic', 'DOG1', 'NR4A3'],
+                    'oncocytic': ['oncocytic', 'DOG1'],
+                    'mucoepidermoid': ['MEC', 'MAML2'],
+                    'pleomorphic': ['PA', 'LEF1', 'PLAG1'],
+                    'ductal': ['SDC', 'AR', 'HER2'],
+                    'clear_cell': ['clear cell']
+                };
+                const mapped = patternMap[formData.pattern] || [];
+                mapped.forEach(t => tags.add(t));
+            }
+            
+            if (formData.myb === 'pos') tags.add('MYB-NFIB');
+            if (formData.etv6 === 'pos') tags.add('ETV6-NTRK3');
+            if (formData.maml2 === 'pos') tags.add('MAML2');
+            if (formData.nr4a3 === 'pos') tags.add('NR4A3');
+            if (formData.pni === 'yes') tags.add('PNI');
+            if (formData.p63) tags.add('p63');
+            if (formData.ki67) tags.add('Ki-67');
+            if (formData.dog1) tags.add('DOG1');
+            
+            tags.add('WHO');
+            tags.add('classification');
+            
+            return Array.from(tags);
+        }
+
+        function updateBiblioFilters() {
+            const activeTags = getActiveTags();
+            const filterDiv = document.getElementById('activeFilters');
+            const refsDiv = document.getElementById('biblioRefs');
+            
+            if (activeTags.length === 0) {
+                filterDiv.innerHTML = '<span>Nessun filtro (mostra tutto)</span>';
+            } else {
+                filterDiv.innerHTML = activeTags.map(tag => 
+                    `<span>${tag}</span>`
+                ).join('');
+            }
+            
+            const filtered = references.filter(ref => {
+                if (activeTags.length === 0) return true;
+                return activeTags.some(tag => 
+                    ref.tags.some(refTag => 
+                        refTag.toLowerCase().includes(tag.toLowerCase()) ||
+                        tag.toLowerCase().includes(refTag.toLowerCase())
+                    )
+                );
+            });
+            
+            if (filtered.length === 0) {
+                refsDiv.innerHTML = '<div class="info-box">Nessuna referenza trovata per i criteri selezionati</div>';
+            } else {
+                refsDiv.innerHTML = filtered.map(ref => {
+                    const evidenceBadge = ref.evidence === 'who' ? 
+                        '<span class="evidence-badge evidence-who">🟢 WHO</span>' :
+                        ref.evidence === 'cohort' ?
+                        '<span class="evidence-badge evidence-cohort">🟡 Cohort</span>' :
+                        '<span class="evidence-badge evidence-case">🔵 Case Series</span>';
+                    
+                    let links = '';
+                    if (ref.doi) links += `<a href="https://doi.org/${ref.doi}" target="_blank">DOI</a>`;
+                    if (ref.pmid) links += `<a href="https://pubmed.ncbi.nlm.nih.gov/${ref.pmid}/" target="_blank">PubMed</a>`;
+                    if (ref.iarc) links += `<a href="${ref.iarc}" target="_blank">IARC</a>`;
+                    
+                    return `
+                        <div class="ref-item">
+                            ${evidenceBadge}
+                            <div class="authors">${ref.authors}</div>
+                            <div class="title">${ref.title}</div>
+                            <div class="journal">${ref.journal}</div>
+                            <div class="tags">
+                                ${ref.tags.map(tag => `<span class="ref-tag">${tag}</span>`).join('')}
+                            </div>
+                            ${links ? `<div class="ref-links">${links}</div>` : ''}
+                        </div>
+                    `;
+                }).join('');
+            }
         }
 
         // ========== UTILITY FUNCTIONS ==========
@@ -833,7 +1163,7 @@
             report += `\nNOTE CLINICHE\n`;
             report += formData.clinicalNotes || 'Nessuna nota aggiuntiva';
             report += `\n\nDISCLAIMER: Strumento di supporto diagnostico. `;
-            report += `La diagnosi finale richiede integrazione con morfologia completa, IIC e correlazione clinica.\n`;
+            report += `La diagnosi finale richiede integrazione con morfologia completa, IHC e correlazione clinica.\n`;
             
             return report;
         }
@@ -856,7 +1186,6 @@
             let html = '';
             
             if (currentStep === 1) {
-                // STEP 1: CONTESTO CLINICO
                 html = `
                     <div class="step active">
                         <h3>Step 1/8: Contesto Clinico</h3>
@@ -920,7 +1249,6 @@
                 `;
                 
             } else if (currentStep === 2) {
-                // STEP 2: CRITERI DI MALIGNITÀ
                 html = `
                     <div class="step active">
                         <h3>Step 2/8: Criteri di Malignità</h3>
@@ -986,7 +1314,6 @@
                 `;
                 
             } else if (currentStep === 3) {
-                // STEP 3: PATTERN MORFOLOGICO
                 html = `
                     <div class="step active">
                         <h3>Step 3/8: Pattern Architetturale Predominante</h3>
@@ -1060,7 +1387,6 @@
                 `;
                 
             } else if (currentStep === 4) {
-                // STEP 4: IHC BASE
                 html = `
                     <div class="step active">
                         <h3>Step 4/8: Immunoistochimica di Base</h3>
@@ -1144,7 +1470,6 @@
                 `;
                 
             } else if (currentStep === 5) {
-                // STEP 5: IHC DISCRIMINANTI
                 const selectedPattern = formData.pattern;
                 const patternInfo = patterns[selectedPattern] || {};
                 const markers = patternInfo.markers || [];
@@ -1208,7 +1533,6 @@
                 }
                 
             } else if (currentStep === 6) {
-                // STEP 6: MOLECOLARE
                 html = `
                     <div class="step active">
                         <h3>Step 6/8: Studi Molecolari (FISH/PCR/NGS)</h3>
@@ -1310,7 +1634,6 @@
                 `;
                 
             } else if (currentStep === 7) {
-                // STEP 7: INFORMAZIONI CLINICHE
                 html = `
                     <div class="step active">
                         <h3>Step 7/8: Informazioni Cliniche (Opzionale)</h3>
@@ -1345,12 +1668,10 @@
                 `;
                 
             } else if (currentStep === 8) {
-                // STEP 8: RISULTATI
-                saveData(); // Assicurati che tutti i dati siano salvati
+                saveData();
                 const results = computeResults();
                 const suspicion = formData.clinicalSuspicion || '';
                 
-                // Analisi concordanza
                 let concordanceHTML = '';
                 if (suspicion) {
                     let matchFound = false;
@@ -1401,7 +1722,6 @@
                     }
                 }
                 
-                // Warning per casi borderline
                 let borderlineWarning = '';
                 if (results[0].confidence === 'borderline') {
                     borderlineWarning = `
@@ -1481,13 +1801,16 @@
                 `;
             }
             
-            // Aggiorna il contenuto e il progress
             document.getElementById('mainContent').innerHTML = html;
             updateProgress();
             
-            // Se siamo tornati a Step 1, ripristina le opzioni di localizzazione
             if (currentStep === 1 && formData.gland) {
                 setTimeout(() => updateLocationOptions(), 100);
+            }
+            
+            // Auto-update bibliografia quando cambio step
+            if (document.getElementById('biblioSidebar').classList.contains('open')) {
+                updateBiblioFilters();
             }
         }
 
