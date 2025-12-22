@@ -1,214 +1,246 @@
-# 🔬 Salivary Gland Diagnostic Tool v3.1
+# 🔬 Salivary Gland Diagnostic Tool v4.0
 
 **Supporto decisionale per la diagnosi differenziale di neoplasie epiteliali delle ghiandole salivari**
 
 ---
 
-## 📋 Descrizione
+## 📋 Novità v4.0
 
-Strumento web-based interattivo per l'identificazione e la diagnosis differenziale di tumori delle ghiandole salivari, basato su:
-- **WHO Classification 5th Edition (2022)** - criteri diagnostici ufficiali
-- **Algoritmo di scoring PA vs ACC** - le diagnosi più critiche nella pratica
-- **Integrazione HE + IHC + Molecolare** - workflow diagnostico completo
-- **Correlazione clinica** - confronto con il sospetto clinico del referente
+### 🎯 Sistema Multi-Diagnosi
+A differenza della v3.x (focalizzata su PA vs ACC), la v4.0 implementa uno **scoring parallelo per 8 entità**:
+
+| Entità | Abbreviazione | Comportamento |
+|--------|---------------|---------------|
+| Adenoma Pleomorfo | PA | Benigno |
+| Carcinoma Adenoidocistico | ACC | Maligno |
+| Carcinoma Mucoepidermoide | MEC | Grado-dipendente |
+| Carcinoma a Cellule Acinari | AciCC | Maligno (basso grado) |
+| MASC | MASC | Maligno (basso grado) |
+| Carcinoma Duttale Salivare | SDC | Maligno (alto grado) |
+| Tumore di Warthin | Warthin | Benigno |
+| Carcinoma ex-PA | CaExPA | Maligno |
+
+### 📊 Sistemi di Grading WHO 2022
+
+**ACC Grading (Pattern-based)**
+- Grade I: Componente solida <30% → Prognosi migliore
+- Grade II: Componente solida 30-70% → Intermedia  
+- Grade III: Componente solida >70% → Prognosi peggiore
+
+**MEC Grading (AFIP/Brandwein)**
+| Parametro | Punti |
+|-----------|-------|
+| Componente cistica <20% | +2 |
+| Invasione perineurale | +2 |
+| Necrosi | +3 |
+| ≥4 mitosi/10 HPF | +3 |
+| Anaplasia | +4 |
+
+- 0-4 punti: Basso grado
+- 5-6 punti: Grado intermedio
+- ≥7 punti: Alto grado
+
+**Ca ex-PA Invasion (WHO 2022)**
+- ≤1.5mm: Minimamente invasivo (prognosi simile a PA)
+- 1.5-4mm: Invasivo
+- >4mm: Ampiamente invasivo
+
+### 🧬 Marcatori Molecolari Completi
+
+| Marcatore | Target | Note |
+|-----------|--------|------|
+| **PLAG1** | PA | Gold standard (~70%), aggiunto in v4 |
+| **HMGA2** | PA | Alternativo (~30%) |
+| **MYB-NFIB** | ACC | ~80% ACC |
+| **NR4A3** | AciCC | Altamente specifico |
+| **ETV6-NTRK3** | MASC | Patognomonico |
+| **MAML2** | MEC | 50-70%, prognosticamente favorevole |
+
+### 🔬 Nuovi Marcatori IHC
+
+**Aggiunti in v4.0:**
+- **SOX10** - Cruciale per ACC e tumori mioepiteliali
+- **CD117** (c-Kit) - Marker di malignità, forte in ACC
+- **AR** - Recettore androgeni (SDC ~90%)
+- **HER2** - Target terapeutico in SDC
+- **GCDFP-15** - Differenziazione apocrina
+- **Mammaglobina** - AciCC e MASC
+- **Pan-TRK** - Screening NTRK fusions (MASC)
+- **CK5/6** - Componente squamoide MEC
+
+### ⚠️ Fix Critici
+
+1. **LEF1 sempre disponibile** - Non più limitato al pattern pleomorfo
+2. **Mantello mioepiteliale tripartito** - Intact/Partial/Lost invece di binario
+3. **Gestione Ca ex-PA** - Step dedicato con storia clinica e misurazione invasione
+4. **Evidence quality tags** - Distinzione tra criteri morfologici, IHC e molecolari
 
 ---
 
-## 🎯 Funzionalità Principali
+## 🎯 Funzionalità
 
-### 8 Step Strutturati
-1. **Contesto clinico** - Tipo campione (trucut/pezzo/FNAB), ghiandola, localizzazione
-2. **Malignità** - Infiltrazione perineurale, citologia, necrosi
-3. **Pattern HE** - Architettura (pleomorfo, basaloide, cribriforme, acinare, etc.)
-4. **IHC Base** - p63, SMA, Calponina, CK7, S100, DOG1, Ki-67
-5. **IHC Discriminanti** - Marcatori pattern-specifici (LEF1, CD117, etc.)
-6. **Studi Molecolari** - MYB-NFIB, NR4A3, ETV6-NTRK3, MAML2 (FISH/PCR)
-7. **Sospetto Clinico** - Diagnosi sospettata dal referente (opzionale)
-8. **Risultati** - Diagnosi differenziale rankizzata con correlazione clinica
+### 9 Step Strutturati
 
-### Algoritmo di Scoring PA vs ACC
-Discrimina le due diagnosi più critiche della pratica quotidiana:
-- **Pattern** (pleomorfo=PA, basaloide/cribriforme=ACC)
-- **Mantello mioepiteliale** (intatto=PA, perso=ACC)
-- **Infiltrazione perineurale** (parametro CRITICO)
-- **LEF1 IHC** (positivo=PA, negativo=ACC)
-- **MYB-NFIB FISH** (positivo=ACC ~80%)
-- **Ki-67** (basso≤10%=PA, alto>15%=ACC)
+1. **Contesto Clinico** - Campione, ghiandola, red flags per Ca ex-PA
+2. **Criteri di Malignità** - PNI, atipia, necrosi, mitosi
+3. **Pattern Architetturale** - 10 pattern con % componente solida
+4. **IHC Base** - Mioepiteliali + generali + Ki-67
+5. **IHC Discriminanti** - LEF1, AR, HER2, Mammaglobina, etc.
+6. **Molecolare** - FISH/NGS per tutte le entità principali
+7. **Grading** - MEC (AFIP) + Ca ex-PA invasion
+8. **Informazioni Cliniche** - Sospetto referente e note
+9. **Risultati** - DDx rankizzata con grading e correlazione
 
-### Gestione Campioni
-- ✅ **Trucut/Ago-biopsia** - Avviso su margini non valutatibili
-- ✅ **Pezzo operatorio** - Campione completo
-- ✅ **FNAB** - Citologia con limitazioni architetturali
+### Sistema di Scoring
 
-### Matching Sinonimi
-Riconosce automaticamente i nomi alternativi:
-- "Cistoadenolinfoma" = "Tumore di Warthin"
-- "Pleomorfo" = "Adenoma pleomorfo"
-- "ACC" = "Adenoidocistico"
-- "MEC" = "Mucoepidermoide"
-- E molti altri...
+Ogni marcatore contribuisce con un peso specifico per ogni entità:
+- Pesi **positivi**: supportano la diagnosi
+- Pesi **negativi**: contraddicono la diagnosi
+- Risultato molecolare positivo = **confidence "MOLECULAR"**
+
+### Confidence Levels
+
+| Level | Score | Significato |
+|-------|-------|-------------|
+| HIGH | ≥12 | Forte supporto morfologico/IHC |
+| MODERATE | 6-11 | Supporto intermedio |
+| LOW | <6 | Debole supporto |
+| MOLECULAR | Qualsiasi + mol+ | Conferma molecolare |
 
 ---
 
 ## 🚀 Come Usare
 
 ### Online (GitHub Pages)
-Visita: `https://YOUR_USERNAME.github.io/ghiandolesalivari/`
+```
+https://YOUR_USERNAME.github.io/salivary-gland-tool/
+```
 
 ### Localmente
-1. Clone il repo:
 ```bash
-git clone https://github.com/YOUR_USERNAME/ghiandolesalivari.git
-cd ghiandolesalivari
-```
-
-2. Apri `index.html` nel browser
-```bash
+git clone https://github.com/YOUR_USERNAME/salivary-gland-tool.git
+cd salivary-gland-tool
 open index.html
-# o semplicemente doppio-click su index.html
 ```
 
-### Workflow Tipico
-1. **Step 1-3**: Inserisci dati clinici e morfologia HE
-2. **Step 4-6**: Compila IHC (base + discriminanti + molecolare)
-3. **Step 7**: Inserisci il sospetto clinico (opzionale)
-4. **Step 8**: Visualizza la DDx rankizzata con:
-   - Score per ogni diagnosi (0-20)
-   - Confidence level (HIGH/MODERATE/LOW)
-   - Rationale diagnostico
-   - Correlazione con sospetto clinico
-5. **Esporta PDF**: Report clinico pronto per allegare al referto
+### Workflow Consigliato
+
+1. **Step 1-3**: Dati clinici e morfologia HE
+2. **Step 4-5**: Pannello IHC (base + discriminanti)
+3. **Step 6**: Risultati molecolari (se disponibili)
+4. **Step 7**: Grading (se pattern suggestivo MEC o Ca ex-PA)
+5. **Step 8**: Sospetto clinico per correlazione
+6. **Step 9**: Valutazione DDx e export report
 
 ---
 
 ## ⚠️ Disclaimer Medico-Legale
 
-### Limitazioni Critiche
-- **NON è uno strumento decisionale definitivo**
-- **NON sostituisce la valutazione clinica diretta e l'expertise del patologo**
-- I risultati devono sempre essere **integrati con**:
-  - Revisione autonoma della morfologia HE
-  - Correlazione clinica appropriata
-  - Comunicazione col clinico referente
-  - Eventuale second opinion per casi dubbi
+### Limitazioni
+- **NON è uno strumento diagnostico definitivo**
+- **NON sostituisce la valutazione patologica completa**
+- I risultati sono **indicazioni probabilistiche**
 
-### Responsabilità dell'Operatore
-L'utilizzo di questo tool implica:
-- ✅ Competenza nel riconoscere i pattern istologici
-- ✅ Familiarità con le colorazioni IHC
-- ✅ Consapevolezza dei limiti diagnostici
-- ✅ Responsabilità legale dei risultati finali
+### Responsabilità
+L'utilizzo richiede:
+- ✅ Competenza nel riconoscimento dei pattern istologici
+- ✅ Familiarità con immunoistochimica
+- ✅ Capacità di interpretazione dei risultati molecolari
+- ✅ Correlazione clinico-radiologica appropriata
 
-### Accuratezza
-- Algoritmo basato su **WHO 2022** e letteratura internazionale
-- Validato principalmente su **PA vs ACC** (diagnosi focus)
-- Altre diagnosi sono supportate ma meno robuste
-- Feedback scientifico è benvenuto
+### Casi da Segnalare
+Se il tool restituisce:
+- Confidence LOW per tutte le diagnosi → Dati insufficienti
+- Score simili per entità diverse → Caso borderline
+- Discordanza con sospetto clinico → Rivalutare morfologia
 
 ---
 
 ## 🔬 Base Scientifica
 
 ### Reference Principali
-- **WHO Classification of Head and Neck Tumours** (5th edition, 2022)
-  - Skalova A, Hyrcza MD, Leivo I. Head Neck Pathol. 2022;16:40-53
-  
-- **ICGC Data Set for Salivary Carcinomas** 
-  - Seethala RR, et al. Arch Pathol Lab Med. 2019;143:578-586
 
-- **IHC Practical Guide in Salivary Gland Pathology**
-  - Higgins KE, Cipriani NA. Semin Diagn Pathol. 2022;39:17-28
+1. **WHO Classification of Head and Neck Tumours** (5th ed, 2022)
+   - Skálová A, et al. Head Neck Pathol. 2022;16:40-53
 
-### Marcatori Chiave
-| Marcatore | Utilità | Note |
-|-----------|---------|------|
-| **LEF1** | PA vs ACC | LEF1+ esclude ACC |
-| **MYB-NFIB** | ACC | FISH, 80% ACC |
-| **NR4A3** | Carcinoma acinare | FISH, gold standard |
-| **ETV6-NTRK3** | MASC | FISH, specifico |
-| **MAML2** | MEC | 50-70% MEC |
-| **Mantello mio** | PA vs ACC | p63+SMA+Cal intatto = PA |
-| **PNI** | Malignità | CRITICO, ACC marker |
-| **DOG1** | Acinare/Oncocitario | IHC, aspecifico ma utile |
-| **CD117** | ACC | Marcatore di malignità |
+2. **MYB-NFIB in ACC**
+   - Persson M, et al. PNAS. 2009;106:18740-4
+
+3. **PLAG1 in PA**
+   - Kas K, et al. Nat Genet. 1997;15:170-4
+
+4. **NR4A3 in AciCC**
+   - Haller F, et al. Nat Commun. 2019;10:368
+
+5. **ETV6-NTRK3 in MASC**
+   - Skálová A, et al. Am J Surg Pathol. 2010;34:599-608
+
+6. **MEC Grading**
+   - Brandwein MS, et al. Am J Surg Pathol. 2001;25:835-45
+
+7. **LEF1 in PA vs ACC**
+   - Wysocki PT, et al. Am J Surg Pathol. 2015;39:1433-40
+
+8. **IHC Practical Guide**
+   - Higgins KE, Cipriani NA. Semin Diagn Pathol. 2022;39:17-28
 
 ---
 
 ## 💡 Tips Pratici
 
-### Consigli d'Uso
-1. **Non saltare gli step** - L'ordine ha una logica (diagnosi imparziale prima del sospetto)
-2. **Compila il Ki-67** - Parametro essenziale per PA vs ACC
-3. **Segna "Non eseguito"** - Se manca un marcatore, indicarlo esplicitamente
-4. **Pattern cribriforme = ACC** - Se vedi pseudocisti ialino-rivestite, pensa ad ACC
-5. **PNI presente = RED FLAG** - Aumenta significativamente la probabilità di malignità
+### Quando usare la molecolare
 
-### Casi Dubbi
-Se il tool dà **confidence MODERATE/LOW**:
-- ✅ Considera molecolare aggiuntiva (FISH per MYB, LEF1, NR4A3)
-- ✅ Rivaluta la morfologia HE con maggiore attenzione
-- ✅ Consulta un collega specializzato
-- ✅ Se persiste il dubbio, segnalare nel referto
+| Scenario | Test consigliato |
+|----------|------------------|
+| PA vs ACC dubbio, LEF1 non disponibile | FISH PLAG1 + MYB |
+| Pattern acinare, DOG1+ | FISH NR4A3 vs ETV6 |
+| Morfologia duttale, AR+ | Considerare SDC |
+| Storia di PA, trasformazione? | FISH PLAG1/HMGA2 |
+
+### Red Flags
+
+- **PNI estesa** = ACC fino a prova contraria
+- **Crescita rapida in PA noto** = Escludere Ca ex-PA
+- **AR+/HER2+ in alto grado** = SDC (target terapeutici!)
+- **ETV6-NTRK3+** = MASC (potenziale TRK inhibitor)
 
 ---
 
 ## 🔧 Tecnologia
 
-- **HTML5 + JavaScript vanilla** (no dependencies)
-- **Fully client-side** - nessun dato caricato su server
-- **Responsive design** - funziona su desktop e tablet
-- **PDF export** (html2pdf.js)
-- **GitHub Pages ready** - deploy istantaneo
+- **HTML5 + JavaScript vanilla** (zero dependencies)
+- **Fully client-side** - nessun dato trasmesso
+- **Responsive design** - desktop e tablet
+- **Export TXT** - report strutturato
 
 ---
 
-## 📧 Feedback e Contributi
+## 📧 Feedback
 
-Feedback scientifico ben accetto!
-
-Se identifichi:
-- ❌ Errori diagnostici
-- 🐛 Bug nel tool
-- ✨ Miglioramenti suggeriti
-- 📚 Riferimenti scientifici mancanti
-
-Contatta: [Email Author] oppure apri un Issue su GitHub
+Bug, errori scientifici o suggerimenti:
+- Issue su GitHub
+- Email: [inserire]
 
 ---
 
 ## 📄 Licenza
 
-**Creative Commons Attribution 4.0 International (CC BY 4.0)**
-- ✅ Puoi usare, modificare, distribuire
-- ✅ Devi dare credito
-- ✅ NON warranty - usa a tuo rischio
+**CC BY 4.0** - Uso libero con attribuzione
 
 ---
 
 ## 👨‍⚕️ Autore
 
-**Dr. Filippo [Cognome]**  
-Direttore, Sezione Anatomia Patologica  
-ASST Fatebenefratelli-Sacco, Milano  
-
-Expertise: Patologia ghiandole salivari, Dermatopatologia, Ematopatologia  
+**Dr. Filippo**  
+Direttore SC Anatomia Patologica  
+ASST Fatebenefratelli-Sacco, Milano
 
 ---
 
-## 🙏 Ringraziamenti
-
-- WHO Classification Editorial Board (2022)
-- International Collaboration on Cancer Reporting (ICGC)
-- Comunità scientifica internazionale di patologi salivari
+**Versione**: 4.0  
+**Data**: Dicembre 2025  
+**Status**: Production-ready
 
 ---
 
-**Versione**: 3.1  
-**Data**: Novembre 2025  
-**Status**: Production-ready  
-
-⚠️ **Disclaimer finale**: Questo strumento è un SUPPORTO decisionale, non una diagnosi definitiva. La responsabilità ultima della diagnosi rimane al patologo.
-
----
-
-*"Diagnosi sapientis est, treatment is based on diagnosis"*
+*"La diagnosi è del patologo, il tool è solo un supporto."*
