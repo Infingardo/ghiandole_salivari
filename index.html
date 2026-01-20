@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Salivary Gland Diagnostic Support Tool v4.0</title>
+    <title>Salivary Gland Diagnostic Support Tool v4.1</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
@@ -393,32 +393,6 @@
             margin-bottom: 12px;
         }
         
-        /* Collapsible sections */
-        .collapsible-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            cursor: pointer;
-            padding: 10px;
-            background: #f7fafc;
-            border-radius: 6px;
-            margin-bottom: 10px;
-        }
-        .collapsible-header:hover {
-            background: #edf2f7;
-        }
-        .collapsible-content {
-            display: none;
-            padding: 15px;
-            background: white;
-            border: 1px solid #e2e8f0;
-            border-radius: 6px;
-            margin-bottom: 15px;
-        }
-        .collapsible-content.open {
-            display: block;
-        }
-        
         /* Evidence quality indicators */
         .evidence-tag {
             display: inline-block;
@@ -443,13 +417,17 @@
     <div class="container">
         <div class="header">
             <h1>🔬 Salivary Gland Diagnostic Support Tool</h1>
-            <p>Supporto decisionale per neoplasie epiteliali delle ghiandole salivari</p>
-            <div class="version-badge">v4.0 | WHO Classification 2022 | Multi-Diagnosis Scoring</div>
+            <p style="font-size: 15px; font-weight: 600; margin: 12px 0; color: #e8f4f8;">
+                Questo tool non fornisce diagnosi. Rende esplicito il ragionamento diagnostico.
+            </p>
+            <p style="font-size: 13px; opacity: 0.9;">Supporto decisionale per neoplasie epiteliali delle ghiandole salivari</p>
+            <div class="version-badge">v4.1 | WHO Classification 2022 | Scoring ottimizzato</div>
         </div>
         
         <div class="main-disclaimer">
-            <strong>⚠️ STRUMENTO DI SUPPORTO - NON DIAGNOSTICO</strong>
-            Tool didattico e di orientamento. La diagnosi finale richiede integrazione con morfologia HE completa, 
+            <strong>⚠️ STRUMENTO DI SUPPORTO DECISIONALE</strong>
+            Questo tool rende esplicito il ragionamento diagnostico basato sui dati inseriti. 
+            Non fornisce diagnosi definitiva. La diagnosi finale richiede integrazione con morfologia HE completa, 
             pannello IHC, studi molecolari e correlazione clinico-radiologica. 
             La responsabilità diagnostica rimane del patologo.
         </div>
@@ -463,9 +441,9 @@
         <div class="content" id="mainContent"></div>
         
         <div class="footer">
-            <p><strong>Salivary Gland Diagnostic Support Tool v4.0</strong></p>
+            <p><strong>Salivary Gland Diagnostic Support Tool v4.1</strong></p>
             <p>Basato su WHO Classification of Head and Neck Tumours, 5th Edition (2022)</p>
-            <p>Per uso didattico e di orientamento diagnostico | © 2025</p>
+            <p>Per uso didattico e di orientamento diagnostico | © 2026</p>
         </div>
     </div>
 
@@ -475,7 +453,7 @@
         const totalSteps = 9;
         let formData = {};
 
-        // ========== TUMOR DATABASE WITH SCORING WEIGHTS ==========
+        // ========== TUMOR DATABASE WITH SCORING WEIGHTS (v4.1 - UPDATED) ==========
         const tumorDatabase = {
             PA: {
                 name: "Adenoma Pleomorfo",
@@ -486,8 +464,14 @@
                     pni: { no: 3, yes: -5 },
                     necrosis: { no: 2, yes: -3 },
                     cytology: { low: 2, high: -2 },
-                    ki67: { low: 3, borderline: 0, high: -3, veryHigh: -5 },
-                    myoepithelial: { intact: 4, partial: 1, lost: -4 },
+                    ki67: { low: 2, borderline: 0, high: -1, veryHigh: -2 }, // MODIFICATO: pesi ridotti
+                    myoepithelial: { 
+                        intact: 4,
+                        partialPA: 2,
+                        indeterminate: 0,
+                        partialACC: -2,
+                        lost: -4
+                    }, // MODIFICATO: 5 livelli
                     lef1: { pos: 5, neg: -3 },
                     plag1: { pos: 5, neg: 0 },
                     hmga2: { pos: 4, neg: 0 },
@@ -504,8 +488,14 @@
                     pni: { no: -2, yes: 5 },
                     necrosis: { no: 0, yes: 2 },
                     cytology: { low: 0, high: 2 },
-                    ki67: { low: -1, borderline: 1, high: 3, veryHigh: 4 },
-                    myoepithelial: { intact: -3, partial: 2, lost: 4 },
+                    ki67: { low: -1, borderline: 0, high: 1, veryHigh: 2 }, // MODIFICATO: pesi ridotti
+                    myoepithelial: { 
+                        intact: -4,
+                        partialPA: -2,
+                        indeterminate: 0,
+                        partialACC: 2,
+                        lost: 4
+                    }, // MODIFICATO: 5 livelli
                     lef1: { pos: -5, neg: 3 },
                     cd117: { pos: 3, neg: -1 },
                     sox10: { pos: 3, neg: -2 },
@@ -518,15 +508,15 @@
                 behavior: "Maligno (grado-dipendente)",
                 hasGrading: true,
                 weights: {
-                    pattern: { mucoepidermoid: 5, squamous: 2 },
-                    mucousCells: { abundant: 3, scarce: -1 },
+                    pattern: { mucoepidermoid: 6, squamous: 3 }, // AUMENTATO: +1 per pattern, +1 per squamous
+                    mucousCells: { abundant: 4, scarce: -1 }, // AUMENTATO: +3 → +4 (cellule mucose patognomoniche)
                     cysticComponent: { prominent: 2, minimal: 0 },
                     necrosis: { no: 0, yes: 2 },
                     pni: { no: 0, yes: 3 },
-                    ki67: { low: 0, high: 2, veryHigh: 3 },
+                    ki67: { low: 0, borderline: 0, high: 1, veryHigh: 2 },
                     maml2: { pos: 5, neg: 0 },
-                    p63: { pos: 2, neg: -1 },
-                    ck5_6: { pos: 3, neg: -1 }
+                    p63: { pos: 3, neg: -1 }, // AUMENTATO: +2 → +3
+                    ck5_6: { pos: 4, neg: -1 } // AUMENTATO: +3 → +4
                 }
             },
             AciCC: {
@@ -564,7 +554,7 @@
                     pattern: { ductal: 5, apocrine: 4 },
                     cytology: { high: 3 },
                     necrosis: { yes: 2 },
-                    ki67: { high: 2, veryHigh: 3 },
+                    ki67: { low: 0, borderline: 0, high: 1, veryHigh: 2 }, // MODIFICATO: pesi ridotti
                     ar: { pos: 5, neg: -2 },
                     her2: { pos: 4, amplified: 5, neg: 0 },
                     gcdfp15: { pos: 3, neg: 0 },
@@ -840,7 +830,7 @@
             if (clinicalNotes) formData.clinicalNotes = clinicalNotes;
         }
 
-        // ========== SCORING ALGORITHM ==========
+        // ========== SCORING ALGORITHM (v4.1 - UPDATED) ==========
         function calculateAllScores() {
             const scores = {};
             const rationales = {};
@@ -906,49 +896,79 @@
                     }
                 }
                 
-                // Ki-67
+                // Ki-67 (MODIFICATO v4.1 - nuovi cut-off e warning)
                 if (weights.ki67 && formData.ki67) {
                     const ki67Val = parseFloat(formData.ki67);
                     let ki67Category;
-                    if (ki67Val <= 10) ki67Category = 'low';
-                    else if (ki67Val <= 15) ki67Category = 'borderline';
-                    else if (ki67Val <= 25) ki67Category = 'high';
-                    else ki67Category = 'veryHigh';
+                    let ki67Text;
+                    
+                    if (ki67Val <= 10) {
+                        ki67Category = 'low';
+                        ki67Text = 'compatibile con benignità';
+                    } else if (ki67Val <= 20) {
+                        ki67Category = 'borderline';
+                        ki67Text = 'zona grigia, non discriminante';
+                    } else if (ki67Val <= 30) {
+                        ki67Category = 'high';
+                        ki67Text = 'suggestivo malignità';
+                    } else {
+                        ki67Category = 'veryHigh';
+                        ki67Text = 'alto indice proliferativo';
+                    }
                     
                     const ki67Weight = weights.ki67[ki67Category];
-                    if (ki67Weight) {
+                    if (ki67Weight && ki67Weight !== 0) {
                         scores[tumorKey] += ki67Weight;
                         rationales[tumorKey].push({
-                            text: `Ki-67: ${formData.ki67}% (${ki67Category})`,
+                            text: `Ki-67: ${formData.ki67}% (${ki67Text}) ⚠️ parametro instabile`,
                             type: ki67Weight > 0 ? 'positive' : (ki67Weight < 0 ? 'negative' : 'neutral'),
                             tag: 'ihc'
                         });
                     }
                 }
                 
-                // Myoepithelial status
+                // Myoepithelial status (MODIFICATO v4.1 - sistema a 5 livelli)
                 if (weights.myoepithelial) {
                     const p63 = formData.p63;
                     const sma = formData.sma;
                     const calponin = formData.calponin;
                     
-                    let myoStatus = 'partial';
-                    if ((p63 === 'pos' || p63 === 'focal') && 
-                        (sma === 'pos' || sma === 'focal') && 
-                        (calponin === 'pos' || calponin === 'focal')) {
+                    let myoStatus;
+                    let statusText;
+                    
+                    // Logica a 5 livelli
+                    const posCount = [p63, sma, calponin].filter(m => m === 'pos').length;
+                    const focalCount = [p63, sma, calponin].filter(m => m === 'focal').length;
+                    const negCount = [p63, sma, calponin].filter(m => m === 'neg').length;
+                    
+                    if (posCount === 3 || (posCount === 2 && focalCount === 1)) {
+                        // Tutti diffusamente positivi o quasi
                         myoStatus = 'intact';
-                    } else if (p63 === 'neg' && sma === 'neg') {
+                        statusText = 'conservato (3/3 o 2/3 diffusi)';
+                    } else if ((posCount + focalCount >= 2) && p63 !== 'neg') {
+                        // Almeno 2 marker presenti, p63 non completamente perso
+                        myoStatus = 'partialPA';
+                        statusText = 'parziale, pattern PA-like';
+                    } else if (negCount === 3) {
+                        // Tutti negativi
                         myoStatus = 'lost';
+                        statusText = 'completamente perso';
+                    } else if (p63 === 'neg' || (p63 === 'focal' && sma === 'neg')) {
+                        // p63 perso/scarso, possibile ACC
+                        myoStatus = 'partialACC';
+                        statusText = 'parziale, pattern ACC-like (p63 scarso)';
+                    } else {
+                        // Pattern non classificabile
+                        myoStatus = 'indeterminate';
+                        statusText = 'indeterminato/discordante';
                     }
                     
                     const myoWeight = weights.myoepithelial[myoStatus];
-                    if (myoWeight) {
+                    if (myoWeight !== undefined) {
                         scores[tumorKey] += myoWeight;
-                        const statusText = myoStatus === 'intact' ? 'conservato' : 
-                                          (myoStatus === 'lost' ? 'perso' : 'parziale');
                         rationales[tumorKey].push({
                             text: `Mantello mioepiteliale: ${statusText}`,
-                            type: myoWeight > 0 ? 'positive' : 'negative',
+                            type: myoWeight > 0 ? 'positive' : (myoWeight < 0 ? 'negative' : 'neutral'),
                             tag: 'ihc'
                         });
                     }
@@ -963,7 +983,7 @@
                         if (markerWeight && markerWeight !== 0) {
                             scores[tumorKey] += markerWeight;
                             rationales[tumorKey].push({
-                                text: `${marker.toUpperCase()}: ${formData[marker] === 'pos' ? 'positivo' : 'negativo'}`,
+                                text: `${marker.toUpperCase()}: ${formData[marker] === 'pos' ? 'positivo' : (formData[marker] === 'amplified' ? 'amplificato' : 'negativo')}`,
                                 type: markerWeight > 0 ? 'positive' : 'negative',
                                 tag: 'ihc'
                             });
@@ -1045,6 +1065,18 @@
                         tag: 'morphology'
                     });
                 }
+                
+                // NUOVO v4.1: PENALTY per Ca ex-PA in trucut
+                if (tumorKey === 'CaExPA' && formData.specimenType === 'trucut') {
+                    const originalScore = scores[tumorKey];
+                    scores[tumorKey] = Math.round(scores[tumorKey] * 0.6); // Riduzione 40%
+                    
+                    rationales[tumorKey].push({
+                        text: `⚠️ Trucut: score ridotto da ${originalScore} a ${scores[tumorKey]} (diagnosi definitiva richiede pezzo operatorio)`,
+                        type: 'neutral',
+                        tag: 'morphology'
+                    });
+                }
             }
             
             return { scores, rationales };
@@ -1057,6 +1089,19 @@
             const maxScore = Math.max(...Object.values(scores), 1);
             const results = [];
             
+            // NUOVO v4.1: Classificazione marker molecolari
+            const pathognomonicMarkers = {
+                'ETV6-NTRK3': 'MASC',     // Patognomonico
+                'MYB-NFIB': 'ACC',        // Virtualmente patognomonico (~80%)
+                'NR4A3': 'AciCC'          // Altamente specifico
+            };
+            
+            const supportiveMarkers = {
+                'PLAG1': 'PA',            // Supportivo (~70%)
+                'HMGA2': 'PA',            // Supportivo (~30%)
+                'MAML2': 'MEC'            // Supportivo (~50-70%, prognostico)
+            };
+            
             for (const [tumorKey, score] of Object.entries(scores)) {
                 const tumor = tumorDatabase[tumorKey];
                 const normalizedScore = Math.max(0, score);
@@ -1067,9 +1112,23 @@
                 if (normalizedScore >= 12) confidence = 'high';
                 else if (normalizedScore >= 6) confidence = 'moderate';
                 
-                // Check for molecular confirmation
-                const hasMolecularEvidence = rationales[tumorKey]?.some(r => r.tag === 'molecular');
-                if (hasMolecularEvidence && normalizedScore >= 5) {
+                // Check for molecular confirmation - SISTEMA A 2 TIER
+                const hasPathognomonicMarker = 
+                    (tumorKey === 'MASC' && formData.etv6 === 'pos') ||
+                    (tumorKey === 'ACC' && formData.myb === 'pos') ||
+                    (tumorKey === 'AciCC' && formData.nr4a3 === 'pos');
+                
+                const hasSupportiveMarker = 
+                    (tumorKey === 'PA' && (formData.plag1 === 'pos' || formData.hmga2 === 'pos')) ||
+                    (tumorKey === 'MEC' && formData.maml2 === 'pos') ||
+                    (tumorKey === 'CaExPA' && (formData.plag1 === 'pos' || formData.hmga2 === 'pos'));
+                
+                // TIER 1: Marker patognomonico → MOLECULAR anche con score basso
+                if (hasPathognomonicMarker && normalizedScore >= 5) {
+                    confidence = 'molecular';
+                }
+                // TIER 2: Marker supportivo → MOLECULAR solo se score morfologico solido
+                else if (hasSupportiveMarker && normalizedScore >= 10) {
                     confidence = 'molecular';
                 }
                 
@@ -1107,6 +1166,24 @@
             // Sort by score descending
             results.sort((a, b) => b.score - a.score);
             
+            // NUOVO v4.1: Detect close scores (differenza <3 tra top 2)
+            let closeScoresWarning = null;
+            if (results.length >= 2 && results[0].score > 0) {
+                const scoreDiff = results[0].score - results[1].score;
+                if (scoreDiff > 0 && scoreDiff < 3) {
+                    closeScoresWarning = {
+                        diff: scoreDiff,
+                        top1: results[0].name,
+                        top2: results[1].name
+                    };
+                }
+            }
+            
+            // Aggiungi al primo risultato
+            if (closeScoresWarning) {
+                results[0].closeScoresWarning = closeScoresWarning;
+            }
+            
             // Filter out very low scores
             return results.filter(r => r.score > 0 || r.confidence === 'molecular');
         }
@@ -1121,7 +1198,7 @@
             report += `      SALIVARY GLAND DIAGNOSTIC SUPPORT - REPORT\n`;
             report += `════════════════════════════════════════════════════════════════\n\n`;
             report += `Data: ${date} ${time}\n`;
-            report += `Tool Version: 4.0 (WHO 2022)\n\n`;
+            report += `Tool Version: 4.1 (WHO 2022 - Scoring ottimizzato)\n\n`;
             
             report += `────────────────────────────────────────────────────────────────\n`;
             report += `DATI CLINICI\n`;
@@ -1338,6 +1415,17 @@
                             </div>
                         </div>
                         
+                        <div class="critical-box" id="caexpaWarning" style="display: none; margin-top: 15px;">
+                            <strong>⚠️ IMPORTANTE: Ca ex-PA in biopsia</strong><br>
+                            La diagnosi definitiva di Carcinoma ex-PA richiede:
+                            <ul style="margin: 10px 0 0 20px; font-size: 12px;">
+                                <li>Pezzo operatorio completo (non trucut/biopsia)</li>
+                                <li>Identificazione inequivocabile di PA residuo</li>
+                                <li>Misurazione dell'invasione oltre la capsula</li>
+                            </ul>
+                            In biopsia è possibile solo sospetto morfologico. Il tool applicherà un penalty score.
+                        </div>
+                        
                         <div class="buttons">
                             <button class="btn-secondary" disabled>← Indietro</button>
                             <button class="btn-primary" onclick="nextStep()">Avanti →</button>
@@ -1502,7 +1590,7 @@
                 `;
             }
             
-            // ==================== STEP 4: Base IHC ====================
+            // ==================== STEP 4: Base IHC (MODIFICATO v4.1) ====================
             else if (currentStep === 4) {
                 html = `
                     <div class="step active">
@@ -1546,10 +1634,12 @@
                                     </tbody>
                                 </table>
                                 <div class="info-box" style="margin-top: 10px; font-size: 11px;">
-                                    <strong>Interpretazione mantello:</strong><br>
-                                    • Intatto (3/3 pos) → PA favorito<br>
-                                    • Parziale → Borderline<br>
-                                    • Perso → ACC favorito
+                                    <strong>Interpretazione mantello (5 livelli - v4.1):</strong><br>
+                                    • <strong>Intatto:</strong> p63+, SMA+, Calponina+ diffusi → PA favorito (+4)<br>
+                                    • <strong>Parziale-PA:</strong> 2/3 positivi o focali → PA probabile (+2)<br>
+                                    • <strong>Indeterminato:</strong> Pattern confuso, discordante → neutro (0)<br>
+                                    • <strong>Parziale-ACC:</strong> p63 scarso/perso, SMA residua → ACC probabile (-2)<br>
+                                    • <strong>Perso:</strong> Tutti negativi → ACC favorito (-4)
                                 </div>
                             </div>
                             
@@ -1604,12 +1694,15 @@
                             <input type="number" id="ki67" min="0" max="100" step="0.1" 
                                    value="${formData.ki67 || ''}"
                                    placeholder="Inserisci valore 0-100">
-                            <div class="info-box" style="margin-top: 10px;">
-                                <strong>Cut-off Ki-67:</strong><br>
-                                • ≤10% → Suggestivo benignità<br>
-                                • 11-15% → Borderline<br>
-                                • 16-25% → Suggestivo malignità<br>
-                                • &gt;25% → Alto grado / Prognosi sfavorevole
+                            <div class="warning-box" style="margin-top: 10px;">
+                                <strong>⚠️ Ki-67: parametro instabile (v4.1)</strong><br>
+                                • ≤10% → Compatibile con benignità<br>
+                                • 10-20% → Zona grigia (non discriminante)<br>
+                                • &gt;20% → Sospetto per malignità<br>
+                                <br>
+                                <strong style="color: #c05621;">Nota critica:</strong> Hot spot selection, tecnica IHC e clone anticorpale 
+                                influenzano pesantemente il risultato. PA cellulati possono raggiungere 15-20% senza malignità.
+                                Interpretare sempre in contesto morfologico. Peso ridotto nello scoring.
                             </div>
                         </div>
                         
@@ -2056,7 +2149,7 @@
                 `;
             }
             
-            // ==================== STEP 9: Results ====================
+            // ==================== STEP 9: Results (MODIFICATO v4.1) ====================
             else if (currentStep === 9) {
                 saveData();
                 const results = computeResults();
@@ -2088,11 +2181,78 @@
                     }
                 }
                 
+                // NUOVO v4.1: Warning per score ravvicinati
+                let closeScoresHTML = '';
+                if (results[0]?.closeScoresWarning) {
+                    const w = results[0].closeScoresWarning;
+                    closeScoresHTML = `
+                        <div class="warning-box" style="margin-bottom: 20px;">
+                            <strong>⚠️ SCORE RAVVICINATI</strong><br>
+                            La differenza tra <strong>${w.top1}</strong> 
+                            e <strong>${w.top2}</strong> è solo di 
+                            <strong>${w.diff} punt${w.diff === 1 ? 'o' : 'i'}</strong>.<br>
+                            <br>
+                            Diagnosi differenziale serrata. Essenziale:
+                            <ul style="margin: 10px 0 0 20px; font-size: 12px;">
+                                <li>Rivalutare morfologia HE</li>
+                                <li>Completare pannello IHC (LEF1, SOX10, CD117)</li>
+                                <li>Considerare studi molecolari (FISH/NGS)</li>
+                                <li>Correlazione clinico-radiologica</li>
+                            </ul>
+                        </div>
+                    `;
+                }
+                
                 html = `
                     <div class="step active">
                         <h3>Step 9/${totalSteps}: Diagnosi Differenziale</h3>
                         
                         ${concordanceHTML}
+                        ${closeScoresHTML}
+                        
+                        ${formData.specimenType === 'fnab' ? `
+                            <div class="critical-box" style="margin-bottom: 20px;">
+                                <strong>⚠️ CAMPIONE CITOLOGICO (FNAB)</strong><br>
+                                La valutazione citologica presenta limitazioni intrinseche:
+                                <ul style="margin: 10px 0 0 20px; font-size: 12px;">
+                                    <li>Architettura tissutale <strong>non valutabile</strong></li>
+                                    <li>Invasione, PNI, mantello mioepiteliale <strong>non valutabili</strong></li>
+                                    <li>IHC possibile solo su cell block (se disponibile)</li>
+                                    <li>Grading istologico <strong>impossibile</strong></li>
+                                </ul>
+                                <br>
+                                <strong>Diagnosi definitiva richiede biopsia core o pezzo operatorio.</strong>
+                                <br>
+                                I risultati del tool vanno interpretati come <strong>orientamento citologico</strong>, 
+                                non diagnosi istologica definitiva.
+                            </div>
+                        ` : ''}
+                        
+                        <div class="info-box" style="margin-bottom: 20px;">
+                            <strong>📊 Come interpretare gli score (v4.1):</strong><br>
+                            Lo score riflette la somma pesata dei criteri morfologici, IHC e molecolari inseriti.
+                            <strong>Non è una probabilità diagnostica assoluta</strong>, ma un indice di compatibilità 
+                            con i dati forniti. Score simili richiedono integrazione con dati aggiuntivi.
+                            <br><br>
+                            <strong>Modifiche v4.1:</strong> Ki-67 con peso ridotto e cut-off aggiornati; 
+                            mantello mioepiteliale a 5 livelli; penalty per Ca ex-PA in trucut.
+                        </div>
+                        
+                        <div class="warning-box" style="margin-bottom: 20px;">
+                            <strong>⚠️ PATTERN NON CLASSIFICABILE?</strong><br>
+                            Questo tool copre le <strong>8 entità più comuni</strong> (PA, ACC, MEC, AciCC, MASC, SDC, Warthin, Ca ex-PA).
+                            <br><br>
+                            Se la morfologia <strong>non si adatta a nessuna</strong> delle diagnosi proposte, considera entità rare:
+                            <ul style="margin: 8px 0 0 20px; font-size: 12px;">
+                                <li><strong>EMC</strong> (Epithelial-Myoepithelial Ca): architettura bifasica netta</li>
+                                <li><strong>PAC</strong> (Polymorphous Adenocarcinoma): pattern papillare/cribriforme uniforme, ghiandole minori</li>
+                                <li><strong>HCCC</strong> (Hyalinizing Clear Cell Ca): cellule chiare + stroma ialino, EWSR1+</li>
+                                <li><strong>BCA</strong> (Basal Cell Adenoma): basaloide benigno, mantello intatto</li>
+                                <li><strong>Oncocitoma</strong>: oncocitario puro senza stroma linfoide</li>
+                            </ul>
+                            <br>
+                            In questi casi: <strong>consulta WHO 2022</strong> per criteri diagnostici o <strong>richiedi consulenza terziaria</strong>.
+                        </div>
                         
                         <div class="report-section">
                             <h4>📊 Ranking Diagnostico (click per dettagli)</h4>
@@ -2115,8 +2275,8 @@
                                     <div class="score-bar">
                                         <div class="score-fill" style="width: ${r.percentage}%"></div>
                                     </div>
-                                    <div style="font-size: 11px; color: #718096;">
-                                        Score: ${r.score} (${r.percentage}% del massimo)
+                                    <div style="font-size: 10px; color: #a0aec0; font-weight: 400;" title="Score comparativo interno (non lineare, non probabilistico). Riflette compatibilità relativa con i dati inseriti, NON certezza diagnostica. Valori assoluti non confrontabili tra casi diversi.">
+                                        Score indicativo: ${r.score} ±2 <span style="opacity: 0.6;">| ${r.percentage}% max</span> ℹ️
                                     </div>
                                     ${r.grading ? `
                                         <div style="margin-top: 10px; padding: 10px; background: #faf5ff; border-radius: 6px;">
@@ -2191,6 +2351,22 @@
             
             document.getElementById('mainContent').innerHTML = html;
             updateProgress();
+            
+            // NUOVO v4.1: Event listeners per warning Ca ex-PA
+            if (currentStep === 1) {
+                setTimeout(() => {
+                    document.querySelectorAll('input[name="specimenType"], input[name="priorPA"]').forEach(el => {
+                        el.addEventListener('change', function() {
+                            const isTrucut = document.querySelector('input[name="specimenType"]:checked')?.value === 'trucut';
+                            const hasPriorPA = document.querySelector('input[name="priorPA"]:checked')?.value === 'yes';
+                            const warning = document.getElementById('caexpaWarning');
+                            if (warning) {
+                                warning.style.display = (isTrucut && hasPriorPA) ? 'block' : 'none';
+                            }
+                        });
+                    });
+                }, 100);
+            }
         }
 
         // ========== INITIALIZATION ==========
