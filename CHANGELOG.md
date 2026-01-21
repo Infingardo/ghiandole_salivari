@@ -289,16 +289,28 @@ if (hasMolecularEvidence && normalizedScore >= 5) {
 
 **Logica:**
 ```javascript
-// Tier 1: patognomonico
+// Tier 1: patognomonico (score ≥5)
 if (hasPathognomonicMarker && score >= 5) → MOLECULAR
 
-// Tier 2: supportivo
+// Tier 2: supportivo (score ≥10)
 if (hasSupportiveMarker && score >= 10) → MOLECULAR
 ```
+
+**Threshold ≥5 per patognomonici (non zero assoluto):**
+- Anche marker patognomonici richiedono **minima compatibilità morfologica**
+- Previene "MOLECULAR confidence" su pattern completamente incompatibili
+- Esempio: ETV6-NTRK3+ con score MASC=2 (morfologia basaloide, no pattern acinare) → confidence MODERATE
+- La soglia ≥5 significa: "marker patognomonico in contesto morfologico almeno compatibile"
+
+**Narrativa esplicita aggiunta:**
+Info box in Step 9 ora spiega:
+- "Tier 1: marker patognomonico in contesto morfologico **almeno compatibile**"
+- "Tier 2: marker supportivo richiede morfologia **solida**"
 
 **Impatto:**
 - ↓ Falsi positivi "molecular confidence" con dati deboli
 - ↑ Appropriatezza gerarchizzazione marker
+- ↑ Trasparenza sui threshold (non più "magia" nascosta nel codice)
 
 ---
 
@@ -399,6 +411,298 @@ Frase chiave aggiunta nel header, sotto il titolo:
 **Differenza da disclaimer classico:**
 - Disclaimer classico: "non è responsabilità nostra" (legale)
 - Mission statement: "ecco cosa facciamo davvero" (epistemologico)
+
+---
+
+### 🐛 Bug Fix Post-Review (v4.1.1 - Micro-Patch)
+
+Dopo review approfondita, identificati e risolti 4 bug silenziosi:
+
+#### Bug #1: BCL2 Raccolto ma Non Pesato
+
+**Problema:**
+```javascript
+// Step 5: BCL2 raccolto dall'utente
+discMarkers = ['lef1', 'cd117', 'bcl2', ...]
+
+// Database: BCL2 NON presente in weights
+ACC.weights = { lef1: {...}, cd117: {...} }  // ❌ bcl2 assente
+```
+
+**Effetto:** Utente compila BCL2, appare nel report, ma peso = 0 (silenzioso, fuorviante)
+
+**Fix:**
+```javascript
+ACC.weights = {
+    bcl2: { pos: 1, neg: 0 }  // Marker addizionale debole
+}
+```
+
+---
+
+#### Bug #2: Pattern Secondario Raccolto ma Inutilizzato
+
+**Problema:**
+```javascript
+const secondaryPattern = document.querySelector(...)?.value;
+formData.secondaryPattern = secondaryPattern;
+// ❌ MAI usato nello scoring
+```
+
+**Effetto:** Utente pensa che conti, codice lo ignora
+
+**Fix:** **RIMOSSO** completamente (più pulito che micro-bonus inutile)
+
+---
+
+#### Bug #3: FNAB Warning ma Scoring Identico
+
+**Problema:**
+- Warning box presente e corretto
+- Ma score mostrato identico a istologia
+- Illusione: FNAB + tool = affidabilità istologica
+
+**Fix:**
+```javascript
+// Sotto ogni score, se specimenType === 'fnab':
+<span style="color: #c53030;">⚠️ Calcolato su dati parziali (FNAB)</span>
+```
+
+**Effetto:** Disclaimer esplicito su ogni diagnosis card
+
+---
+
+#### Bug #4: MEC Grading Troppo Permissivo
+
+**Problema:**
+```javascript
+// PRIMA (troppo permissivo)
+if (mecPoints > 0 || formData.pattern === 'mucoepidermoid') {
+    grading = ...  // Attiva anche con 1 solo parametro AFIP
+}
+```
+
+**Rischio:** Grading MEC attivato anche quando MEC score=3 e ACC score=18
+
+**Fix:**
+```javascript
+// DOPO (più restrittivo)
+if (formData.pattern === 'mucoepidermoid' || 
+    (mecPoints > 0 && normalizedScore >= 8)) {
+    grading = ...
+}
+```
+
+**Logica:** Grading MEC solo se pattern MEC O score MEC solido (≥8)
+
+---
+
+### 🛡️ Epistemological Framing (Miglioria ROI Altissimo)
+
+**Frase chiave aggiunta in 3 posizioni strategiche:**
+
+> **"Questo output descrive la coerenza interna dei dati inseriti, non la realtà biologica del tumore."**
+
+**Posizionamento:**
+1. **Report TXT header** (dopo versione, prima dati clinici)
+2. **Footer HTML** (sotto titolo, prima copyright)
+3. **Disclaimer Step 9** (nel warning-box finale)
+
+**Rationale filosofico:**
+- Distingue *coerenza interna* (ciò che il tool valuta) da *realtà biologica* (ciò che conta)
+- È una frase da patologo senior, non da disclaimer legale
+- Blindatura epistemologica totale contro overreliance
+- Complementare al mission statement ("rende esplicito il ragionamento")
+
+**Differenza critica:**
+| Frase | Focus | Effetto |
+|-------|-------|---------|
+| Mission statement | *Cosa fa il tool* | Costruttivo |
+| Epistemological framing | *Cosa NON è il tool* | Protettivo |
+
+**Impatto:**
+- ↓ Illusione "computer = verità biologica"
+- ↑ Consapevolezza limitazioni intrinseche del modello
+- Allinea tool a filosofia "explainable reasoning" vs "oracle prediction"
+
+---
+
+### 📐 Design Choices Documentate (v4.1 Philosophy)
+
+Dopo review finale pre-deploy, documentate scelte filosofiche consapevoli:
+
+#### Design Choice #1: CK7 Quasi-Inerte
+
+**Situazione:**
+- CK7 raccolto in Step 4 (marcatori generali)
+- Pesa solo in SDC (+2)
+- Ignorato in altre entità
+
+**Rationale clinico:**
+- CK7 è pan-carcinoma marker (sensibilità alta, specificità bassa)
+- In contesto ghiandole salivari: discriminante solo per SDC
+- Mantenuto in UI per completezza pannello, ma correttamente non discriminante
+
+**Potenziale gap percettivo:**
+- Utente: "CK7 è importante!" (pratica generale)
+- Tool: CK7 pesa solo SDC (specificità contesto)
+
+**Mitigazione:** Tooltip aggiunto in Step 4:
+```
+CK7 ℹ️ (hover: "Marker pan-carcinoma, discriminante solo per SDC in questo contesto")
+```
+
+**Alternativa rifiutata:** Pesare CK7 in tutte le entità (+1/-1) → rumore senza valore discriminante
+
+---
+
+#### Design Choice #2: FNAB Penalizzato Narrativamente, Non Numericamente
+
+**Situazione:**
+- FNAB ha warning critico rosso in Step 9
+- FNAB ha disclaimer "dati parziali" sotto ogni score
+- **MA**: score numerico NON ridotto (nessun penalty tipo trucut)
+
+**Scelta filosofica consapevole:**
+
+| Approccio | Strategia | Rationale |
+|-----------|-----------|-----------|
+| **Trucut Ca ex-PA** | Penalty numerico (-40%) | Rischio specifico su 1 diagnosi |
+| **FNAB generale** | Warning narrativo forte | Limitazione generale su TUTTE le diagnosi |
+
+**Filosofia sottostante:**
+- Non correggere i **numeri** (coerenza interna dati rimane valida)
+- Correggere la **lettura** (affidabilità interpretativa ridotta)
+- FNAB score 15 è "15 di coerenza su dati parziali", non "15 falso"
+
+**Rischio accettato:**
+- Utente superficiale può "leggere solo il numero"
+- Mitigato da: warning triplo (box rosso + disclaimer score + footer)
+
+**Alternativa per v4.2:**
+```javascript
+if (specimenType === 'fnab') {
+    scores[tumorKey] = Math.round(scores[tumorKey] * 0.85);
+}
+```
+Non implementata perché:
+- Più "onesto" mostrare coerenza interna pura
+- Warning narrativo è più esplicativo del penalty silenzioso
+
+---
+
+#### Design Choice #3: Pattern Secondario Assente
+
+**Situazione:**
+- Tool richiede pattern **unico** predominante
+- Nessun campo "pattern secondario"
+
+**Rationale clinico:**
+- Pattern secondario spesso crea confusione (utente non sa quale prioritizzare)
+- Meglio 1 pattern ben scelto che 3 pattern mal pesati
+- Nella pratica diagnostica: pattern predominante guida la diagnosi
+
+**Alternativa rifiutata:** 
+```javascript
+// Pattern secondario con micro-bonus (+1 se coerente)
+if (secondaryPattern && isCoherent(pattern, secondaryPattern)) {
+    score += 1;
+}
+```
+Problema: definire "coerenza" pattern diventa arbitrario
+
+**Scelta finale:** Pattern unico obbligatorio → clinicamente realistico
+
+---
+
+#### Design Choice #4: Mantello p63-Centrico (Consapevole)
+
+**Situazione attuale:**
+```javascript
+else if (p63 === 'neg' || (p63 === 'focal' && sma === 'neg')) {
+    myoStatus = 'partialACC';  // ACC-like
+}
+```
+
+**Logica:** Sistema fortemente p63-centrico (p63 negativo → ACC-like anche se altri marker presenti)
+
+**Giustificazione clinica:**
+- p63 è il marker mioepiteliale più affidabile
+- Perdita p63 = red flag per ACC (anche se SMA/calponina presenti)
+- Nella pratica: p63– guida verso ACC più di SMA/calponina
+
+**Raffinatezza futura (v5.0):**
+- Distinguere: p63– / calponina+ (pattern misto raro ma reale)
+- Per ora: priorità p63 è clinicamente difendibile
+
+**Non bug, ma scelta ponderata.**
+
+---
+
+#### Raffinatezze da Congresso (v4.1 Polish)
+
+Dopo review finale di livello senior, confermate scelte di design mature:
+
+**Mantello Mioepiteliale p63-Centrico:**
+- Sistema 5 livelli favorisce p63 come marker guida
+- Perdita p63 → ACC-like anche se SMA/calponina presenti
+- Giustificazione: p63 più affidabile nella pratica
+- Raffinatezza futura (v5.0): distinguere p63–/calponina+ (pattern misto raro)
+
+**Molecular Tiering Esplicitato:**
+- Frase aggiunta: "marker patognomonico in contesto morfologico almeno compatibile"
+- Threshold ≥5 ora trasparente (prima implicito)
+- Blindatura epistemologica completa contro misinterpretazione
+
+**Report TXT Solido:**
+- Limitazione criteri a 5 per diagnosi (slice(0,5))
+- Evita "refertone AI-style"
+- Equilibrio informazione vs usabilità
+
+**CK7 Tooltip Esplicativo:**
+- Aggiunto: "marker pan-epiteliale con basso potere discriminante"
+- Gestisce aspettative utente (percepito come importante, realmente poco discriminante)
+- Peso limitato nello scoring è scelta clinica corretta, ora esplicitata
+
+---
+
+### 🎨 Polish Finale (Micro-Raffinamenti Congressuali)
+
+Post-review ChatGPT, implementati micro-raffinamenti da "mostrare a congresso":
+
+#### Score Ultra-Neutralizzato
+
+**Modifica:**
+```css
+/* PRIMA */
+font-size: 10px; color: #a0aec0; font-weight: 400;
+
+/* DOPO (ultra-radical de-emphasis) */
+font-size: 9px; color: #cbd5e0; font-weight: 300;
+```
+
+**Effetto:** Numero score quasi invisibile, focus totale su confidence badge e rationale
+
+**Filosofia:** 
+- Score numerico = dettaglio tecnico per esperti
+- Confidence badge + narrativa = guida principale
+- De-feticizzazione totale del numero
+
+---
+
+#### Footer Ultra-Sintetico
+
+**Aggiunta sintesi 6 parole:**
+
+> **"Il tool modella il ragionamento, non la biologia."**
+
+**Completato da frase esplicativa:**
+> "Questo output descrive la coerenza interna dei dati inseriti, non la realtà biologica del tumore."
+
+**Effetto:**
+- Sintesi ultra-memorabile (6 parole)
+- + Spiegazione dettagliata
+- Blindatura epistemologica a 2 livelli
 
 ---
 

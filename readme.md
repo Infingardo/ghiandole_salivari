@@ -67,6 +67,17 @@ Sistema nuovo (v4.1):
 - Elenca limitazioni: architettura, PNI, mantello, grading
 - Esplicita necessità biopsia/chirurgia per diagnosi definitiva
 
+**Bug Fix (v4.1.1 Micro-Patch):**
+- BCL2 ora pesato (+1 ACC, marker addizionale debole)
+- Pattern secondario rimosso (raccolto ma mai usato)
+- FNAB: disclaimer "dati parziali" aggiunto sotto ogni score
+- MEC grading: ora richiede pattern MEC O score ≥8 (più restrittivo)
+
+**Epistemological Framing:**
+- Frase chiave aggiunta: *"Questo output descrive la coerenza interna dei dati inseriti, non la realtà biologica del tumore"*
+- Posizionamento: report TXT, footer HTML, disclaimer Step 9
+- Blindatura totale contro overreliance sul tool
+
 ---
 
 ## 📊 Sistema Multi-Diagnosi (dalla v4.0)
@@ -176,13 +187,22 @@ Ogni marcatore contribuisce con un peso specifico per ogni entità:
 
 | Tier | Marker | Soglia Score | Rationale |
 |------|--------|--------------|-----------|
-| **Tier 1: Patognomonici** | ETV6-NTRK3, MYB-NFIB, NR4A3 | ≥5 | Virtualmente specifici → confidence alta anche con morfologia debole |
-| **Tier 2: Supportivi** | PLAG1, HMGA2, MAML2 | ≥10 | Presenti solo in ~50-70% casi → richiedono supporto morfologico solido |
+| **Tier 1: Patognomonici** | ETV6-NTRK3, MYB-NFIB, NR4A3 | **≥5** | Marker patognomonico in contesto morfologico almeno compatibile |
+| **Tier 2: Supportivi** | PLAG1, HMGA2, MAML2 | **≥10** | Marker supportivo richiede morfologia solida per confidence molecular |
+
+**Note critiche:**
+- Anche marker **patognomonici** richiedono score ≥5 (non zero assoluto)
+  - Razionale: evitare "MOLECULAR confidence" su pattern completamente incompatibili
+  - Esempio: ETV6+ con score MASC=2 → morfologia troppo debole → confidence MODERATE
+- Marker **supportivi** richiedono score ≥10
+  - Razionale: MAML2/PLAG1 presenti solo in 50-70% casi → non possono "nobilitare" morfologia debole
+  - Esempio: MAML2+ con score MEC=6 → confidence MODERATE (non MOLECULAR)
 
 **Esempi:**
 - MEC score 6 + MAML2+ → confidence MODERATE (marker supportivo, score basso)
 - MEC score 12 + MAML2+ → confidence MOLECULAR (marker supportivo, score alto)
-- MASC score 6 + ETV6+ → confidence MOLECULAR (marker patognomonico)
+- MASC score 6 + ETV6+ → confidence MOLECULAR (marker patognomonico, score ≥5)
+- MASC score 3 + ETV6+ → confidence LOW (marker patognomonico, ma morfologia incompatibile)
 
 **NUOVO v4.1**: Alert automatico se score top 2 diagnosi differiscono <3 punti
 
@@ -441,3 +461,83 @@ ASST Fatebenefratelli-Sacco, Milano
 ---
 
 *"La diagnosi è del patologo, il tool è solo un supporto. Ma meglio un supporto ben calibrato."*
+
+
+---
+
+## 🗺️ Roadmap Futuro
+
+### **Polish Finale Completato (v4.1)**
+
+✅ **Score Ultra-Neutralizzato**
+- Font ridotto: 10px → 9px
+- Colore ultra-chiaro: #a0aec0 → #cbd5e0
+- Font-weight light: 400 → 300
+- Risultato: numero quasi invisibile, focus su confidence badge
+
+✅ **Footer Epistemologico a 2 Livelli**
+- Sintesi ultra-memorabile: "Il tool modella il ragionamento, non la biologia" (6 parole)
+- Spiegazione dettagliata: "coerenza interna vs realtà biologica"
+- Blindatura epistemologica completa
+
+---
+
+### **v4.2 (Possibili Miglioramenti Opzionali)**
+
+Considerazioni post-review da senior:
+
+**1. FNAB Penalty Numerica (opzionale)**
+- Status v4.1: warning narrativo forte, score invariato
+- Opzione futura: `score * 0.85` per FNAB
+- Decisione attuale: mantenere coerenza interna + warning esplicativo
+
+**2. Teaching Mode (didattico)** 🎓
+- Modalità che spiega peso di ogni criterio in tempo reale
+- Esempio: "p63+ → +3 perché marker mioepiteliale affidabile"
+- Impatto: fortissimo per formazione specializzandi
+- **Implementazione tecnica:**
+  ```javascript
+  const teachingMode = true;  // Toggle
+  
+  // Database con campo teaching:
+  PA: {
+      weights: { pattern: { pleomorphic: 5 } },
+      teaching: {
+          pattern_pleomorphic: "Pattern pleomorfo patognomonico PA. 
+                                Score +5 per alta specificità."
+      }
+  }
+  
+  // UI: pulsante toggle + spiegazioni espandibili
+  if (teachingMode) {
+      showTeachingExplanations(rationales);
+  }
+  ```
+- **UI Mock-up:**
+  ```
+  ✓ p63 positivo → +3 punti
+    [?] Perché +3? p63 è il marker mioepiteliale più affidabile.
+        Peso +3 (forte) perché specifico per mantello.
+        Se fosse solo SMA, sarebbe +2 (meno specifico).
+  ```
+- **Beneficio:** Trasforma tool da "black box" a "libro di testo interattivo"
+- **Complessità:** Alta (refactoring database + UI)
+- **Priorità:** Media-alta per v4.2
+
+**3. Export PDF Formattato**
+- Status: export TXT funzionale
+- Futuro: PDF con tabelle, grafici, formatting professionale
+
+### **v5.0 (Maggiori Ristrutturazioni)**
+
+**1. Pattern Mioepiteliale Ultra-Fine**
+- Distinguere: p63–/calponina+ (pattern misto raro)
+- Attuale: sistema p63-centrico clinicamente difendibile
+
+**2. Integrazione WHO vs AFIP Grading MEC**
+- Comparazione WHO 2022 vs AFIP side-by-side
+
+**3. AI-Assisted Pattern Recognition (sperimentale)**
+- Upload immagini HE → suggerimento pattern automatico
+- Disclaimer: "suggerimento AI, verifica umana obbligatoria"
+
