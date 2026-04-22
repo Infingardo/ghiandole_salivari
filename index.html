@@ -3,785 +3,634 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Salivary Gland Diagnostic Support Tool v4.4.2</title>
+    <title>Salivary Gland Tool v5.1-beta</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', system-ui, Arial, sans-serif; background: linear-gradient(135deg, #1a365d 0%, #2d3748 100%); min-height: 100vh; padding: 20px; }
-        .container { max-width: 1100px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; }
-        .header { background: linear-gradient(135deg, #1a365d 0%, #2d3748 100%); color: white; padding: 30px; text-align: center; }
-        .header h1 { font-size: 26px; margin-bottom: 5px; }
-        .version-badge { display: inline-block; background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 20px; font-size: 11px; margin-top: 8px; }
-        .main-disclaimer { background: #fff3cd; border: 2px solid #ffc107; color: #856404; padding: 20px; margin: 0; font-weight: 600; text-align: center; }
-        .main-disclaimer strong { display: block; font-size: 16px; margin-bottom: 8px; color: #dc3545; }
-        .progress-bar { height: 6px; background: #e0e0e0; }
-        .progress-fill { height: 100%; background: linear-gradient(90deg, #1a365d 0%, #4a5568 100%); transition: width 0.3s ease; }
-        .step-indicator { display: flex; justify-content: center; padding: 15px; background: #f7fafc; border-bottom: 1px solid #e2e8f0; flex-wrap: wrap; gap: 5px; }
-        .step-dot { width: 28px; height: 28px; border-radius: 50%; background: #e2e8f0; color: #718096; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; transition: all 0.3s; }
-        .step-dot.active { background: #1a365d; color: white; }
-        .step-dot.completed { background: #38a169; color: white; }
-        .content { padding: 40px; }
-        .step { display: none; }
-        .step.active { display: block; animation: fadeIn 0.3s ease; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        h3 { font-size: 20px; color: #1a365d; margin-bottom: 20px; font-weight: 600; }
-        h4 { font-size: 16px; color: #2d3748; margin: 20px 0 12px 0; font-weight: 600; }
-        .form-group { margin-bottom: 20px; }
-        .form-group label { display: block; margin-bottom: 8px; color: #2d3748; font-weight: 500; font-size: 14px; }
-        .form-group label .required { color: #e53e3e; }
-        input[type="number"], input[type="text"], select, textarea { width: 100%; padding: 10px 12px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 14px; font-family: inherit; transition: all 0.2s; }
-        input[type="number"]:focus, input[type="text"]:focus, select:focus, textarea:focus { outline: none; border-color: #1a365d; box-shadow: 0 0 0 3px rgba(26,54,93,0.1); }
-        textarea { resize: vertical; min-height: 80px; }
-        .radio-group, .checkbox-group { margin-top: 10px; }
-        .radio-group label, .checkbox-group label { display: flex; align-items: flex-start; margin: 10px 0; cursor: pointer; padding: 8px 12px; border-radius: 6px; transition: background 0.2s; }
-        .radio-group label:hover, .checkbox-group label:hover { background: #f7fafc; }
-        input[type="radio"], input[type="checkbox"] { margin-right: 10px; margin-top: 3px; flex-shrink: 0; }
-        .info-box { background: #ebf8ff; border-left: 4px solid #3182ce; padding: 15px; margin: 20px 0; border-radius: 0 6px 6px 0; font-size: 13px; color: #2c5282; }
-        .warning-box { background: #fffaf0; border-left: 4px solid #dd6b20; padding: 15px; margin: 20px 0; border-radius: 0 6px 6px 0; font-size: 13px; color: #c05621; }
-        .critical-box { background: #fff5f5; border-left: 4px solid #c53030; padding: 15px; margin: 20px 0; border-radius: 0 6px 6px 0; font-size: 13px; color: #c53030; }
-        .success-box { background: #f0fff4; border-left: 4px solid #38a169; padding: 15px; margin: 20px 0; border-radius: 0 6px 6px 0; font-size: 13px; color: #276749; }
-        .buttons { display: flex; gap: 12px; margin-top: 40px; }
-        button { padding: 12px 24px; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.3s; }
-        .btn-primary { background: linear-gradient(135deg, #1a365d 0%, #2d3748 100%); color: white; flex: 1; }
-        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(26,54,93,0.3); }
-        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-        .btn-secondary { background: #e2e8f0; color: #2d3748; }
-        .btn-secondary:hover { background: #cbd5e0; }
-        table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 15px 0; }
-        th { background: #f7fafc; padding: 12px 10px; text-align: left; font-weight: 600; border-bottom: 2px solid #1a365d; color: #1a365d; }
-        td { padding: 10px; border-bottom: 1px solid #e2e8f0; }
-        tr:hover { background: #f7fafc; }
-        .diagnosis-card { background: #f7fafc; border: 1px solid #e2e8f0; border-left: 5px solid #718096; border-radius: 8px; padding: 18px; margin: 12px 0; cursor: pointer; transition: all 0.3s; }
-        .diagnosis-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); transform: translateX(4px); }
-        .diagnosis-card.high { border-left-color: #38a169; background: #f0fff4; }
-        .diagnosis-card.moderate { border-left-color: #dd6b20; background: #fffaf0; }
-        .diagnosis-card.low { border-left-color: #e53e3e; background: #fff5f5; }
-        .diagnosis-card.molecular { border-left-color: #805ad5; background: #faf5ff; }
-        .diagnosis-card .header-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
-        .diagnosis-card .diagnosis-name { font-weight: 700; font-size: 15px; color: #1a365d; }
-        .diagnosis-card .confidence-badge { padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
-        .confidence-badge.high { background: #c6f6d5; color: #276749; }
-        .confidence-badge.moderate { background: #feebc8; color: #c05621; }
-        .confidence-badge.low { background: #fed7d7; color: #c53030; }
-        .confidence-badge.molecular { background: #e9d8fd; color: #553c9a; }
-        .diagnosis-card .score-bar { height: 6px; background: #e2e8f0; border-radius: 3px; margin: 10px 0; overflow: hidden; }
-        .diagnosis-card .score-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
-        .diagnosis-card.high .score-fill { background: #38a169; }
-        .diagnosis-card.moderate .score-fill { background: #dd6b20; }
-        .diagnosis-card.low .score-fill { background: #e53e3e; }
-        .diagnosis-card.molecular .score-fill { background: #805ad5; }
-        .diagnosis-card .rationale { display: none; font-size: 12px; color: #4a5568; margin-top: 12px; padding-top: 12px; border-top: 1px dashed #cbd5e0; }
-        .diagnosis-card.expanded .rationale { display: block; }
-        .rationale-item { display: flex; align-items: flex-start; margin: 6px 0; }
-        .rationale-item.positive::before { content: "✓"; color: #38a169; font-weight: bold; margin-right: 8px; }
-        .rationale-item.negative::before { content: "✗"; color: #e53e3e; font-weight: bold; margin-right: 8px; }
-        .rationale-item.neutral::before { content: "•"; color: #718096; margin-right: 8px; }
-        .rationale-item.warning::before { content: "⚠️"; margin-right: 8px; }
-        .grading-box { background: #faf5ff; border: 2px solid #805ad5; border-radius: 8px; padding: 20px; margin: 20px 0; }
-        .grading-box h4 { color: #553c9a; margin-top: 0; }
-        .ihc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
-        .ihc-section { background: #f7fafc; border-radius: 8px; padding: 15px; }
-        .ihc-section h5 { color: #1a365d; font-size: 14px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid #e2e8f0; }
-        .footer { text-align: center; font-size: 12px; color: #718096; margin-top: 30px; padding: 20px; background: #f7fafc; border-top: 2px solid #e2e8f0; }
-        .evidence-tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; margin-left: 8px; }
-        .evidence-tag.molecular { background: #805ad5; color: white; }
-        .evidence-tag.morphology { background: #3182ce; color: white; }
-        .evidence-tag.ihc { background: #38a169; color: white; }
-        @media (max-width: 768px) { .content { padding: 20px; } .ihc-grid { grid-template-columns: 1fr; } .buttons { flex-direction: column; } }
+        *{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',system-ui,Arial,sans-serif;background:linear-gradient(135deg,#1a365d 0%,#2d3748 100%);min-height:100vh;padding:20px;color:#2d3748}
+        .container{max-width:1200px;margin:0 auto;background:#fff;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden}
+        .header{background:linear-gradient(135deg,#1a365d 0%,#2d3748 100%);color:#fff;padding:30px 20px;text-align:center}
+        .header h1{font-size:clamp(18px,5vw,24px);margin-bottom:8px}
+        .header p{font-size:12px;margin:6px 0;opacity:.9}
+        .version-badge{display:inline-block;background:rgba(255,255,255,.2);padding:5px 10px;border-radius:14px;font-size:10px;margin-top:8px;font-weight:600}
+        .disclaimer{background:#fff3cd;border-left:5px solid #ffc107;color:#856404;padding:12px;font-weight:600;font-size:12px;text-align:center}
+        .progress-bar{height:4px;background:#e0e0e0}
+        .progress-fill{height:100%;background:linear-gradient(90deg,#1a365d,#4a5568);transition:width .3s}
+        .step-indicator{display:flex;justify-content:center;padding:10px;background:#f7fafc;border-bottom:1px solid #e2e8f0;flex-wrap:wrap;gap:4px}
+        .step-dot{width:28px;height:28px;border-radius:50%;background:#e2e8f0;color:#718096;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;transition:all .2s}
+        .step-dot.active{background:#1a365d;color:#fff}
+        .step-dot.completed{background:#38a169;color:#fff}
+        .content{padding:clamp(20px,4vw,35px)}
+        .step{display:none}
+        .step.active{display:block;animation:fadeIn .3s}
+        @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+        h3{font-size:clamp(14px,3.5vw,18px);color:#1a365d;margin-bottom:16px;font-weight:600}
+        h4{font-size:12px;color:#2d3748;margin:12px 0 8px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;opacity:.8}
+        .form-group{margin-bottom:15px}
+        .form-group>label{display:block;margin-bottom:6px;color:#2d3748;font-weight:500;font-size:12px}
+        .guidance-text{font-size:10px;color:#4a5568;font-style:italic;margin:4px 0 8px;padding:6px 8px;background:#f0f4f8;border-left:2px solid #3182ce;border-radius:2px;line-height:1.4}
+        .radio-group label{display:flex;align-items:flex-start;margin:6px 0;cursor:pointer;padding:6px 8px;border-radius:4px;transition:background .2s;font-size:12px}
+        .radio-group label:hover{background:#f0f4f8}
+        input[type="radio"]{margin-right:6px;margin-top:2px;width:14px;height:14px;flex-shrink:0;accent-color:#1a365d;cursor:pointer}
+        .info-box{background:#ebf8ff;border-left:3px solid #3182ce;padding:10px;margin:12px 0;border-radius:0 3px 3px 0;font-size:11px;color:#2c5282;line-height:1.4}
+        .warning-box{background:#fffaf0;border-left:3px solid #dd6b20;padding:10px;margin:12px 0;border-radius:0 3px 3px 0;font-size:11px;color:#c05621;line-height:1.4}
+        .buttons{display:flex;gap:8px;margin-top:25px;flex-wrap:wrap}
+        button{padding:clamp(8px,1.5vw,10px) clamp(12px,2.5vw,18px);border:none;border-radius:4px;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;min-height:36px}
+        .btn-primary{background:linear-gradient(135deg,#1a365d,#2d3748);color:#fff;flex:1;min-width:100px}
+        .btn-primary:hover{box-shadow:0 4px 8px rgba(26,54,93,.2)}
+        .btn-secondary{background:#e2e8f0;color:#2d3748;min-width:80px}
+        .btn-secondary:hover{background:#cbd5e0}
+        .btn-reset{background:#fed7d7;color:#c53030;min-width:80px}
+        .btn-reset:hover{background:#fc8181}
+        .entity-card{background:#f7fafc;border:1px solid #e2e8f0;border-radius:5px;padding:12px;margin:10px 0;font-size:11px}
+        .entity-card.passed{border-left:4px solid #38a169;background:#f0fff4}
+        .entity-card.excluded{border-left:4px solid #e53e3e;background:#fff5f5}
+        .entity-card.outside{border-left:4px solid #805ad5;background:#faf5ff}
+        .entity-title{font-weight:700;font-size:12px;margin-bottom:4px}
+        .entity-passed{color:#276749}
+        .entity-excluded{color:#c53030}
+        .entity-outside{color:#553c9a}
+        .entity-reason{color:#4a5568;font-size:10px;margin-top:4px;line-height:1.4}
+        .pro-con{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:8px 0;font-size:10px}
+        .pro{background:#f0fff4;border-left:2px solid #38a169;padding:6px;color:#276749}
+        .con{background:#fff5f5;border-left:2px solid #e53e3e;padding:6px;color:#c53030}
+        .missing{background:#fffaf0;border-left:2px solid #dd6b20;padding:6px;color:#c05621;margin-top:6px}
+        .abandon{background:#faf5ff;border-left:3px solid #6b46c1;padding:6px 8px;color:#553c9a;margin-top:6px;font-size:10px;line-height:1.5}
+        .mimic{background:#fffde7;border-left:3px solid #d69e2e;padding:6px 8px;color:#744210;margin-top:4px;font-size:10px;line-height:1.5}
+        .data-quality-warning{background:#fed7d7;padding:8px;border-radius:3px;margin:8px 0;font-weight:500;color:#c53030;font-size:10px}
+        .contradictory-warning{background:#feebc8;padding:8px;border-radius:3px;margin:8px 0;font-weight:500;color:#c05621;font-size:10px}
+        .next-test{background:#c6f6d5;padding:8px;border-radius:3px;margin:8px 0;font-weight:500;color:#276749;font-size:10px}
+        .gates-summary{background:#f0fff4;border:1px solid #9ae6b4;border-radius:5px;padding:12px;margin:12px 0;font-size:11px}
+        .gate-caution{background:#fffaf0;border-left:3px solid #dd6b20;padding:6px 8px;color:#7b341e;margin:3px 0;font-size:10px;border-radius:0 3px 3px 0}
+        .gate-item{margin:4px 0 4px 16px;font-size:10px;color:#2d3748}
+        .coverage-disclaimer{background:#ebf8ff;border-left:4px solid #3182ce;padding:10px;margin:12px 0;border-radius:0 3px 3px 0;font-size:10px;color:#2c5282;line-height:1.5;font-weight:500}
+        @media(max-width:768px){.content{padding:18px}.buttons{flex-direction:column}.btn-primary,.btn-secondary,.btn-reset{width:100%;margin:0}.pro-con{grid-template-columns:1fr}}
     </style>
 </head>
 <body>
 <div class="container">
     <div class="header">
-        <h1>🔬 Salivary Gland Diagnostic Support Tool</h1>
-        <p style="font-size:15px;font-weight:600;margin:12px 0;color:#e8f4f8;">Questo tool non fornisce diagnosi. Rende esplicito il ragionamento diagnostico.</p>
-        <p style="font-size:13px;opacity:0.9;">Supporto decisionale per neoplasie epiteliali delle ghiandole salivari</p>
-        <div class="version-badge">v4.4.2 | WHO 2022 | CaExPA on-render · SESSION_KEYS backward-compat · versioning coerente</div>
+        <h1>🔬 Salivary Gland Tool v5.1-beta</h1>
+        <p>Bug Fixes + Clinical Pragmatism</p>
+        <div class="version-badge">v5.1-beta | Ghiandola-consapevole | Pro/Con/Mancante | Abbandono | Mimica</div>
     </div>
-    <div class="main-disclaimer">
-        <strong>⚠️ STRUMENTO DI SUPPORTO DECISIONALE</strong>
-        Non fornisce diagnosi definitiva. La diagnosi finale richiede morfologia HE completa, pannello IHC, studi molecolari e correlazione clinico-radiologica. Responsabilità diagnostica: patologo.
-    </div>
+    <div class="disclaimer">⚠️ v5.1-beta &nbsp;·&nbsp; Questo tool orienta il ragionamento diagnostico — non sostituisce il giudizio diagnostico. Ordina ipotesi esplicite da morfologia e dati ancillari selezionati. La diagnosi finale resta dipendente dal campione e dal patologo.</div>
     <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
     <div class="step-indicator" id="stepIndicator"></div>
     <div class="content" id="mainContent"></div>
-    <div class="footer">
-        <p><strong>Salivary Gland Diagnostic Support Tool v4.4.2</strong></p>
-        <p style="font-size:14px;font-weight:600;color:#2d3748;margin:10px 0;">Il tool modella il ragionamento, non la biologia.</p>
-        <p style="font-size:12px;color:#4a5568;margin:8px 0;">Questo output descrive la coerenza interna dei dati inseriti, non la realtà biologica del tumore.</p>
-        <p>WHO Classification of Head and Neck Tumours, 5th Edition (2022) | © 2026</p>
-    </div>
 </div>
 
 <script>
-let currentStep = 1;
-const totalSteps = 9;
-let formData = {};
-const SESSION_KEYS = ['sgdt_v442_session', 'sgdt_v441_session', 'sgdt_v44_session'];
+let currentStep=1,totalSteps=6,formData={};const SESSION_KEY='sgdt_v5_1_beta_session';
 
-function saveSession() {
-    try { sessionStorage.setItem(SESSION_KEYS[0], JSON.stringify({step:currentStep,data:formData})); } catch(e){}
-}
-function loadSession() {
-    try {
-        for(const key of SESSION_KEYS) {
-            const raw=sessionStorage.getItem(key);
-            if(!raw) continue;
-            const r=JSON.parse(raw);
-            if(r&&r.data){formData=r.data;currentStep=r.step||1;return true;}
-        }
-    } catch(e){}
-    return false;
-}
-function clearSession() {
-    try { SESSION_KEYS.forEach(k=>sessionStorage.removeItem(k)); } catch(e){}
-}
-
-function validateNumericField(id,min,max) {
-    const el=document.getElementById(id);
-    if(!el||el.value==='') return true;
-    const v=parseFloat(el.value);
-    if(isNaN(v)||v<min||v>max){el.style.borderColor='#c53030';el.style.boxShadow='0 0 0 3px rgba(197,48,48,0.2)';el.title=`Range: ${min}–${max}`;return false;}
-    el.style.borderColor='';el.style.boxShadow='';el.title='';return true;
-}
-
-const patterns = {
-    basaloid:       {name:"Basaloide",        desc:"Cellule basali uniformi, nuclei ipercromici, poco citoplasma"},
-    cribriform:     {name:"Cribriforme",       desc:"Pseudocisti con materiale ialino/basofilo PAS+"},
-    acinic:         {name:"Acinare",           desc:"Cellule sierose con granuli zimogeni basofili"},
-    oncocytic:      {name:"Oncocitario",       desc:"Cellule eosinofile granulari ricche di mitocondri"},
-    mucoepidermoid: {name:"Mucoepidermoide",   desc:"Mix di cellule mucose, intermedie e squamoidi"},
-    pleomorphic:    {name:"Pleomorfo/Bifasico",desc:"Componente epiteliale + stroma mixoide/condroide"},
-    clear_cell:     {name:"Cellule Chiare",    desc:"Citoplasma otticamente vuoto (glicogeno)"},
-    papillary:      {name:"Papillare",         desc:"Strutture papillari con assi fibrovascolari"},
-    ductal:         {name:"Duttale/Apocrino",  desc:"Strutture duttali, aspetto apocrino, comedonecrosi"},
-    solid:          {name:"Solido",            desc:"Nidi solidi senza pattern specifico"}
-};
-
-// ========== DATABASE v4.4 ==========
-// FIX 1: MASC → SC (Secretory Carcinoma, WHO 2022)
-// FIX 2: DOG1 in SC: era pos:+3, ora pos:-2 (SC e' DOG1-negativa)
-// FIX 3: HER2 in SDC gestito separatamente con schema 0/1+/2+/3+/amplified
-// FIX 5: MYB wording aggiornato nel rationale (non nel database, ma nella logica rationale)
-const tumorDB = {
-    PA: {
-        name:"Adenoma Pleomorfo", fullName:"Adenoma Pleomorfo (Mixed Tumor)", behavior:"Benigno",
-        w:{ pattern:{pleomorphic:5,basaloid:-2,cribriform:-3}, pni:{no:3,yes:-5}, necrosis:{no:2,yes:-3},
-            cytology:{low:2,high:-2}, ki67:{low:2,borderline:0,high:-1,veryHigh:-2},
-            lef1:{pos:5,neg:-3}, plag1:{pos:5,neg:0}, hmga2:{pos:4,neg:0}, myb:{pos:-5,neg:2} }
-    },
-    ACC: {
-        name:"Carcinoma Adenoidocistico", fullName:"Adenoid Cystic Carcinoma (ACC)", behavior:"Maligno",
-        w:{ pattern:{basaloid:4,cribriform:5,pleomorphic:-3}, pni:{no:-2,yes:5}, necrosis:{no:0,yes:2},
-            cytology:{low:0,high:2}, ki67:{low:-1,borderline:0,high:1,veryHigh:2},
-            lef1:{pos:-5,neg:3}, cd117:{pos:3,neg:-1}, sox10:{pos:3,neg:-2}, myb:{pos:5,neg:-1} }
-    },
-    MEC: {
-        name:"Carcinoma Mucoepidermoide", fullName:"Mucoepidermoid Carcinoma (MEC)", behavior:"Maligno (grado-dipendente)",
-        // v4.4.1: rimosso pattern squamous (irraggiungibile da UI — via morta)
-        w:{ pattern:{mucoepidermoid:6}, necrosis:{no:0,yes:2}, pni:{no:0,yes:3},
-            ki67:{low:0,borderline:0,high:1,veryHigh:2}, maml2:{pos:5,neg:0}, p63:{pos:3,neg:-1}, ck5_6:{pos:4,neg:-1} }
-    },
-    AciCC: {
-        name:"Carcinoma a Cellule Acinari", fullName:"Acinic Cell Carcinoma (AciCC)", behavior:"Maligno (basso grado)",
-        w:{ pattern:{acinic:5}, dog1:{pos:4,neg:-2}, sox10:{pos:3,neg:0}, mammaglobin:{pos:3,neg:0}, nr4a3:{pos:6,neg:0}, s100:{pos:2,neg:0} }
-    },
-    SC: {
-        // FIX 1: ex-MASC, rinominato Secretory Carcinoma (SC) — WHO 2022
-        // FIX 2: DOG1 corretto — SC e' DOG1-negativa; pos diffuso spinge CONTRO SC (non verso)
-        name:"Carcinoma Secretorio", fullName:"Secretory Carcinoma (SC) [ex-MASC, WHO 2022]", behavior:"Maligno (basso grado)",
-        w:{ pattern:{acinic:2,papillary:3},
-            dog1:{pos:-2,neg:1},   // FIX: era pos:+3 — ERRORE SCIENTIFICO CORRETTO
-            mammaglobin:{pos:4,neg:-1}, s100:{pos:3,neg:-1}, etv6:{pos:7,neg:0}, pantrk:{pos:4,neg:0} }
-    },
-    SDC: {
-        name:"Carcinoma Duttale Salivare", fullName:"Salivary Duct Carcinoma (SDC)", behavior:"Maligno (alto grado)",
-        w:{ pattern:{ductal:5}, cytology:{high:3}, necrosis:{yes:2},
-            ki67:{low:0,borderline:0,high:1,veryHigh:2},
-            ar:{pos:5,neg:-2}, gcdfp15:{pos:3,neg:0}, ck7:{pos:2,neg:-1}
-            // HER2: gestito separatamente con schema 0/1+/2+/3+/amplified (FIX 3)
-        }
-    },
-    Warthin: {
-        name:"Tumore di Warthin", fullName:"Warthin Tumor (Cystadenolymphoma)", behavior:"Benigno",
-        w:{ pattern:{oncocytic:3,papillary:3}, lymphoidStroma:{present:5,absent:-5}, gland:{parotid:3,other:-3} }
-    },
-    CaExPA: {
-        name:"Carcinoma ex-Adenoma Pleomorfo", fullName:"Carcinoma ex Pleomorphic Adenoma", behavior:"Maligno",
-        w:{ priorPA:{yes:5,no:-3}, longHistory:{yes:3,no:0}, rapidGrowth:{yes:3,no:0},
-            residualPA:{present:4,absent:0}, plag1:{pos:3,neg:0}, hmga2:{pos:3,neg:0} }
-    }
-};
-
-// FIX 3: HER2 scoring ASCO/CAP per SDC
-// v4.4.1: her2Weights '2plus' abbassato da 2 a 0 — 2+ è equivoco (richiede ISH), non conta senza conferma
-const her2Weights = {'0':0,'1plus':0,'2plus':0,'3plus':4,'amplified':5};
-const her2Labels = {
-    '0':         {label:'HER2 0',           text:'Negativo',                                           color:'#e2e8f0', tc:'#4a5568'},
-    '1plus':     {label:'HER2 1+',          text:'Negativo (colorazione faint/incompleta >10%)',        color:'#e2e8f0', tc:'#4a5568'},
-    '2plus':     {label:'HER2 2+',          text:'Equivoco → ISH richiesto per decisione terapeutica', color:'#fefce8', tc:'#92400e'},
-    '3plus':     {label:'HER2 3+',          text:'Positivo (colorazione intensa circolare >10%)',       color:'#fef3c7', tc:'#b45309'},
-    'amplified': {label:'HER2 amplificato', text:'🎯 ISH+ — TARGET TERAPEUTICO (trastuzumab)',         color:'#faf5ff', tc:'#553c9a'}
-};
-
-const gradingSystems = {
-    ACC: { calc:(s)=>s<30?{grade:"I",desc:"Tubulare/Cribriforme",prog:"Migliore"}:s<=70?{grade:"II",desc:"Misto",prog:"Intermedia"}:{grade:"III",desc:"Solido >70%",prog:"Peggiore"} },
-    MEC: {
-        params:[
-            {id:"mec_cystic",  label:"Componente cistica <20%",  pts:2},
-            {id:"mec_neural",  label:"Invasione perineurale",     pts:2},
-            {id:"mec_necrosis",label:"Necrosi",                   pts:3},
-            {id:"mec_mitoses", label:"≥4 mitosi/10 HPF",         pts:3},
-            {id:"mec_anaplasia",label:"Anaplasia",                 pts:4}
-        ],
-        calc:(p)=>p<=4?{grade:"Low",desc:"Basso grado (0-4pt)",prog:"Eccellente"}:p<=6?{grade:"Intermediate",desc:"Grado intermedio (5-6pt)",prog:"Intermedia"}:{grade:"High",desc:"Alto grado (≥7pt)",prog:"Sfavorevole"}
-    },
-    CaExPA: { calc:(mm)=>mm<=1.5?{grade:"Minimamente Invasivo",desc:"≤1.5mm oltre capsula",prog:"Eccellente (simile PA)"}:mm<=4?{grade:"Invasivo",desc:"1.5-4mm",prog:"Intermedia"}:{grade:"Ampiamente Invasivo",desc:">4mm",prog:"Riservata"} }
-};
-
-function computeMyoStatus(p63,sma,cal) {
-    const ts = v=>v==='pos'?1.0:v==='focal'?0.5:0;
-    const p=ts(p63)*2, s=ts(sma), c=ts(cal), tot=p+s+c;
-    const p63pos=(p63==='pos'||p63==='focal'), otherPos=(sma==='pos'||sma==='focal'||cal==='pos'||cal==='focal');
-    const discordant=(!p63pos&&otherPos)||(p63pos&&!otherPos&&sma==='neg'&&cal==='neg');
-    let statusText,weight;
-    if(tot>=3.0){statusText='conservato (diffuso)';weight={PA:4,ACC:-4};}
-    else if(tot>=1.5){statusText='parzialmente conservato';weight={PA:2,ACC:-2};}
-    else if(tot>=0.5){statusText='marcatamente ridotto';weight={PA:-1,ACC:1};}
-    else{statusText='completamente perso';weight={PA:-4,ACC:4};}
-    return {statusText,weight,discordant,tot};
+// GATE 1 RULES — morphology-first exclusions and soft filters (v5.1-beta)
+function evaluateGateOneRule(entity, fd){
+  switch(entity){
+    case 'PA':
+      if(fd.nuclear_grade==='high') return {hit:true,msg:'Nuclear grade high. Reconsider.'};
+      if(fd.necrosis==='yes') return {hit:true,msg:'Coagulative necrosis suggests malignancy.'};
+      if(fd.neural_invasion==='extensive') return {hit:true,msg:'Extensive PNI: PA is benign. Reconsider.'};
+      return {hit:false};
+      
+    case 'ACC':
+      if(fd.cribriform==='no' && fd.duality==='absent') 
+        return {hit:true,msg:'Both cribriform AND duality absent: ACC less likely.'};
+      if(fd.mucin_production==='abundant') 
+        return {hit:true,msg:'Abundant mucin suggests MEC.'};
+      return {hit:false};
+      
+    case 'SC':
+      // v5.1-beta: Morphology-first. mammaglobin/ETV6 are confirmatory.
+      // Strong double-negative is a major con (handled in pro/con), not a hard gate.
+      return {hit:false};
+      
+    case 'MEC':
+      if(fd.mucin_production==='absent') 
+        return {hit:true,msg:'No mucinous cells: MEC unlikely.'};
+      return {hit:false};
+      
+    case 'AciCC':
+      if(fd.serous_acinar==='absent') 
+        return {hit:true,msg:'No serous acinar: AciCC unlikely.'};
+      if(fd.cribriform==='yes' && fd.duality==='clear') 
+        return {hit:true,msg:'Cribriforme+duality pattern suggests ACC.'};
+      return {hit:false};
+      
+    case 'MSA':
+      // v5.1-beta: Softened. Microcystic is TYPICAL, not absolute.
+      if(fd.microcystic!=='yes' && fd.duality!=='clear') 
+        return {hit:true,msg:'No microcystic AND no duality: MSA less likely (but test MEF2C if morphology fits).'};
+      return {hit:false};
+      
+    case 'CaExPA':
+      // Soft warning: passes gate but message signals caution.
+      // Future: consider 3-state (excluded / passed / caution) for CaExPA and other soft entities.
+      if(fd.residualPA==='no' && fd.priorPA!=='yes') 
+        return {hit:false,msg:'No history/residual. Could be primary carcinoma or unrelated malignancy.'};
+      return {hit:false};
+      
+    case 'Warthin':
+      if(fd.oncocytic!=='prominent' || fd.lymphoid_stroma!=='abundant') 
+        return {hit:true,msg:'Warthin requires BOTH oncocytic + abundant lymphoid.'};
+      return {hit:false};
+      
+    case 'EMC':
+      // v5.1-beta: Softened. Clear cells + duality typical, not absolute.
+      if(fd.clear_cell!=='yes' || fd.duality!=='clear') 
+        return {hit:false,msg:'EMC typical: clear + duality. But variants exist.'}; // Not hard deal-breaker
+      return {hit:false};
+      
+    case 'PolymorphousAC':
+      // v5.1-beta: Softened. Varied patterns TYPICAL, not absolute requirement.
+      if(fd.varied_patterns!=='yes' && fd.neural_invasion==='none') 
+        return {hit:false,msg:'PolymorphousAC typical: varied + PNI. But not absolute.'}; // Not hard
+      return {hit:false};
+      
+    case 'HCCC':
+      if(fd.clear_cell!=='yes' || fd.stromal_type!=='hyaline') 
+        return {hit:false,msg:'HCCC usually shows clear cells with hyaline stroma; rare entity, recheck context and exclusions.'};
+      return {hit:false};
+      
+    default: return {hit:false};
+  }
 }
 
-function calculateScores() {
-    const scores={}, rationales={};
-    for(const [key,tumor] of Object.entries(tumorDB)) {
-        scores[key]=0; rationales[key]=[];
-        const w=tumor.w;
+// PRO/CON/MISSING for each entity
+function getProConMissing(entity, fd){
+  const procon={};
+  switch(entity){
+    case 'ACC':
+      procon.pro=[
+        fd.cribriform==='yes' ? '✓ Cribriforme architecture' : null,
+        fd.duality==='clear' ? '✓ Epithelial-myoepithelial duality' : null,
+        fd.neural_invasion==='extensive' ? '✓ Extensive perineural invasion' : null,
+        fd.myb==='pos' ? '✓ MYB rearrangement positive' : null
+      ].filter(Boolean);
+      procon.con=[
+        fd.mucin_production==='abundant' ? '✗ Abundant mucin (favors MEC)' : null,
+        fd.serous_acinar==='prominent' ? '✗ Prominent serous acinar (favors AciCC)' : null
+      ].filter(Boolean);
+      procon.missing=[
+        isMissing(fd.myb) ? '? MYB — distinguish ACC from EMC/other cribriform lesions' : null,
+        isMissing(fd.maml2) ? '? MAML2 — exclude MEC if mucin present' : null
+      ].filter(Boolean);
+      procon.abandon='High-grade transformation with comedonecrosis or solid growth without cribriform. MAML2 positivity with convincing mucinous component would strongly favor MEC.';
+      procon.mimic='MEC (if mucin present) · EMC (if duality + cribriform) · Salivary duct carcinoma';
 
-        // Pattern
-        if(w.pattern&&formData.pattern){const v=w.pattern[formData.pattern];if(v){scores[key]+=v;rationales[key].push({text:`Pattern: ${patterns[formData.pattern]?.name||formData.pattern}`,type:v>0?'positive':'negative',tag:'morphology'});}}
-
-        // PNI
-        if(w.pni&&formData.pni){const v=w.pni[formData.pni];if(v){scores[key]+=v;rationales[key].push({text:`PNI: ${formData.pni==='yes'?'PRESENTE':'assente'}`,type:v>0?'positive':(v<0?'negative':'neutral'),tag:'morphology'});}}
-
-        // Necrosis
-        if(w.necrosis&&formData.necrosis){const v=w.necrosis[formData.necrosis];if(v){scores[key]+=v;rationales[key].push({text:`Necrosi: ${formData.necrosis==='yes'?'presente':'assente'}`,type:v>0?'positive':'negative',tag:'morphology'});}}
-
-        // Cytology
-        if(w.cytology&&formData.cytology){const v=w.cytology[formData.cytology];if(v){scores[key]+=v;rationales[key].push({text:`Atipia: ${formData.cytology==='high'?'alta':'bassa'}`,type:v>0?'positive':'negative',tag:'morphology'});}}
-
-        // Ki-67
-        if(w.ki67&&formData.ki67){
-            const kv=parseFloat(formData.ki67);
-            const cat=kv<=10?'low':kv<=20?'borderline':kv<=30?'high':'veryHigh';
-            const v=w.ki67[cat];
-            if(v&&v!==0){scores[key]+=v;rationales[key].push({text:`Ki-67 ${formData.ki67}% (${cat==='borderline'?'zona grigia 10-20%':cat}) ⚠️`,type:v>0?'positive':(v<0?'negative':'neutral'),tag:'ihc'});}
-        }
-
-        // Mantello (solo PA/ACC)
-        if((key==='PA'||key==='ACC')&&formData.p63&&formData.sma&&formData.calponin){
-            const myo=computeMyoStatus(formData.p63,formData.sma,formData.calponin);
-            const v=myo.weight[key]; scores[key]+=v;
-            rationales[key].push({text:`Mantello: ${myo.statusText} (${myo.tot.toFixed(1)}/4)`,type:v>0?'positive':(v<0?'negative':'neutral'),tag:'ihc'});
-            if(myo.discordant) rationales[key].push({text:'⚠️ DISCORDANTE: p63 vs SMA/calponina — escludere ACC tubulare con mioepitelio residuo',type:'warning',tag:'ihc'});
-        }
-
-        // IHC generali (escluso her2 che ha scoring dedicato per SDC)
-        ['lef1','cd117','sox10','dog1','ar','gcdfp15','mammaglobin','p63','ck5_6','pantrk','ck7','s100'].forEach(m=>{
-            if(w[m]&&formData[m]){const v=w[m][formData[m]];if(v&&v!==0){scores[key]+=v;rationales[key].push({text:`${m.toUpperCase()}: ${formData[m]==='pos'?'positivo':'negativo'}`,type:v>0?'positive':'negative',tag:'ihc'});}}
-        });
-
-        // FIX 3: HER2 scoring con schema 0/1+/2+/3+/amplified (solo SDC)
-        if(key==='SDC'&&formData.her2_score){
-            const v=her2Weights[formData.her2_score]||0;
-            if(v>0){
-                scores[key]+=v;
-                const lbl=her2Labels[formData.her2_score];
-                rationales[key].push({text:`${lbl.label}: ${lbl.text}`,type:(formData.her2_score==='3plus'||formData.her2_score==='amplified')?'positive':'neutral',tag:formData.her2_score==='amplified'?'molecular':'ihc'});
-            }
-            if(formData.her2_score==='2plus') rationales[key].push({text:'⚠️ HER2 2+ equivoco: ISH (FISH/CISH) obbligatorio prima di decisione terapeutica',type:'warning',tag:'ihc'});
-        }
-
-        // Molecular — FIX 5: MYB wording aggiornato
-        ['myb','plag1','hmga2','nr4a3','etv6','maml2'].forEach(m=>{
-            if(w[m]&&formData[m]==='pos'){const v=w[m]['pos'];if(v&&v>0){
-                scores[key]+=v;
-                const lbl = m==='myb'
-                    ? 'MYB-NFIB/MYBL1/peri-MYB: POSITIVO (~80% ACC per alterazioni MYB-correlate aggregate)'
-                    : `${m.toUpperCase()} FISH/NGS: POSITIVO`;
-                rationales[key].push({text:lbl,type:'positive',tag:'molecular'});
-            }}
-        });
-
-        // Warthin specifics
-        if(key==='Warthin'){
-            if(formData.lymphoidStroma){const v={yes:5,no:-5}[formData.lymphoidStroma==='yes'?'yes':'no'];if(v){scores[key]+=v;rationales[key].push({text:`Stroma linfoide: ${formData.lymphoidStroma==='yes'?'presente':'assente'}`,type:v>0?'positive':'negative',tag:'morphology'});}}
-            if(formData.gland&&formData.gland!=='parotid') rationales[key].push({text:'⚠️ Warthin fuori parotide: escludere metastasi/carcinoma oncocitario',type:'warning',tag:'morphology'});
-            if(formData.gland==='parotid'){scores[key]+=3;rationales[key].push({text:'Sede parotidea (tipica)',type:'positive',tag:'morphology'});}
-        }
-
-        // CaExPA
-        if(key==='CaExPA'){
-            if(formData.priorPA==='yes'){scores[key]+=5;rationales[key].push({text:'PA pregresso documentato',type:'positive',tag:'morphology'});}
-            if(formData.residualPA==='yes'){scores[key]+=4;rationales[key].push({text:'Componente PA residua identificata',type:'positive',tag:'morphology'});}
-            if(formData.longHistory==='yes'){scores[key]+=3;rationales[key].push({text:'Storia >10 anni',type:'positive',tag:'morphology'});}
-            if(formData.rapidGrowth==='yes'){scores[key]+=3;rationales[key].push({text:'Crescita rapida recente',type:'positive',tag:'morphology'});}
-        }
-
-        // CaExPA trucut penalty
-        if(key==='CaExPA'&&formData.specimenType==='trucut'){
-            const orig=scores[key]; scores[key]=Math.round(scores[key]*0.6);
-            rationales[key].push({text:`⚠️ Trucut: score ridotto ${orig}→${scores[key]} (diagnosi definitiva su pezzo operatorio)`,type:'neutral',tag:'morphology'});
-        }
-
-        // Fattore epidemiologico
-        if(formData.age&&formData.sex){
-            const age=parseInt(formData.age),sex=formData.sex;
-            if(key==='SC'&&age<40){scores[key]+=1;rationales[key].push({text:'Età <40: prior lieve +1 per SC',type:'neutral',tag:'morphology'});}
-            if(key==='SDC'&&age>60&&sex==='M'){scores[key]+=1;rationales[key].push({text:'M >60aa: prior lieve +1 per SDC',type:'neutral',tag:'morphology'});}
-            if(key==='Warthin'&&sex==='M'&&age>50){scores[key]+=1;rationales[key].push({text:'M >50aa: prior lieve +1 per Warthin',type:'neutral',tag:'morphology'});}
-        }
-    }
-    return {scores,rationales};
+      break;
+      
+    case 'MEC':
+      procon.pro=[
+        ['scant','moderate','abundant'].includes(fd.mucin_production) ? '✓ Mucinous cells present' : null,
+        fd.maml2==='pos' ? '✓ MAML2 fusion positive' : null,
+        fd.neural_invasion==='focal' ? '✓ Focal perineural invasion' : null
+      ].filter(Boolean);
+      procon.con=[
+        fd.cribriform==='yes' ? '✗ Cribriforme pattern (favors ACC)' : null,
+        fd.mucin_production==='absent' ? '✗ No mucin production' : null
+      ].filter(Boolean);
+      procon.missing=[
+        isMissing(fd.maml2) ? '? MAML2 — positive in ~80% MEC, discriminates from ACC' : null
+      ].filter(Boolean);
+      procon.abandon='Pure cribriform with perineural invasion, no mucin at multiple levels, MYB+ on testing.';
+      procon.mimic='ACC (low-grade, mucinous, MAML2-) · PA with mucinous metaplasia · Mucoepidermoid metaplasia (non-neoplastic)';
+      break;
+      
+    case 'SC':
+      procon.pro=[
+        fd.mammaglobin==='pos' ? '✓ Mammaglobin positive' : null,
+        fd.etv6==='pos' ? '✓ ETV6-NTRK3 fusion confirmed' : null
+      ].filter(Boolean);
+      procon.con=[
+        fd.mammaglobin==='neg' ? '✗ Mammaglobin negative' : null,
+        fd.etv6==='neg' ? '✗ ETV6-NTRK3 not detected' : null
+      ].filter(Boolean);
+      procon.missing=[
+        isMissing(fd.mammaglobin) ? '? Mammaglobin — high-value screen before molecular' : null,
+        isMissing(fd.etv6) ? '? ETV6-NTRK3 fusion — confirms diagnosis' : null
+      ].filter(Boolean);
+      procon.abandon='Mammaglobin negative on adequate testing; morphology not convincingly secretory; consider AciCC (DOG1+), low-grade MEC, or metastatic breast carcinoma.';
+      procon.mimic='AciCC (DOG1+, serous) · Low-grade MEC · Metastatic breast carcinoma';
+      break;
+      
+    case 'PA':
+      procon.pro=[
+        fd.stromal_type==='myxoid' ? '✓ Myxoid/chondromyxoid stroma' : null,
+        fd.nuclear_grade==='low' ? '✓ Low nuclear grade' : null,
+        fd.necrosis==='no' ? '✓ No necrosis' : null,
+        fd.lef1==='pos' ? '~ LEF1 positive (ancillary, interpret cautiously)' : null,
+        fd.plag1==='pos' ? '✓ PLAG1 positive' : null
+      ].filter(Boolean);
+      procon.con=[
+        fd.mitotic_rate==='high' ? '✗ High mitotic rate' : null,
+        fd.neural_invasion==='extensive' ? '✗ Extensive perineural invasion' : null,
+        fd.necrosis==='yes' ? '✗ Necrosi present' : null
+      ].filter(Boolean);
+      procon.missing=[
+        isMissing(fd.plag1) ? '? PLAG1 — stronger ancillary support for PA' : null,
+        isMissing(fd.lef1) ? '? LEF1 — ancillary only, interpret cautiously (also positive in Warthin)' : null
+      ].filter(Boolean);
+      procon.abandon='High-grade nuclear atypia, necrosis, atypical mitoses, or extensive invasive front without residual PA — consider CaExPA.';
+      procon.mimic='EMC (clear outer layer, duality) · ACC (if focal cribriform change) · CaExPA (if atypia zones present)';
+      break;
+      
+    case 'MSA':
+      procon.pro=[
+        fd.microcystic==='yes' ? '✓ Microcystic architecture (morphological axis)' : null,
+        fd.duality==='clear' ? '✓ Epithelial-myoepithelial duality (morphological axis)' : null,
+        fd.mammaglobin==='neg' ? '✓ Mammaglobin negative (excludes SC)' : null,
+        fd.nuclear_grade==='low' ? '✓ Low nuclear grade' : null,
+        fd.clear_cell==='yes' ? '~ Clear-cell component (ancillary, not defining)' : null
+      ].filter(Boolean);
+      procon.con=[
+        fd.duality==='absent' ? '✗ No duality (MSA requires it)' : null,
+        fd.mammaglobin==='pos' ? '✗ Mammaglobin positive (favors SC)' : null,
+        fd.nuclear_grade==='high' ? '✗ High nuclear grade (against MSA)' : null
+      ].filter(Boolean);
+      procon.missing=[
+        isMissing(fd.mef2c) ? '? MEF2C::SS18 fusion — defines MSA, distinguishes from EMC and ACC' : null,
+        isMissing(fd.mammaglobin) ? '? Mammaglobin — exclude SC before pursuing MSA' : null
+      ].filter(Boolean);
+      procon.abandon='MEF2C::SS18 not detected on dedicated testing. Consider EMC (if duality + clear cells) or ACC (if cribriform).';
+      procon.mimic='EMC (if duality dominant) · ACC (if cribriform) · Low-grade MEC';
+      break;
+      
+    case 'AciCC':
+      procon.pro=[
+        fd.serous_acinar==='prominent' ? '✓ True acinar/zymogen-rich differentiation' : null,
+        fd.dog1==='pos' ? '✓ DOG1+' : null,
+        fd.mitotic_rate==='low' ? '✓ Low mitotic rate' : null
+      ].filter(Boolean);
+      procon.con=[
+        fd.cribriform==='yes' ? '✗ Cribriforme pattern' : null,
+        fd.duality==='clear' ? '✗ Clear duality' : null,
+        fd.mucin_production==='abundant' ? '✗ Abundant mucin' : null
+      ].filter(Boolean);
+      procon.missing=[
+        isMissing(fd.dog1) ? '? DOG1 — positive in AciCC, negative in SC and most MEC' : null
+      ].filter(Boolean);
+      procon.abandon='DOG1 negative on repeated testing; true duality present; MAML2 or MYB positive on molecular testing.';
+      procon.mimic='SC (if mammaglobin+) · Low-grade MEC · Metastatic renal/thyroid clear-cell lesion';
+      break;
+      
+    case 'Warthin':
+      procon.pro=[
+        fd.oncocytic==='prominent' ? '✓ Prominent oncocytic (core)' : null,
+        fd.lymphoid_stroma==='abundant' ? '✓ Abundant lymphoid stroma (core)' : null,
+        fd.mitotic_rate==='low' ? '✓ Low mitotic rate' : null,
+        fd.necrosis==='no' ? '✓ No necrosis' : null,
+        fd.papillary==='yes' ? '~ Papillary-cystic architecture (accessory)' : null
+      ].filter(Boolean);
+      procon.con=[
+        fd.oncocytic==='absent' ? '✗ No oncocytic' : null,
+        fd.lymphoid_stroma==='none' ? '✗ No lymphoid stroma' : null,
+        fd.neural_invasion==='extensive' ? '✗ Extensive PNI' : null
+      ].filter(Boolean);
+      procon.missing=[];
+      procon.abandon='No oncocytic change on multiple sampling; lymphoid stroma absent or sparse; nuclear atypia or necrosis present.';
+      procon.mimic='Oncocytoma (no lymphoid) · Oncocitaria MEC · Low-grade oncocytic carcinoma';
+      break;
+      
+    case 'EMC':
+      procon.pro=[
+        fd.clear_cell==='yes' ? '✓ Outer clear myoepithelial cells' : null,
+        fd.duality==='clear' ? '✓ Duality epithelial-myoepithelial' : null,
+        fd.p63==='pos' ? '✓ p63/SMA positive (myoepithelial)' : null
+      ].filter(Boolean);
+      procon.con=[
+        fd.clear_cell==='no' ? '✗ No clear cells' : null,
+        fd.duality==='absent' ? '✗ No duality' : null
+      ].filter(Boolean);
+      procon.missing=[
+        isMissing(fd.p63) ? '? p63/SMA — confirm myoepithelial outer layer' : null
+      ].filter(Boolean);
+      procon.abandon='p63/SMA negative outer layer; MEF2C+ on fusion testing (favors MSA); no clear cell component and no duality.';
+      procon.mimic='PA (myxoid stroma, no outer clear layer) · ACC (cribriform) · MSA (MEF2C+)';
+      break;
+      
+    case 'PolymorphousAC':
+      procon.pro=[
+        fd.varied_patterns==='yes' ? '✓ Varied patterns' : null,
+        fd.neural_invasion==='focal' ? '✓ Focal PNI (targetoid)' : null,
+        fd.nuclear_grade==='intermediate' ? '✓ Intermediate grade' : null,
+        fd.major_minor==='minor' ? '✓ Minor gland site (expected)' : null
+      ].filter(Boolean);
+      procon.con=[
+        fd.varied_patterns==='no' ? '✗ Monomorphic' : null,
+        fd.neural_invasion==='none' ? '✗ No PNI' : null,
+        fd.nuclear_grade==='high' ? '✗ High grade' : null
+      ].filter(Boolean);
+      procon.missing=[];
+      procon.abandon='Truly monomorphic cytology, no targetoid growth, no PNI, major gland site only.';
+      procon.mimic='ACC (if cribriform dominates) · Canalicular adenoma (if trabecular) · Adenocarcinoma NOS';
+      break;
+      
+    case 'HCCC':
+      procon.pro=[
+        fd.clear_cell==='yes' ? '✓ Clear cells (glycogen-rich, PAS+)' : null,
+        fd.stromal_type==='hyaline' ? '✓ Hyaline stroma' : null,
+        fd.major_minor==='minor' ? '✓ Minor gland site (strongly expected)' : null
+      ].filter(Boolean);
+      procon.con=[
+        fd.clear_cell==='no' ? '✗ No clear cells' : null,
+        fd.stromal_type!=='hyaline' ? '✗ Stromal type not hyaline' : null,
+        fd.duality==='clear' ? '✗ Clear duality (favors EMC)' : null
+      ].filter(Boolean);
+      procon.missing=[
+        fd.major_minor==='parotid' ? '✗ Parotid site (unusual for HCCC — raises doubt)' : null,
+        fd.major_minor==='submandibular' ? '~ Submandibular site (uncommon for HCCC)' : null
+      ].filter(Boolean);
+      procon.abandon='Confirmatory molecular support absent, especially if morphology not classic; duality with p63+ outer layer favors EMC; metastatic RCC remains a key exclusion if stroma is not hyaline.';
+      procon.mimic='Metastatic clear cell RCC · EMC (if duality) · MEC clear cell variant';
+      break;
+      
+    case 'CaExPA':
+      procon.pro=[
+        fd.residualPA==='yes' ? '✓ AP residuo visibile' : null,
+        fd.neural_invasion==='extensive' ? '✓ Extensive PNI' : null,
+        fd.nuclear_grade==='high' ? '✓ High nuclear grade' : null,
+        fd.necrosis==='yes' ? '✓ Necrosi present' : null
+      ].filter(Boolean);
+      procon.con=[
+        fd.priorPA==='no' ? '~ No prior PA history (soft)' : null,
+        fd.residualPA==='no' ? '~ Nessun AP residuo visibile (debole)' : null
+      ].filter(Boolean);
+      procon.missing=[];
+      procon.abandon='High-grade carcinoma entirely de novo, no PA remnant on extensive sampling, no myxoid stroma, no morphological hint of pre-existing PA; consider salivary duct carcinoma or metastasis.';
+      procon.mimic='PA with reactive atypia · High-grade MEC · Salivary duct carcinoma';
+      break;
+      
+    default:
+      procon.pro=['(entity not yet detailed)'];
+      procon.con=[];
+      procon.missing=[];
+  }
+  return procon;
 }
 
-function computeResults() {
-    const {scores,rationales}=calculateScores();
-    const maxScore=Math.max(...Object.values(scores),1);
-
-    // FIX 4: _myoDiscordant calcolata PRIMA del filter e conservata in variabile separata
-    const myoCheck=(formData.p63&&formData.sma&&formData.calponin)
-        ?computeMyoStatus(formData.p63,formData.sma,formData.calponin):null;
-    const globalMyoDiscordant=myoCheck?.discordant||false;
-
-    const results=[];
-    for(const [key,score] of Object.entries(scores)){
-        const tumor=tumorDB[key];
-        const ns=Math.max(0,score);
-        const pct=Math.round((ns/maxScore)*100);
-        let conf='low';
-        if(ns>=12)conf='high';else if(ns>=6)conf='moderate';
-
-        const hasPG=(key==='SC'&&formData.etv6==='pos')||(key==='ACC'&&formData.myb==='pos')||(key==='AciCC'&&formData.nr4a3==='pos');
-        const hasSP=(key==='PA'&&(formData.plag1==='pos'||formData.hmga2==='pos'))||(key==='MEC'&&formData.maml2==='pos')||(key==='CaExPA'&&(formData.plag1==='pos'||formData.hmga2==='pos'));
-        if(hasPG&&ns>=8)conf='molecular';
-        else if(hasSP&&ns>=10)conf='molecular';
-
-        let pathoWarn=null;
-        if(hasPG&&ns>0&&ns<8){
-            const mn=(key==='SC'&&formData.etv6==='pos')?'ETV6-NTRK3':(key==='ACC'&&formData.myb==='pos')?'MYB-NFIB/MYBL1':'NR4A3';
-            pathoWarn=`⚠️ ${mn} positivo ma score morfologico basso (${ns}/8 soglia MOLECULAR): verificare qualità FISH o considerare entità alternativa`;
-        }
-
-        let her2Alert=null;
-        if(key==='SDC'){
-            if(formData.her2_score==='amplified') her2Alert='🎯 HER2 amplificato (ISH+): candidato a terapia anti-HER2. Valutare in ambito multidisciplinare.';
-            else if(formData.her2_score==='3plus') her2Alert='🎯 HER2 3+ (IHC): alta probabilità amplificazione. Conferma ISH raccomandata per decisione terapeutica.';
-        }
-
-        let grading=null;
-        if(key==='ACC'&&formData.solidPercentage) grading=gradingSystems.ACC.calc(parseFloat(formData.solidPercentage));
-        if(key==='MEC'){
-            let pts=0; gradingSystems.MEC.params.forEach(p=>{if(formData[p.id]==='yes')pts+=p.pts;});
-            if(formData.pattern==='mucoepidermoid'||(pts>0&&ns>=8)) grading=gradingSystems.MEC.calc(pts);
-        }
-        if(key==='CaExPA'&&formData.invasionMm) grading=gradingSystems.CaExPA.calc(parseFloat(formData.invasionMm));
-
-        results.push({key,name:tumor.name,fullName:tumor.fullName,behavior:tumor.behavior,score:ns,pct,conf,rationale:rationales[key]||[],grading,pathoWarn,her2Alert});
-    }
-    results.sort((a,b)=>b.score-a.score);
-
-    if(results.length>=2&&results[0].score>0){
-        const diff=results[0].score-results[1].score;
-        if(diff>0&&diff<3) results[0].closeWarn={diff,t1:results[0].name,t2:results[1].name};
-    }
-
-    const filtered=results.filter(r=>r.score>0||r.conf==='molecular');
-    filtered._myoDiscordant=globalMyoDiscordant; // FIX 4: property su array filtered (non più persa)
-    return filtered;
+function gateOne(){
+  const entities=['PA','ACC','MEC','AciCC','SC','MSA','CaExPA','Warthin','EMC','PolymorphousAC','HCCC'];
+  const result={};
+  for(let e of entities){
+    const db=evaluateGateOneRule(e,formData);
+    result[e]={passed:!db.hit, reason:db.msg||'Gate 1 passed'};
+  }
+  return result;
 }
 
-function saveData() {
-    const get=sel=>document.querySelector(sel)?.value;
-    const getR=n=>document.querySelector(`input[name="${n}"]:checked`)?.value;
-    ['specimenType','priorPA','longHistory','rapidGrowth','sex','pni','cytology','necrosis','pattern','lymphoidStroma','residualPA',
-     'p63','sma','calponin','ck7','s100','dog1','sox10','lef1','cd117','ar','gcdfp15','mammaglobin','ck5_6','pantrk','her2_score',
-     'myb','plag1','hmga2','nr4a3','etv6','maml2'
-    ].forEach(n=>{const v=getR(n);if(v)formData[n]=v;});
-    gradingSystems.MEC.params.forEach(p=>{const v=getR(p.id);if(v)formData[p.id]=v;});
-    // v4.4.1: se campo svuotato → delete formData[id] (evita fantasmi da sessioni precedenti)
-    ['gland','location','age','ki67','mitoses','solidPercentage','invasionMm','clinicalSuspicion','clinicalNotes'].forEach(id=>{
-        const v=get(`#${id}`);
-        if(v===undefined) return;
-        if(v==='') delete formData[id];
-        else formData[id]=v;
-    });
-    saveSession();
+function gateTwo(survivors){
+  const scores={};
+  const gland=formData.major_minor;
+  for(let e of Object.keys(survivors)){
+    if(!survivors[e].passed) continue;
+    let score=0;
+    if(e==='ACC'){
+      if(formData.cribriform==='yes') score+=2;
+      if(formData.duality==='clear') score+=3;
+      if(formData.neural_invasion==='extensive') score+=3;
+    }else if(e==='PA'){
+      if(formData.stromal_type==='myxoid') score+=2;
+      if(formData.nuclear_grade==='low') score+=2;
+    }else if(e==='SC'){
+      if(formData.mammaglobin==='pos') score+=4;
+    }else if(e==='MEC'){
+      if(['scant','moderate','abundant'].includes(formData.mucin_production)) score+=3;
+      // MEC gland-aware
+      if(gland==='parotid') score+=1;
+      if(gland==='minor') score-=1;
+    }else if(e==='AciCC'){
+      if(formData.serous_acinar==='prominent') score+=3;
+      if(formData.dog1==='pos') score+=2;
+    }else if(e==='Warthin'){
+      if(formData.oncocytic==='prominent' && formData.lymphoid_stroma==='abundant') score+=5;
+      if(formData.papillary==='yes') score+=2;
+      // Warthin gland-aware
+      if(gland==='parotid') score+=2;
+      if(gland==='minor') score-=3;
+    }else if(e==='EMC'){
+      if(formData.clear_cell==='yes') score+=2;
+      if(formData.duality==='clear') score+=2;
+    }else if(e==='PolymorphousAC'){
+      if(formData.varied_patterns==='yes') score+=2;
+      if(formData.neural_invasion==='focal') score+=2;
+      // PolymorphousAC gland-aware
+      if(gland==='minor') score+=3;
+      if(gland==='parotid') score-=2;
+    }else if(e==='HCCC'){
+      if(formData.clear_cell==='yes') score+=2;
+      if(formData.stromal_type==='hyaline') score+=2;
+      // HCCC gland-aware
+      if(gland==='minor') score+=3;
+      if(gland==='parotid') score-=2;
+    }else if(e==='CaExPA'){
+      if(formData.priorPA==='yes') score+=3;
+      if(formData.residualPA==='yes') score+=2;
+      if(formData.neural_invasion==='extensive') score+=2;
+    }else if(e==='MSA'){
+      if(formData.microcystic==='yes') score+=2;
+      if(formData.duality==='clear') score+=2;
+    }else{
+      score=1;
+    }
+    scores[e]={score,fit:score>=8?'STRONG':score>=5?'INTERMEDIATE':'WEAK'};
+  }
+  return scores;
 }
 
-function validateStep() {
-    if(currentStep===1){
-        if(!document.querySelector('input[name="specimenType"]:checked')||!document.getElementById('gland')?.value){alert('⚠️ Tipo campione e Ghiandola obbligatori');return false;}
-        if(!validateNumericField('age',1,110)){alert('⚠️ Età: 1-110 anni');return false;}
-    }
-    if(currentStep===2&&!validateNumericField('mitoses',0,200)){alert('⚠️ Mitosi: 0-200');return false;}
-    if(currentStep===3){
-        if(!document.querySelector('input[name="pattern"]:checked')){alert('⚠️ Seleziona pattern morfologico');return false;}
-        if(!validateNumericField('solidPercentage',0,100)){alert('⚠️ Componente solida: 0-100%');return false;}
-    }
-    if(currentStep===4&&!validateNumericField('ki67',0,100)){alert('⚠️ Ki-67: 0-100%');return false;}
-    if(currentStep===7&&!validateNumericField('invasionMm',0,100)){alert('⚠️ Invasione: 0-100mm');return false;}
-    return true;
+function checkDataQuality(){
+  const required=['cribriform','duality','mucin_production','serous_acinar','nuclear_grade','necrosis','neural_invasion'];
+  const missing=required.filter(v=>!formData[v]).length;
+  const warnings=[];
+  
+  if(missing>3) warnings.push('⚠️ DATI MANCANTI: >3 campi vuoti. Risultati inaffidabili.');
+  
+  if(formData.cribriform==='yes' && formData.duality==='absent')
+    warnings.push('🔴 CONTRADICTORY: Cribriforme present but duality absent. Recheck.');
+
+  if(formData.microcystic==='yes' && formData.duality==='absent')
+    warnings.push('🔴 CONTRADDIZIONE: Microcistico senza dualità — MSA improbabile. Reverificare.');
+
+  if(formData.clear_cell==='yes' && formData.stromal_type!=='hyaline' && formData.duality==='absent')
+    warnings.push('⚠️ Cellule chiare senza stroma ialino o dualità — considerare carcinoma a cellule chiare metastatico o primitivo renale.');
+
+  if(formData.oncocytic==='prominent' && formData.lymphoid_stroma==='none' && formData.major_minor==='parotid')
+    warnings.push('⚠️ Oncocitaria without lymphoid stroma in parotid — Warthin less likely. Consider oncocytoma or oncocytic variant.');
+    
+  return warnings;
 }
 
-function updateProgress() {
-    document.getElementById('progressFill').style.width=(currentStep/totalSteps*100)+'%';
-    let h='';
-    for(let i=1;i<=totalSteps;i++){let c='step-dot';if(i<currentStep)c+=' completed';else if(i===currentStep)c+=' active';h+=`<div class="${c}">${i}</div>`;}
-    document.getElementById('stepIndicator').innerHTML=h;
-}
-function nextStep(){saveData();if(validateStep()){currentStep++;if(currentStep>totalSteps)currentStep=totalSteps;saveSession();render();window.scrollTo(0,0);}}
-function prevStep(){saveData();currentStep--;if(currentStep<1)currentStep=1;saveSession();render();window.scrollTo(0,0);}
-function goToStep(s){saveData();currentStep=s;saveSession();render();window.scrollTo(0,0);}
-
-function generateTextReport() {
-    const results=computeResults();
-    const d=new Date();
-    let r=`════════════════════════════════════\n   SALIVARY GLAND TOOL REPORT v4.4.2\n════════════════════════════════════\n`;
-    r+=`Data: ${d.toLocaleDateString('it-IT')} ${d.toLocaleTimeString('it-IT')}\n`;
-    r+=`\n⚠️ NOTA: Coerenza interna dei dati, non realtà biologica del tumore.\n`;
-    r+=`\nDATA: Campione=${formData.specimenType||'N/D'} | Ghiandola=${formData.gland||'N/D'}\n`;
-    if(formData.age)r+=`Età=${formData.age}aa | Sesso=${formData.sex||'N/D'}\n`;
-    r+=`\nMORFOLOGIA: Pattern=${formData.pattern?patterns[formData.pattern]?.name:'N/D'} | PNI=${formData.pni||'N/D'} | Necrosi=${formData.necrosis||'N/D'}\n`;
-    r+=`\nIHC: Ki-67=${formData.ki67||'N/D'}% | p63=${formData.p63||'N/D'} | SMA=${formData.sma||'N/D'} | Cal=${formData.calponin||'N/D'}\n`;
-    r+=`LEF1=${formData.lef1||'N/D'} | CD117=${formData.cd117||'N/D'} | AR=${formData.ar||'N/D'} | HER2=${formData.her2_score||'N/D'}\n`;
-    r+=`DOG1=${formData.dog1||'N/D'} | SOX10=${formData.sox10||'N/D'} | S100=${formData.s100||'N/D'}\n`;
-    r+=`\nMOLECOLARE: MYB=${formData.myb||'N/D'} | PLAG1=${formData.plag1||'N/D'} | ETV6=${formData.etv6||'N/D'} | NR4A3=${formData.nr4a3||'N/D'}\n`;
-    r+=`\n────── DDx RANKING ──────\n\n`;
-    results.slice(0,5).forEach((res,i)=>{
-        r+=`${i+1}. ${res.fullName}\n   Score: ${res.score} | Conf: ${res.conf.toUpperCase()}\n`;
-        if(res.grading)r+=`   Grading: ${res.grading.grade} — ${res.grading.desc}\n`;
-        if(res.her2Alert)r+=`   ${res.her2Alert}\n`;
-        r+=`   Criteri:\n`;
-        res.rationale.slice(0,5).forEach(rat=>{const s=rat.type==='positive'?'✓':(rat.type==='negative'?'✗':'•');r+=`     ${s} ${rat.text}\n`;});
-        r+='\n';
-    });
-    r+=`────────────────────────────\nDISCLAIMER: Strumento di supporto. NON diagnosi definitiva.\nResponsabilità diagnostica: patologo.\n`;
-    return r;
+function isMissing(v){
+  return v===undefined || v===null || v==='not_done';
 }
 
-function downloadTextReport() {
-    const blob=new Blob([generateTextReport()],{type:'text/plain;charset=utf-8'});
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');
-    a.href=url;a.download=`salivary_report_v442_${new Date().toISOString().slice(0,10)}.txt`;
-    document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+function recommendNextTests(g1){
+  const survivors=Object.keys(g1).filter(k=>g1[k].passed);
+  const recs=[];
+  
+  if(survivors.includes('ACC') && survivors.includes('MEC'))
+    recs.push('→ Test molecolare MAML2 (MEC+) vs MYB (ACC+)');
+  
+  if(survivors.includes('SC') && isMissing(formData.mammaglobin))
+    recs.push('→ Mammaglobina — screening SC ad alto valore, eseguire prima del test molecolare');
+  
+  if(survivors.includes('SC') && formData.mammaglobin==='pos' && isMissing(formData.etv6))
+    recs.push('→ Fusione ETV6-NTRK3 — confermare SC se mammaglobina positiva');
+
+  if(survivors.includes('MSA') && isMissing(formData.mef2c))
+    recs.push('→ Fusione MEF2C::SS18 — definisce MSA, distingue da EMC e ACC');
+  
+  return recs;
 }
 
-function renderIHCTable(markers) {
-    return `<table><thead><tr><th>Marcatore</th><th>Pos</th><th>Neg</th><th>Foc</th><th>N/E</th></tr></thead><tbody>
-    ${markers.map(m=>`<tr><td><strong>${m.name}</strong>${m.note?`<br><small style="color:#718096;">${m.note}</small>`:''}</td>
-    ${['pos','neg','focal','nd'].map(v=>`<td><input type="radio" name="${m.key}" value="${v}" ${formData[m.key]===v?'checked':''}></td>`).join('')}
-    </tr>`).join('')}</tbody></table>`;
+function checkOutsideModel(g1){
+  return Object.values(g1).filter(v=>v.passed).length===0;
 }
 
-// FIX 3: HER2 widget con schema ASCO/CAP 0/1+/2+/3+/amplified
-function renderHER2Widget() {
-    return `<div style="margin-top:8px;">
-    ${Object.entries(her2Labels).map(([val,d])=>`
-    <label style="display:flex;align-items:flex-start;padding:8px 12px;border-radius:6px;margin:5px 0;background:${d.color};cursor:pointer;">
-        <input type="radio" name="her2_score" value="${val}" ${formData.her2_score===val?'checked':''} style="margin-right:10px;margin-top:3px;flex-shrink:0;">
-        <div><strong style="color:${d.tc};">${d.label}</strong><br><small style="color:#718096;">${d.text}</small></div>
-    </label>`).join('')}
-    </div>
-    <div class="info-box" style="margin-top:10px;font-size:11px;">
-        ~30% SDC sono HER2 3+ o amplificati. AR e HER2: assi terapeutici (enzalutamide, trastuzumab), non solo diagnostici.
-        HER2 2+ richiede sempre ISH prima di decisione terapeutica.
-    </div>`;
+function save(){
+  for(let n of ['major_minor','ihc_status','cribriform','duality','microcystic','mucin_production','serous_acinar','nuclear_grade','necrosis','neural_invasion','stromal_type','oncocytic','papillary','priorPA','residualPA','lymphoid_stroma','clear_cell','varied_patterns','dog1','maml2','lef1','myb','p63','etv6','mammaglobin','plag1','mef2c','mitotic_rate']){
+    const v=document.querySelector(`input[name="${n}"]:checked`)?.value;
+    if(v) formData[n]=v;
+  }
+  // IHC ghost cleanup: se ihc_status torna a pending, cancella tutti i valori IHC dal motore
+  if(formData.ihc_status !== 'done'){
+    ['dog1','maml2','lef1','myb','p63','etv6','mammaglobin','plag1','mef2c'].forEach(k => delete formData[k]);
+  }
+  sessionStorage.setItem(SESSION_KEY,JSON.stringify(formData));
 }
 
-function render() {
-    let html='';
-
-    if(currentStep===1){
-        html=`<div class="step active">
-        <h3>Step 1/${totalSteps}: Contesto Clinico</h3>
-        <div class="form-group"><label>Tipo campione <span class="required">*</span></label><div class="radio-group">
-            <label><input type="radio" name="specimenType" value="trucut" ${formData.specimenType==='trucut'?'checked':''}><div><strong>Trucut / Core biopsy</strong><br><small style="color:#718096;">Sampling error possibile, margini non valutabili</small></div></label>
-            <label><input type="radio" name="specimenType" value="surgical" ${formData.specimenType==='surgical'?'checked':''}><div><strong>Pezzo operatorio</strong><br><small style="color:#718096;">Valutazione completa</small></div></label>
-            <label><input type="radio" name="specimenType" value="fnab" ${formData.specimenType==='fnab'?'checked':''}><div><strong>FNAB / Citologia</strong><br><small style="color:#718096;">Architettura non valutabile</small></div></label>
-        </div></div>
-        <div class="form-group"><label>Ghiandola <span class="required">*</span></label><select id="gland">
-            <option value="">-- Seleziona --</option>
-            <option value="parotid" ${formData.gland==='parotid'?'selected':''}>Parotide (~80% benigni)</option>
-            <option value="submandibular" ${formData.gland==='submandibular'?'selected':''}>Sottomandibolare (~50% maligni)</option>
-            <option value="sublingual" ${formData.gland==='sublingual'?'selected':''}>Sottolinguale (~70% maligni)</option>
-            <option value="minor" ${formData.gland==='minor'?'selected':''}>Ghiandole minori (~50-70% maligni)</option>
-        </select></div>
-        <div class="form-group"><label>Localizzazione</label><input type="text" id="location" value="${formData.location||''}" placeholder="Es: lobo superficiale, palato duro..."></div>
-        <div class="ihc-grid" style="margin-top:20px;">
-            <div class="form-group"><label><strong>Età</strong></label><input type="number" id="age" min="1" max="110" value="${formData.age||''}" placeholder="anni"><small style="color:#718096;">Prior ±1 su SC, SDC, Warthin</small></div>
-            <div class="form-group"><label><strong>Sesso</strong></label><div class="radio-group">
-                <label><input type="radio" name="sex" value="M" ${formData.sex==='M'?'checked':''}>M</label>
-                <label><input type="radio" name="sex" value="F" ${formData.sex==='F'?'checked':''}>F</label>
-                <label><input type="radio" name="sex" value="nd" ${formData.sex==='nd'?'checked':''}>N/D</label>
-            </div></div>
-        </div>
-        <h4>⚠️ Red Flags Ca ex-PA</h4>
-        <div class="form-group"><label>PA pregresso?</label><div class="radio-group">
-            <label><input type="radio" name="priorPA" value="yes" ${formData.priorPA==='yes'?'checked':''}><strong>Sì, documentato</strong></label>
-            <label><input type="radio" name="priorPA" value="no" ${formData.priorPA==='no'?'checked':''}>No / Non noto</label>
-        </div></div>
-        <div class="form-group"><label>Lesione >10 anni?</label><div class="radio-group">
-            <label><input type="radio" name="longHistory" value="yes" ${formData.longHistory==='yes'?'checked':''}>Sì</label>
-            <label><input type="radio" name="longHistory" value="no" ${formData.longHistory==='no'?'checked':''}>No / Non noto</label>
-        </div></div>
-        <div class="form-group"><label>Crescita rapida recente?</label><div class="radio-group">
-            <label><input type="radio" name="rapidGrowth" value="yes" ${formData.rapidGrowth==='yes'?'checked':''}>Sì</label>
-            <label><input type="radio" name="rapidGrowth" value="no" ${formData.rapidGrowth==='no'?'checked':''}>No / Stabile</label>
-        </div></div>
-        <div class="critical-box" id="caexpaWarning" style="display:none;"><strong>⚠️ Ca ex-PA in trucut</strong><br>Score ridotto -40% automaticamente. Diagnosi definitiva su pezzo operatorio.</div>
-        <div class="buttons"><button class="btn-secondary" disabled>← Indietro</button><button class="btn-primary" onclick="nextStep()">Avanti →</button></div></div>`;
-    }
-
-    else if(currentStep===2){
-        html=`<div class="step active"><h3>Step 2/${totalSteps}: Criteri di Malignità</h3>
-        <div class="form-group"><label>Infiltrazione Perineurale (PNI)</label><div class="radio-group">
-            <label><input type="radio" name="pni" value="no" ${formData.pni==='no'?'checked':''}>Assente</label>
-            <label style="background:#fff5f5;"><input type="radio" name="pni" value="yes" ${formData.pni==='yes'?'checked':''}><div><strong style="color:#c53030;">⚠️ PRESENTE</strong><br><small>Forte indicatore malignità, tipico ACC</small></div></label>
-        </div></div>
-        <div class="form-group"><label>Atipia Citologica</label><div class="radio-group">
-            <label><input type="radio" name="cytology" value="low" ${formData.cytology==='low'?'checked':''}>Bassa / Assente</label>
-            <label><input type="radio" name="cytology" value="high" ${formData.cytology==='high'?'checked':''}>Alta (pleomorfismo, nucleoli)</label>
-        </div></div>
-        <div class="form-group"><label>Necrosi Tumorale</label><div class="radio-group">
-            <label><input type="radio" name="necrosis" value="no" ${formData.necrosis==='no'?'checked':''}>Assente</label>
-            <label><input type="radio" name="necrosis" value="yes" ${formData.necrosis==='yes'?'checked':''}>Presente (comedonecrosi / geografica)</label>
-        </div></div>
-        <div class="form-group"><label>Conta Mitotica (/10 HPF)</label><input type="number" id="mitoses" min="0" max="200" value="${formData.mitoses||''}" placeholder="0-200"></div>
-        <div class="buttons"><button class="btn-secondary" onclick="prevStep()">← Indietro</button><button class="btn-primary" onclick="nextStep()">Avanti →</button></div></div>`;
-    }
-
-    else if(currentStep===3){
-        html=`<div class="step active"><h3>Step 3/${totalSteps}: Pattern Architetturale</h3>
-        <div class="form-group"><label>Pattern Predominante <span class="required">*</span></label>
-        <div class="radio-group" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px;">
-            ${Object.entries(patterns).map(([k,p])=>`<label style="margin:0;"><input type="radio" name="pattern" value="${k}" ${formData.pattern===k?'checked':''}>
-            <div><strong>${p.name}</strong><br><small style="color:#718096;">${p.desc}</small></div></label>`).join('')}
-        </div></div>
-        <div class="form-group"><label>Componente Solida (%)</label>
-        <input type="number" id="solidPercentage" min="0" max="100" value="${formData.solidPercentage||''}" placeholder="0-100%">
-        <div class="info-box" style="margin-top:10px;"><strong>Grading ACC (WHO 2022):</strong> &lt;30%=I | 30-70%=II | &gt;70%=III</div></div>
-        <div class="form-group"><label>Stroma linfoide (Warthin)</label><div class="radio-group">
-            <label><input type="radio" name="lymphoidStroma" value="yes" ${formData.lymphoidStroma==='yes'?'checked':''}>Presente</label>
-            <label><input type="radio" name="lymphoidStroma" value="no" ${formData.lymphoidStroma==='no'?'checked':''}>Assente</label>
-        </div></div>
-        <div class="form-group"><label>Componente PA residua (Ca ex-PA)</label><div class="radio-group">
-            <label><input type="radio" name="residualPA" value="yes" ${formData.residualPA==='yes'?'checked':''}>Sì (aree mixoidi/condroidi benigne)</label>
-            <label><input type="radio" name="residualPA" value="no" ${formData.residualPA==='no'?'checked':''}>No / Non identificabile</label>
-        </div></div>
-        <div class="buttons"><button class="btn-secondary" onclick="prevStep()">← Indietro</button><button class="btn-primary" onclick="nextStep()">Avanti →</button></div></div>`;
-    }
-
-    else if(currentStep===4){
-        const myo=(formData.p63&&formData.sma&&formData.calponin)?computeMyoStatus(formData.p63,formData.sma,formData.calponin):null;
-        html=`<div class="step active"><h3>Step 4/${totalSteps}: IHC — Pannello Base</h3>
-        <div class="ihc-grid">
-            <div class="ihc-section"><h5>🔬 Marcatori Mioepiteliali</h5>
-                ${renderIHCTable([{name:'p63',key:'p63'},{name:'SMA',key:'sma'},{name:'Calponina',key:'calponin'}])}
-                ${myo?`<div class="${myo.discordant?'critical-box':'info-box'}" style="margin-top:10px;font-size:11px;">
-                    <strong>Mantello:</strong> ${myo.tot.toFixed(1)}/4 → <strong>${myo.statusText}</strong>
-                    ${myo.discordant?'<br>⚠️ <strong>DISCORDANTE</strong>: p63 vs SMA/calponina':''}
-                </div>`:`<div class="info-box" style="margin-top:10px;font-size:11px;">Matrice indipendente: p63 peso 2x, SMA/calponina 1x.</div>`}
-            </div>
-            <div class="ihc-section"><h5>🔬 Marcatori Generali</h5>
-                ${renderIHCTable([
-                    {name:'CK7',key:'ck7',note:'Pan-epiteliale; discriminante solo per SDC'},
-                    {name:'S100',key:'s100'},
-                    {name:'DOG1',key:'dog1',note:'AciCC: diffuso+; SC (ex-MASC): tipicamente NEGATIVO ← FIX v4.4'},
-                    {name:'SOX10',key:'sox10'}
-                ])}
-            </div>
-        </div>
-        <div class="form-group" style="margin-top:25px;"><label><strong>Ki-67 Index (%)</strong></label>
-        <input type="number" id="ki67" min="0" max="100" step="0.1" value="${formData.ki67||''}" placeholder="0-100">
-        <div class="warning-box" style="margin-top:10px;"><strong>⚠️ Ki-67: zona grigia 10-20%</strong><br>≤10% benigno compatibile | 10-20% non discriminante | >20% sospetto malignità. PA cellulati possono raggiungere 15-20%.</div></div>
-        <div class="buttons"><button class="btn-secondary" onclick="prevStep()">← Indietro</button><button class="btn-primary" onclick="nextStep()">Avanti →</button></div></div>`;
-    }
-
-    else if(currentStep===5){
-        html=`<div class="step active"><h3>Step 5/${totalSteps}: IHC Discriminanti</h3>
-        <div class="ihc-grid">
-            <div class="ihc-section"><h5>🎯 PA vs ACC</h5>
-                ${renderIHCTable([{name:'LEF1 ⭐',key:'lef1',note:'Virtualmente assente in ACC (sens >95%)'},{name:'CD117 (c-Kit)',key:'cd117'}])}
-                <div class="success-box" style="font-size:11px;">LEF1+ orienta verso PA/BCA e va contro ACC (Schmitt et al.: 91-97% ACC sono LEF1−).<br>LEF1− NON esclude ACC: è compatibile con ACC. Interpretare sempre nel contesto morfologico.</div>
-            </div>
-            <div class="ihc-section"><h5>🎯 SDC — Asse AR/HER2</h5>
-                ${renderIHCTable([{name:'AR',key:'ar',note:'~90% SDC, target terapeutico (enzalutamide)'},{name:'GCDFP-15',key:'gcdfp15'}])}
-                <h5 style="margin-top:18px;">HER2 Scoring (ASCO/CAP) <span style="color:#553c9a;font-size:11px;font-weight:normal;">← FIX v4.4</span></h5>
-                ${renderHER2Widget()}
-            </div>
-            <div class="ihc-section"><h5>🎯 SC / Acinare</h5>
-                ${renderIHCTable([{name:'Mammaglobina',key:'mammaglobin',note:'SC: forte+; AciCC: variabile'},{name:'Pan-TRK',key:'pantrk',note:'Screening ETV6-NTRK3 (SC)'}])}
-            </div>
-            <div class="ihc-section"><h5>🎯 MEC</h5>
-                ${renderIHCTable([{name:'CK5/6',key:'ck5_6',note:'Componente squamoide'}])}
-            </div>
-        </div>
-        <div class="buttons"><button class="btn-secondary" onclick="prevStep()">← Indietro</button><button class="btn-primary" onclick="nextStep()">Avanti →</button></div></div>`;
-    }
-
-    else if(currentStep===6){
-        const mo=(name,key,note,level)=>`<div class="form-group"><label><strong>${name}</strong></label><div class="radio-group">
-            <label style="background:${level==='pathognomonic'?'#faf5ff':'#f0fff4'};"><input type="radio" name="${key}" value="pos" ${formData[key]==='pos'?'checked':''}><div>
-            <strong style="color:${level==='pathognomonic'?'#553c9a':'#276749'};">POSITIVO</strong><br><small>${note}</small></div></label>
-            <label><input type="radio" name="${key}" value="neg" ${formData[key]==='neg'?'checked':''}>Negativo</label>
-            <label><input type="radio" name="${key}" value="nd" ${formData[key]==='nd'?'checked':''}>Non eseguito</label>
-        </div></div>`;
-        html=`<div class="step active"><h3>Step 6/${totalSteps}: Studi Molecolari (FISH / NGS)</h3>
-        <div class="critical-box">Negativo NON esclude la diagnosi. Riarrangiamenti non presenti nel 100% dei casi.</div>
-        <div class="ihc-grid">
-            <div class="ihc-section"><h5>🧬 ACC — Tier 1</h5>
-                ${mo('MYB-NFIB / MYBL1 / peri-MYB','myb','~80% ACC per alterazioni MYB-correlate aggregate (NFIB ~50%, MYBL1 ~10-15%, peri-MYB riarrangiamenti) — FIX v4.4 wording','pathognomonic')}
-            </div>
-            <div class="ihc-section"><h5>🧬 SC [ex-MASC] — Tier 1 ← FIX v4.4</h5>
-                ${mo('ETV6-NTRK3 (FISH/NGS)','etv6','PATOGNOMONICO per SC (ex-MASC, WHO 2022). Rilevanza terapeutica: TRK inhibitors (larotrectinib)','pathognomonic')}
-            </div>
-            <div class="ihc-section"><h5>🧬 AciCC — Tier 1</h5>
-                ${mo('NR4A3','nr4a3','Altamente specifico per AciCC','pathognomonic')}
-            </div>
-            <div class="ihc-section"><h5>🧬 PA — Tier 2</h5>
-                ${mo('PLAG1','plag1','~70% PA, gold standard','supportive')}
-                ${mo('HMGA2','hmga2','~30% PA, alternativo','supportive')}
-            </div>
-            <div class="ihc-section"><h5>🧬 MEC — Tier 2</h5>
-                ${mo('MAML2 (CRTC1/3-MAML2)','maml2','50-70% MEC, anche prognosticamente favorevole','supportive')}
-            </div>
-        </div>
-        <div class="info-box"><strong>Molecular confidence (v4.4.2):</strong><br>
-        • Tier 1 (ETV6, MYB, NR4A3): MOLECULAR se score ≥<strong>8</strong><br>
-        • Tier 2 (PLAG1, HMGA2, MAML2): MOLECULAR se score ≥<strong>10</strong></div>
-        <div class="buttons"><button class="btn-secondary" onclick="prevStep()">← Indietro</button><button class="btn-primary" onclick="nextStep()">Avanti →</button></div></div>`;
-    }
-
-    else if(currentStep===7){
-        html=`<div class="step active"><h3>Step 7/${totalSteps}: Grading</h3>
-        <div class="grading-box"><h4>📊 MEC Grading (AFIP/Brandwein)</h4>
-        <table><thead><tr><th>Parametro</th><th>Pt</th><th>Sì</th><th>No</th></tr></thead><tbody>
-        ${gradingSystems.MEC.params.map(p=>`<tr><td>${p.label}</td><td>+${p.pts}</td>
-        <td><input type="radio" name="${p.id}" value="yes" ${formData[p.id]==='yes'?'checked':''}></td>
-        <td><input type="radio" name="${p.id}" value="no" ${formData[p.id]==='no'?'checked':''}></td></tr>`).join('')}
-        </tbody></table></div>
-        <div class="grading-box" style="margin-top:25px;"><h4>📏 Ca ex-PA — Invasione (WHO 2022)</h4>
-        <div class="form-group"><label>Estensione invasione (mm oltre capsula)</label>
-        <input type="number" id="invasionMm" min="0" max="100" step="0.1" value="${formData.invasionMm||''}" placeholder="mm"></div>
-        <div class="info-box">≤1.5mm minimamente invasivo | 1.5-4mm invasivo | >4mm ampiamente invasivo</div></div>
-        <div class="buttons"><button class="btn-secondary" onclick="prevStep()">← Indietro</button><button class="btn-primary" onclick="nextStep()">Avanti →</button></div></div>`;
-    }
-
-    else if(currentStep===8){
-        html=`<div class="step active"><h3>Step 8/${totalSteps}: Informazioni Cliniche</h3>
-        <div class="form-group"><label>Sospetto Clinico Iniziale</label>
-        <input type="text" id="clinicalSuspicion" value="${formData.clinicalSuspicion||''}" placeholder="Es: ACC, PA, MEC..."></div>
-        <div class="form-group"><label>Note Cliniche</label>
-        <textarea id="clinicalNotes" rows="4" placeholder="Durata lesione, sintomi, imaging, precedenti biopsie...">${formData.clinicalNotes||''}</textarea></div>
-        <div class="buttons"><button class="btn-secondary" onclick="prevStep()">← Indietro</button><button class="btn-primary" onclick="nextStep()">📊 Visualizza Risultati →</button></div></div>`;
-    }
-
-    else if(currentStep===9){
-        saveData();
-        const results=computeResults();
-        const myoDiscordant=results._myoDiscordant; // FIX 4: ora funziona
-
-        let concordHTML='';
-        if(formData.clinicalSuspicion){
-            const s=formData.clinicalSuspicion.toLowerCase(),t=results[0]?.name.toLowerCase()||'';
-            const match=t.includes(s)||s.includes(t)||(s.includes('pa')&&t.includes('pleomorfo'))||(s.includes('acc')&&t.includes('adenoidocistico'));
-            concordHTML=match
-                ?`<div class="success-box"><strong>✅ CONCORDANZA</strong> Sospetto "${formData.clinicalSuspicion}" concorda con prima diagnosi.</div>`
-                :`<div class="warning-box"><strong>⚠️ DISCORDANZA</strong> Sospetto "${formData.clinicalSuspicion}" ≠ ${results[0]?.name}. Rivalutare morfologia.</div>`;
-        }
-
-        let closeHTML='';
-        if(results[0]?.closeWarn){const w=results[0].closeWarn;closeHTML=`<div class="warning-box"><strong>⚠️ SCORE RAVVICINATI (Δ=${w.diff})</strong><br>${w.t1} vs ${w.t2}: completare pannello IHC (LEF1, SOX10, CD117) e considerare FISH.</div>`;}
-
-        let myoHTML='';
-        if(myoDiscordant) myoHTML=`<div class="critical-box"><strong>⚠️ MANTELLO DISCORDANTE</strong><br>p63 e SMA/calponina in direzioni opposte. Escludere ACC tubulare con mioepitelio residuo. Non forzare interpretazione.</div>`;
-
-        html=`<div class="step active"><h3>Step 9/${totalSteps}: Diagnosi Differenziale</h3>
-        ${concordHTML}${closeHTML}${myoHTML}
-        ${formData.specimenType==='fnab'?`<div class="critical-box" style="margin-bottom:20px;"><strong>⚠️ FNAB: limitazioni critiche</strong><br>Architettura, invasione, PNI, mantello: non valutabili. Grading impossibile. Diagnosi definitiva su biopsia core / pezzo operatorio.</div>`:''}
-        <div class="info-box" style="margin-bottom:20px;font-size:11px;"><strong>Changelog:</strong>
-        <em>v4.4→v4.4.1:</em> DOG1/SC (−2), _myoDiscordant bug, HER2 UI (ASCO/CAP), SC nomenclatura (WHO 2022), MYB wording (~80% aggregate), LEF1 logic invertita, saveData ghost, step session timing, HER2 2+→0, MEC squamous rimosso.<br>
-        <em>v4.4.2:</em> CaExPA warning al primo render (sessione ripristinata), SESSION_KEYS migrazione backward-compatible (v442→v441→v44), filename coerente.</div>
-        <div class="warning-box" style="margin-bottom:20px;"><strong>⚠️ PATTERN NON CLASSIFICABILE?</strong> Tool copre 8 entità.
-        Se morfologia non si adatta: EMC (bifasico), PAC (papillare uniforme gh. minori — PRKD1/2/3), HCCC (cellule chiare + EWSR1), BCA (basaloide benigno), Oncocitoma.</div>
-
-        ${results.length===0?'<div class="warning-box">Dati insufficienti.</div>':
-        results.slice(0,6).map((r,i)=>`
-        <div class="diagnosis-card ${r.conf}" onclick="this.classList.toggle('expanded')">
-            <div class="header-row">
-                <div class="diagnosis-name">${i+1}. ${r.fullName}</div>
-                <span class="confidence-badge ${r.conf}">${r.conf==='molecular'?'🧬 MOLECULAR':r.conf.toUpperCase()}</span>
-            </div>
-            <div style="font-size:12px;color:#718096;margin-bottom:8px;">${r.behavior}</div>
-            <div class="score-bar"><div class="score-fill" style="width:${r.pct}%"></div></div>
-            <div style="font-size:9px;color:#cbd5e0;font-weight:300;" title="Score comparativo interno. Non lineare, non probabilistico.">
-                Score indicativo: ${r.score} ±2 | ${r.pct}% max ℹ️
-                ${formData.specimenType==='fnab'?'<br><span style="color:#c53030;font-weight:600;">⚠️ Dati parziali (FNAB)</span>':''}
-            </div>
-            ${r.her2Alert?`<div style="margin-top:8px;padding:8px;background:#faf5ff;border:1px solid #805ad5;border-radius:4px;font-size:11px;color:#553c9a;">${r.her2Alert}</div>`:''}
-            ${r.pathoWarn?`<div style="margin-top:8px;padding:8px;background:#fffaf0;border:1px solid #dd6b20;border-radius:4px;font-size:11px;color:#c05621;">${r.pathoWarn}</div>`:''}
-            ${r.grading?`<div style="margin-top:10px;padding:10px;background:#faf5ff;border-radius:6px;"><strong style="color:#553c9a;">GRADING: ${r.grading.grade}</strong><br><small>${r.grading.desc} — Prognosi: ${r.grading.prog}</small></div>`:''}
-            <div class="rationale"><strong>Criteri:</strong>
-                ${r.rationale.map(rat=>`<div class="rationale-item ${rat.type}">${rat.text}<span class="evidence-tag ${rat.tag}">${rat.tag}</span></div>`).join('')}
-            </div>
-        </div>`).join('')}
-
-        <div class="warning-box" style="margin-top:20px;"><strong>Questo output descrive la coerenza interna dei dati inseriti, non la realtà biologica del tumore.</strong></div>
-        <div style="margin-top:30px;display:flex;gap:12px;flex-wrap:wrap;">
-            <button class="btn-primary" onclick="downloadTextReport()" style="flex:none;">📄 Scarica Report TXT</button>
-            <button class="btn-secondary" onclick="goToStep(1)">✏️ Modifica</button>
-            <button class="btn-secondary" onclick="if(confirm('Nuovo caso? I dati verranno persi.')){clearSession();location.reload();}">🔄 Nuovo Caso</button>
-        </div></div>`;
-    }
-
-    document.getElementById('mainContent').innerHTML=html;
-    updateProgress();
-
-    if(currentStep===1){
-        setTimeout(()=>{
-            function syncCaExPAWarning(){
-                const it=document.querySelector('input[name="specimenType"]:checked')?.value==='trucut';
-                const hp=document.querySelector('input[name="priorPA"]:checked')?.value==='yes';
-                const w=document.getElementById('caexpaWarning');
-                if(w)w.style.display=(it&&hp)?'block':'none';
-            }
-            document.querySelectorAll('input[name="specimenType"], input[name="priorPA"]').forEach(el=>{
-                el.addEventListener('change', syncCaExPAWarning);
-            });
-            syncCaExPAWarning(); // v4.4.2: chiamata immediata — gestisce ripristino sessione e valori già presenti
-        },100);
-    }
-    if(currentStep===4){
-        setTimeout(()=>{
-            document.querySelectorAll('input[name="p63"], input[name="sma"], input[name="calponin"]').forEach(el=>{
-                el.addEventListener('change',()=>{saveData();render();});
-            });
-        },100);
-    }
-}
-
-window.onload=()=>{
-    const restored=loadSession();
+function resetCase(){
+  if(confirm('Reset case? Clear all fields?')){
+    formData={};
+    sessionStorage.removeItem(SESSION_KEY);
+    currentStep=1;
     render();
-    if(restored&&currentStep>1){
-        const b=document.createElement('div');
-        b.style.cssText='background:#ebf8ff;border-left:4px solid #3182ce;padding:10px 15px;margin-bottom:16px;font-size:13px;color:#2c5282;border-radius:0 6px 6px 0;';
-        b.innerHTML=`<strong>💾 Sessione ripristinata</strong> — Step ${currentStep}/${totalSteps}. <a href="#" onclick="clearSession();location.reload();return false;" style="color:#c53030;margin-left:10px;">✕ Nuovo caso</a>`;
-        const c=document.getElementById('mainContent');
-        if(c&&c.firstChild)c.insertBefore(b,c.firstChild);
-    }
-};
+    window.scrollTo(0,0);
+  }
+}
+
+function updateProgress(){
+  const p=(currentStep/totalSteps)*100;
+  document.getElementById('progressFill').style.width=p+'%';
+  let h='';
+  for(let i=1;i<=totalSteps;i++){
+    let c='step-dot';
+    if(i<currentStep)c+=' completed';
+    else if(i===currentStep)c+=' active';
+    h+=`<div class="${c}">${i}</div>`;
+  }
+  document.getElementById('stepIndicator').innerHTML=h;
+}
+
+function next(){save();currentStep++;if(currentStep>totalSteps)currentStep=totalSteps;render();window.scrollTo(0,0);}
+function prev(){save();currentStep--;if(currentStep<1)currentStep=1;render();window.scrollTo(0,0);}
+
+function mkRad(name,opts){return opts.map(([v,l])=>`<label><input type="radio" name="${name}" value="${v}" ${formData[name]===v?'checked':''}><span>${l}</span></label>`).join('');}
+
+function render(){
+  let h='';
+  
+  if(currentStep===1){
+    h=`<div class="step active"><h3>Step 1/6: Tipo di ghiandola & Architettura</h3>
+    <div class="form-group"><label>Tipo di ghiandola</label><div class="guidance-text">L'OMS mostra pattern di prevalenza diversi. Ghiandole maggiori vs minori hanno diagnosi differenziali distinte.</div><div class="radio-group">${mkRad('major_minor',[['parotid','Parotide'],['submandibular','Sottomandibolare/Sottolinguale'],['minor','Minore (intraorale)']])}</div></div>
+    <div class="form-group"><label>Cribriforme</label><div class="radio-group">${mkRad('cribriform',[['yes','Sì'],['partial','Parziale'],['no','No']])}</div></div>
+    <div class="form-group"><label>Dualità (epiteliale-mioepiteliale)</label><div class="radio-group">${mkRad('duality',[['clear','Chiara'],['borderline','Borderline'],['absent','Assente']])}</div></div>
+    <div class="form-group"><label>Cellule chiare</label><div class="radio-group">${mkRad('clear_cell',[['yes','Sì'],['no','No']])}</div></div>
+    <div class="form-group"><label>Tipo stromale</label><div class="radio-group">${mkRad('stromal_type',[['myxoid','Mixoide'],['hyaline','Ialino'],['dense_collagen','Collagene denso']])}</div></div>
+    <div class="buttons"><button class="btn-secondary" disabled>← Indietro</button><button class="btn-primary" onclick="next()">Avanti →</button><button class="btn-reset" onclick="resetCase()">↻ Ricomincia</button></div></div>`;
+  }
+  
+  else if(currentStep===2){
+    h=`<div class="step active"><h3>Step 2/6: Citologia</h3>
+    <div class="form-group"><label>Produzione di mucina</label><div class="radio-group">${mkRad('mucin_production',[['abundant','Abbondante'],['moderate','Moderata'],['scant','Scarsa'],['absent','Assente']])}</div></div>
+    <div class="form-group"><label>Acinare sierosa</label><div class="radio-group">${mkRad('serous_acinar',[['prominent','Prominente'],['moderate','Moderata'],['minimal','Minimale'],['absent','Assente']])}</div></div>
+    <div class="form-group"><label>Oncocitaria</label><div class="radio-group">${mkRad('oncocytic',[['prominent','Prominente'],['absent','Assente']])}</div></div>
+    <div class="form-group"><label>Pattern microcistico</label><div class="radio-group">${mkRad('microcystic',[["yes","Yes"],["no","No"]])}</div></div>
+    <div class="form-group"><label>Architettura papillare</label><div class="radio-group">${mkRad('papillary',[['yes','Sì'],['no','No']])}</div></div>
+    <div class="form-group"><label>Pattern variati</label><div class="radio-group">${mkRad('varied_patterns',[['yes','Pattern multipli'],['no','Uniforme']])}</div></div>
+    <div class="buttons"><button class="btn-secondary" onclick="prev()">← Indietro</button><button class="btn-primary" onclick="next()">Avanti →</button><button class="btn-reset" onclick="resetCase()">↻ Ricomincia</button></div></div>`;
+  }
+  
+  else if(currentStep===3){
+    h=`<div class="step active"><h3>Step 3/6: Invasione & Comportamento</h3>
+    <div class="form-group"><label>Invasione perineurale (PNI)</label><div class="radio-group">${mkRad('neural_invasion',[['extensive','Estesa'],['focal','Focale'],['none','Assente']])}</div></div>
+    <div class="form-group"><label>Necrosi</label><div class="radio-group">${mkRad('necrosis',[['no','No'],['focal','Focale'],['yes','Sì']])}</div></div>
+    <div class="form-group"><label>Indice mitotico</label><div class="radio-group">${mkRad('mitotic_rate',[['low','Basso'],['moderate','Moderata'],['high','Alto'],['not_done','Non valutato']])}</div></div>
+    <div class="form-group"><label>Grado nucleare</label><div class="radio-group">${mkRad('nuclear_grade',[['low','Basso'],['intermediate','Intermedio'],['high','Alto']])}</div></div>
+    <div class="buttons"><button class="btn-secondary" onclick="prev()">← Indietro</button><button class="btn-primary" onclick="next()">Avanti →</button><button class="btn-reset" onclick="resetCase()">↻ Ricomincia</button></div></div>`;
+  }
+  
+  else if(currentStep===4){
+    h=`<div class="step active"><h3>Step 4/6: Contesto clinico</h3>
+    <div class="form-group"><label>Anamnesi di AP precedente</label><div class="radio-group">${mkRad('priorPA',[['yes','Sì'],['no','No']])}</div></div>
+    <div class="form-group"><label>AP residuo visibile</label><div class="radio-group">${mkRad('residualPA',[['yes','Sì'],['no','No']])}</div></div>
+    <div class="form-group"><label>Stroma linfoide</label><div class="radio-group">${mkRad('lymphoid_stroma',[['abundant','Abbondante'],['none','Assente']])}</div></div>
+    <div class="buttons"><button class="btn-secondary" onclick="prev()">← Indietro</button><button class="btn-primary" onclick="next()">Avanti →</button><button class="btn-reset" onclick="resetCase()">↻ Ricomincia</button></div></div>`;
+  }
+  
+  else if(currentStep===5){
+    h=`<div class="step active"><h3>Step 5/6: IHC & Molecolare (opzionale)</h3>
+    <div class="form-group"><label>Stato IHC/Molecolare</label><div class="radio-group">${mkRad('ihc_status',[['done','Eseguito / Disponibile'],['pending','In attesa / Non eseguito']])}</div></div>
+    ${formData.ihc_status==='done'?`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 -5px;">
+    <div><div class="form-group"><label>DOG1</label><div class="radio-group">${mkRad('dog1',[['pos','Positivo'],['neg','Negativo'],['not_done','Non eseguito']])}</div></div>
+    <div class="form-group"><label>MAML2</label><div class="radio-group">${mkRad('maml2',[['pos','Positivo'],['neg','Negativo'],['not_done','Non eseguito']])}</div></div></div>
+    <div><div class="form-group"><label>MYB</label><div class="radio-group">${mkRad('myb',[['pos','Positivo'],['neg','Negativo'],['not_done','Non eseguito']])}</div></div>
+    <div class="form-group"><label>Mammaglobin</label><div class="radio-group">${mkRad('mammaglobin',[['pos','Positivo'],['neg','Negativo'],['not_done','Non eseguito']])}</div></div></div>
+    </div>
+    <div style="margin-top:10px;"><div class="form-group"><label>p63 / SMA <small style="font-weight:normal;color:#718096;">(proxy mioepiteliale — non equivale a marker singolo)</small></label><div class="radio-group">${mkRad('p63',[['pos','Positivo'],['neg','Negativo'],['not_done','Non eseguito']])}</div></div>
+    <div class="form-group"><label>LEF1</label><div class="radio-group">${mkRad('lef1',[['pos','Positivo'],['neg','Negativo'],['not_done','Non eseguito']])}</div></div>
+    <div class="form-group"><label>PLAG1</label><div class="radio-group">${mkRad('plag1',[['pos','Positivo'],['neg','Negativo'],['not_done','Non eseguito']])}</div></div></div>
+    <div style="margin-top:10px;"><div class="form-group"><label>MEF2C::SS18 (MSA)</label><div class="radio-group">${mkRad('mef2c',[['pos','Positivo'],['neg','Negativo'],['not_done','Non eseguito']])}</div></div>
+    <div class="form-group"><label>ETV6-NTRK3 (SC)</label><div class="radio-group">${mkRad('etv6',[['pos','Positivo'],['neg','Negativo'],['not_done','Non eseguito']])}</div></div></div>
+    `:``}
+    <div class="buttons"><button class="btn-secondary" onclick="prev()">← Indietro</button><button class="btn-primary" onclick="next()">📊 Risultati →</button><button class="btn-reset" onclick="resetCase()">↻ Ricomincia</button></div></div>`;
+  }
+  
+  else if(currentStep===6){
+    save();
+    const g1=gateOne();
+    const passed=Object.keys(g1).filter(k=>g1[k].passed);
+    const excluded=Object.keys(g1).filter(k=>!g1[k].passed);
+    const cautions=Object.keys(g1).filter(k=>g1[k].passed && g1[k].reason!=='Gate 1 passed');
+    const g2=gateTwo(g1);
+    const dqWarnings=checkDataQuality();
+    const nextTests=recommendNextTests(g1);
+    const outside=checkOutsideModel(g1);
+    const ranked=passed.sort((a,b)=>(g2[b]?.score||0)-(g2[a]?.score||0));
+    
+    h=`<div class="step active"><h3>Step 6/6: Risultati (v5.1-beta)</h3>
+    ${dqWarnings.length>0?dqWarnings.map(w=>`<div class="data-quality-warning">${w}</div>`).join(''):''}
+    <h4>🔐 Gate 1: Validazione morfologica</h4>
+    <div class="gates-summary">
+      ${passed.length>0?`<div style="color:#276749;font-weight:600;">✓ PASSATO (${passed.length}):</div>${passed.map(e=>`<div class="gate-item" style="color:#276749;">• ${e}</div>`).join('')}`:
+      `<div style="color:#c53030;font-weight:600;">✗ NESSUN SOPRAVVISSUTO</div>`}
+    </div>
+    ${cautions.length>0?`<h4>⚠️ Note di gate morbido (${cautions.length})</h4>${cautions.map(e=>`<div class="gate-caution">~ ${e}: ${g1[e].reason}</div>`).join('')}`:''}
+    ${excluded.length>0?`<h4>⛔ Escluso (${excluded.length})</h4>${excluded.map(e=>`<div class="entity-card excluded"><div class="entity-title entity-excluded">✗ ${e}</div><div class="entity-reason">${g1[e].reason}</div></div>`).join('')}`:''}
+    ${outside?`<div class="entity-card outside"><div class="entity-title entity-outside">🟣 FUORI DAL MODELLO ATTUALE</div><div class="entity-reason">Non rientra nelle entità salivari standard. Considerare: lesioni cistiche, mimici benigni, lesioni non salivari, entità rare.</div></div>`:''}
+    ${ranked.length>0?`<h4>✓ Gate 2: Sopravvissuti in ordine</h4>${ranked.slice(0,5).map((e,i)=>{const pc=getProConMissing(e,formData);return`<div class="entity-card passed"><div class="entity-title entity-passed">${i+1}. ${e}</div><div class="entity-reason">Pattern fit: ${g2[e].fit} · Score: ${g2[e].score}</div>${pc.pro.length>0 || pc.con.length>0?`<div class="pro-con">${pc.pro.length>0?`<div class="pro"><strong>✓ A favore:</strong><br/>${pc.pro.join('<br/>')}</div>`:''}${pc.con.length>0?`<div class="con"><strong>✗ Contro:</strong><br/>${pc.con.join('<br/>')}</div>`:''}</div>`:''}${pc.missing.length>0?`<div class="missing"><strong>? Mancante:</strong><br/>${pc.missing.join('<br/>')}</div>`:''}${pc.abandon?`<div class="abandon"><strong>🚫 Abbandonerei se:</strong><br/>${pc.abandon}</div>`:''}${pc.mimic?`<div class="mimic"><strong>⚠️ Alternative diagnostiche più insidiose:</strong><br/>${pc.mimic}</div>`:''}</div>`}).join('')}`:''}
+    ${nextTests.length>0?`<h4>🧪 Esami successivi:</h4>${nextTests.map(t=>`<div class="next-test">${t}</div>`).join('')}`:''}
+    <h4>ℹ️ Copertura del modello</h4>
+    <div class="coverage-disclaimer">
+    <strong>Questo tool NON copre bene:</strong><br/>
+    • Lesioni cistiche benigne (cisti da ritenzione, mucoceli)<br/>
+    • Entità duttali (carcinoma del dotto intercalato)<br/>
+    • Entità rare (varianti di carcinoma del dotto salivare)<br/>
+    • Mimici non salivari (melanoma, linfoma, metastasi)<br/>
+    ${formData.major_minor==='minor'?'• Lesioni duttali papillari (ghiandole minori)<br/>':''}
+    ${formData.major_minor==='parotid'?'• Carcinoma metastatico alla parotide)<br/>':''}
+    <strong>Copre meglio:</strong><br/>
+    ${formData.major_minor==='minor'?'✓ PolymorfAC, HCCC, lesioni a cellule chiare':''}
+    ${formData.major_minor==='parotid'?'✓ AP, MEC, Warthin, ACC':''}
+    ${formData.major_minor==='submandibular'?'✓ Misto (parotide + minori)':''}
+    </div>
+    <div class="buttons"><button class="btn-secondary" onclick="resetCase()">↻ Nuovo caso</button></div></div>`;
+  }
+  
+  document.getElementById('mainContent').innerHTML=h;
+  updateProgress();
+}
+
+function loadSession(){const s=sessionStorage.getItem(SESSION_KEY);if(s)formData=JSON.parse(s);}
+window.onload=()=>{loadSession();render();};
 </script>
 </body>
 </html>

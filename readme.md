@@ -1,139 +1,175 @@
-# Salivary Gland Diagnostic Support Tool
-**v4.4.2 — WHO Classification of Head and Neck Tumours, 5th ed. (2022)**
+# Salivary Gland Tool — v5.1-beta
 
-> Tool didattico-operativo per la diagnosi differenziale delle neoplasie delle ghiandole salivari.  
-> Single-file HTML/JS — nessuna dipendenza esterna, nessun dato trasmesso.
+**Tool di orientamento diagnostico per patologia delle ghiandole salivari.**
 
----
-
-## Entità coperte (8)
-
-| Sigla | Nome completo | Alterazione molecolare chiave |
-|-------|--------------|-------------------------------|
-| PA | Adenoma Pleomorfo | PLAG1 / HMGA2 |
-| ACC | Carcinoma Adenoidocistico | MYB-NFIB / MYBL1 (~80% aggregate) |
-| MEC | Carcinoma Mucoepidermoide | MAML2 (t(11;19)) |
-| AciCC | Carcinoma Acinico | NR4A3 |
-| SC | Secretory Carcinoma (ex-MASC, WHO 2022) | ETV6-NTRK3 |
-| SDC | Carcinoma del Dotto Salivare | HER2 (amplificazione/iperespressione) |
-| Warthin | Tumore di Warthin | — |
-| CaExPA | Carcinoma ex Adenoma Pleomorfo | PLAG1 / HMGA2 (componente maligna) |
+*This tool orients diagnostic reasoning — it does not replace diagnostic judgment.*
 
 ---
 
-## Flusso diagnostico (9 step)
+## Cos'è
 
-1. **Dati generali** — sede ghiandola, tipo campione (pezzo op. / core biopsy / FNAB), età
-2. **Morfologia EE** — pattern architetturale dominante, citologia, stroma
-3. **Features specifiche** — PNI, necrosi, atipia nucleare, componente linfocitaria
-4. **IHC base** — CK7, CK5/6, S100, p63, SMA, calponina, DOG1, AR
-5. **IHC avanzata** — SOX10, CD117, mammaglobina, LEF1, HER2 (schema ASCO/CAP 0/1+/2+/3+/amplified)
-6. **Molecolare** — ETV6, MYB/MYBL1, MAML2, PLAG1, HMGA2, NR4A3
-7. **Grading** — MEC (AFIP/Brandwein) + Ca ex-PA (invasione mm, WHO 2022)
-8. **Clinica** — sospetto iniziale, note cliniche
-9. **Risultati** — score differenziale, confidence tier, warning attivi, download report
+Uno strumento di triage morfologico che prende in input le caratteristiche istologiche di una lesione salivare e restituisce:
 
----
+- Ipotesi diagnostiche compatibili, ordinate per pattern fit
+- Elementi a favore, contro, mancanti per ciascuna ipotesi
+- Soglia di abbandono ("Would abandon if...") esplicita
+- Alternative diagnostiche più insidiose ("Closest dangerous alternatives")
+- Suggerimenti di esami successivi mirati
 
-## Logica di scoring
-
-### Confidence tier
-- **HIGH**: score >15, entità al 1° posto con distacco ≥5 dalla 2ª
-- **MODERATE**: score 8–15 o distacco 3–4
-- **LOW**: score <8 o distacco <3 → completare pannello
-
-### Molecular tier
-- **Tier 1** (ETV6, MYB, NR4A3) → promozione a MOLECULAR se score ≥ 8
-- **Tier 2** (PLAG1, HMGA2, MAML2) → promozione a MOLECULAR se score ≥ 10
-
-### Warning attivi
-| Warning | Trigger |
-|---------|---------|
-| MANTELLO DISCORDANTE | p63 e SMA/calponina in direzioni opposte |
-| SCORE RAVVICINATI | Δ tra 1° e 2° classificato < soglia |
-| FNAB | Limitazioni critiche messe in evidenza |
-| CaExPA trcut + PA pregressa | Box rosso al primo render (v4.4.2) |
-| HER2 3+ / amplified in SDC | Alert terapeutico (trastuzumab-eligibile) |
+Non è un oracolo. È un framework di pensiero esplicito, calibrato secondo WHO 2022 con sensibilità clinica italiana e scuola Rosai.
 
 ---
 
-## Principi clinici embedded
+## Filosofia
 
-- **DOG1**: positività forte in AciCC; SC (ex-MASC) tipicamente negativo
-- **LEF1**: 91–97% ACC sono LEF1−; LEF1+ orienta verso PA/BCA (Schmitt et al.)  
-  ⚠️ LEF1− *non esclude* ACC — interpretare sempre nel contesto morfologico
-- **HER2 2+**: peso = 0 (equivoco, richiede ISH/FISH prima di contare)
-- **MYB**: ~80% ACC per alterazioni aggregate (MYB-NFIB ~50%, MYBL1 ~10–15%, peri-MYB riarrangiamenti)
-- **Ca ex-PA su trucut**: penalità −40% sullo score CaExPA (architettura residua non valutabile)
+**Morphology-first.** La morfologia guida la diagnosi. Marker e molecolari sono conferme, non sostituti.
 
----
+**Pragmatico, non dogmatico.** I gate di esclusione sono morbidi quando la biologia lo richiede (EMC, PolymorphousAC, HCCC, CaExPA). Il peso interpretativo si sposta sui box esplicativi.
 
-## Limiti noti (versione corrente)
+**Onesto sui propri limiti.** Il tool dichiara cosa copre bene, cosa copre male, e quando è fuori dal proprio modello.
 
-- **Entità mancanti**: PAC (PRKD1/2/3, ghiandole minori), EMC, BCA/BCAC, HCCC (EWSR1-ATF1), Oncocitoma, Mioepitelioma maligno
-- Pattern selezionabile: uno solo (no dominante + secondario)
-- Ki-67, mitosi, cellule mucoidi, componente cistica: raccolti ma non completamente integrati nel calcolo
-- Non validato su casistica prospettica — uso esclusivamente didattico/di supporto
+**Il vetrino non mente. Il reagente sì.** Quando IHC e morfologia divergono, la morfologia ha l'ultima parola.
 
 ---
 
-## Sessione e persistenza
+## Entità coperte (11)
 
-Il tool usa `sessionStorage` (dati locali al browser, non trasmessi).  
-Gestione backward-compatible:
+| Sigla | Entità | Gate 1 | Densità dati |
+|-------|--------|--------|--------------|
+| PA | Pleomorphic Adenoma | Duro | Alta |
+| ACC | Adenoid Cystic Carcinoma | Duro | Alta |
+| MEC | Mucoepidermoid Carcinoma | Duro | Alta |
+| AciCC | Acinic Cell Carcinoma | Duro | Alta |
+| SC | Secretory Carcinoma | Morbido | Media |
+| MSA | Microsecretory Adenocarcinoma | Morbido | Media |
+| CaExPA | Carcinoma ex Pleomorphic Adenoma | Soft warning | Alta |
+| Warthin | Warthin Tumor | Duro | Alta |
+| EMC | Epithelial-Myoepithelial Carcinoma | Soft warning | Media |
+| PolymorphousAC | Polymorphous Adenocarcinoma | Soft warning | Media |
+| HCCC | Hyalinizing Clear Cell Carcinoma | Soft warning | Media |
+
+**Non copre:** lesioni cistiche benigne, entità duttali (intercalated duct carcinoma), varianti rare di salivary duct carcinoma, mimici non salivari (melanoma, linfoma, metastasi).
+
+---
+
+## Come funziona
+
+### Flusso
 
 ```
-SESSION_KEYS = ['sgdt_v442_session', 'sgdt_v441_session', 'sgdt_v44_session']
+Step 1: Tipo ghiandola + architettura
+Step 2: Citologia
+Step 3: Invasione & comportamento
+Step 4: Contesto clinico (anamnesi PA, stroma linfoide)
+Step 5: IHC & molecolare (opzionale)
+Step 6: Risultati
 ```
 
-Al caricamento vengono lette in ordine; la prima disponibile ripristina il caso.  
-**"✕ Nuovo caso"** cancella tutte e tre le chiavi.
+### Architettura a due gate
+
+**Gate 1 — Validazione morfologica**
+Esclude entità biologicamente incompatibili (es. Warthin senza oncocitosi + linfoide; AciCC senza acinari sierosi).
+I gate morbidi producono "Soft gate notes" visibili nell'output senza escludere l'entità.
+
+**Gate 2 — Ranking pattern fit**
+Assegna score euristico alle entità sopravvissute. Gland-aware:
+- PolymorphousAC, HCCC: +3 minor, −2 parotid
+- Warthin: +2 parotid, −3 minor
+- MEC: +1 parotid, −1 minor
+
+Output: `Pattern fit: STRONG/INTERMEDIATE/WEAK · Score: N`
+
+### Per ogni entità in ranking
+
+| Box | Contenuto |
+|-----|-----------|
+| ✓ A favore | Feature presenti che supportano la diagnosi |
+| ✗ Contro | Feature che la indeboliscono |
+| ? Mancante | Test utili non ancora eseguiti, con razionale |
+| 🚫 Abbandonerei se | Soglia esplicita di abbandono |
+| ⚠️ Alternative insidiose | Mimici clinico-diagnostici più vicini |
 
 ---
 
-## Changelog
+## Campi raccolti (28)
 
-### v4.4.2
-- `syncCaExPAWarning()` chiamata al render iniziale (warning CaExPA visibile su ripristino sessione)
-- `SESSION_KEYS` array backward-compatible (v442 → v441 → v44)
-- Filename report e SESSION_KEY allineati alla versione corrente
-- `Molecular confidence` e changelog interni aggiornati a v4.4.2
+**Morfologia (19):** tipo ghiandola, cribriforme, dualità, microcistico, produzione di mucina, acinare sierosa, grado nucleare, necrosi, invasione perineurale, tipo stromale, oncocitaria, papillare, anamnesi PA, PA residuo, stroma linfoide, cellule chiare, pattern variati, indice mitotico, ihc_status.
 
-### v4.4.1
-- HER2 2+ peso ridotto a 0 (equivoco senza ISH)
-- MEC pattern squamous rimosso (irraggiungibile da UI)
-- `saveData()`: campo svuotato cancella `formData` (no ghost values)
-- `nextStep()`/`prevStep()`: `saveSession()` spostato dopo `currentStep++`
+**IHC (7):** DOG1, MAML2, LEF1, MYB, p63/SMA, mammaglobina, PLAG1.
 
-### v4.4
-- SC al posto di MASC (nomenclatura WHO 2022)
-- DOG1 in SC: `pos:+3` → `pos:−2`
-- HER2 UI: schema ASCO/CAP completo (0/1+/2+/3+/amplified), alert terapeutico per 3+ e amplified
-- `_myoDiscordant` bug risolto (assegnazione pre-filter → variabile globale separata)
-- MYB wording corretto (~80% aggregate)
-- LEF1 testo UI corretto (era invertito)
+**Molecolare (2):** MEF2C::SS18, ETV6-NTRK3.
+
+Tutti i marker sono a tre stati: `Positivo / Negativo / Non eseguito`.
 
 ---
 
-## Uso consigliato
+## Controlli di qualità
+
+**Contraddizioni semantiche:**
+- Cribriforme + no dualità → "Reverificare"
+- Microcistico + no dualità → "MSA improbabile"
+- Cellule chiare senza ialino né dualità → "Considerare RCC metastatico"
+- Oncocitosi senza linfoide in parotide → "Warthin meno probabile"
+
+**IHC ghost cleanup:** se `ihc_status` torna a "pending", i valori IHC precedenti vengono cancellati dal motore. Il motore ragiona solo sui dati effettivamente dichiarati.
+
+**Dati mancanti:** warning esplicito se >3 campi core sono vuoti.
+
+---
+
+## Limiti noti
+
+**Strutturali (accettati):**
+- `p63/SMA` come campo unico è un proxy pragmatico, non equivalente a interpretazione di marker singoli
+- `submandibular/sublingual` accorpati per semplicità
+- Ranking basato su euristiche a priori, non calibrato su casistica reale
+- Gate morbidi per EMC/PolymorphousAC/HCCC/CaExPA: il peso è nei box interpretativi, non nell'esclusione
+
+**Tecnici (monitorati):**
+- CaExPA è un soft warning travestito da passaggio di gate (commentato nel codice)
+- Pesi gland-aware sono correzione grossolana pre-test
+
+---
+
+## Persistenza
+
+Il tool salva automaticamente in `sessionStorage` con chiave `sgdt_v5_1_beta_session`. La sessione si riapre allo stesso punto al refresh. Il pulsante **↻ Ricomincia** (o ↻ Nuovo caso a fine flusso) cancella tutto.
+
+---
+
+## Deploy
+
+File singolo HTML autosufficiente. Nessuna dipendenza esterna.
 
 ```
-Apri il file HTML in qualsiasi browser moderno.
-Nessuna installazione. Nessun server. Nessun dato inviato.
+salivary_gland_tool_v5_1_ALPHA.html
 ```
 
-Report scaricabile in `.txt` dallo step 9.  
-Integrabile su GitHub Pages as-is.
+Aprire in qualsiasi browser moderno (Chrome, Firefox, Safari, Edge). Funziona offline. 39 KB, 635 righe.
 
 ---
 
-## Disclaimer
+## Roadmap
 
-> Strumento di supporto didattico-operativo.  
-> Non sostituisce il giudizio del patologo.  
-> La diagnosi definitiva richiede correlazione clinico-radiologico-patologica.  
-> **Il vetrino non mente. Il reagente sì.**
+**v5.2 (quando ci saranno 20-30 casi reali testati):**
+- Ricalibrazione pesi gateTwo su dati reali
+- Separazione p63 / SMA / calponina
+- Separazione submandibular / sublingual
+- Tre stati espliciti: `excluded / passed / caution`
+- Possibile espansione a entità duttali
 
 ---
 
-*Sviluppato con Claude (Anthropic) — revisione scientifica ChatGPT Plus — direzione clinica: Dr. F. Bianchi, SC Anatomia Patologica, ASST Fatebenefratelli-Sacco, Milano*
+## Crediti e attribuzioni
+
+Sviluppato da Dr. Filippo Bianchi (SC Anatomia Patologica, FBF-Melloni, Milano) con supporto AI Claude per implementazione. Scuola morfologica di riferimento: Rosai & Ackerman. Framework nosologico: WHO Classification of Head and Neck Tumours 2022.
+
+---
+
+## Licenza d'uso
+
+Strumento di supporto al ragionamento diagnostico per uso interno. Non è un dispositivo medico certificato. La responsabilità diagnostica resta del patologo refertante.
+
+---
+
+*"Automating prudence, not diagnosis."*
