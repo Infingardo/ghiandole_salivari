@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Salivary Gland Tool v5.1-beta</title>
+    <title>Salivary Gland v5.0.2 — Clinicamente Pragmatico</title>
     <style>
         *{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',system-ui,Arial,sans-serif;background:linear-gradient(135deg,#1a365d 0%,#2d3748 100%);min-height:100vh;padding:20px;color:#2d3748}
         .container{max-width:1200px;margin:0 auto;background:#fff;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden}
@@ -53,13 +53,10 @@
         .pro{background:#f0fff4;border-left:2px solid #38a169;padding:6px;color:#276749}
         .con{background:#fff5f5;border-left:2px solid #e53e3e;padding:6px;color:#c53030}
         .missing{background:#fffaf0;border-left:2px solid #dd6b20;padding:6px;color:#c05621;margin-top:6px}
-        .abandon{background:#faf5ff;border-left:3px solid #6b46c1;padding:6px 8px;color:#553c9a;margin-top:6px;font-size:10px;line-height:1.5}
-        .mimic{background:#fffde7;border-left:3px solid #d69e2e;padding:6px 8px;color:#744210;margin-top:4px;font-size:10px;line-height:1.5}
         .data-quality-warning{background:#fed7d7;padding:8px;border-radius:3px;margin:8px 0;font-weight:500;color:#c53030;font-size:10px}
         .contradictory-warning{background:#feebc8;padding:8px;border-radius:3px;margin:8px 0;font-weight:500;color:#c05621;font-size:10px}
         .next-test{background:#c6f6d5;padding:8px;border-radius:3px;margin:8px 0;font-weight:500;color:#276749;font-size:10px}
         .gates-summary{background:#f0fff4;border:1px solid #9ae6b4;border-radius:5px;padding:12px;margin:12px 0;font-size:11px}
-        .gate-caution{background:#fffaf0;border-left:3px solid #dd6b20;padding:6px 8px;color:#7b341e;margin:3px 0;font-size:10px;border-radius:0 3px 3px 0}
         .gate-item{margin:4px 0 4px 16px;font-size:10px;color:#2d3748}
         .coverage-disclaimer{background:#ebf8ff;border-left:4px solid #3182ce;padding:10px;margin:12px 0;border-radius:0 3px 3px 0;font-size:10px;color:#2c5282;line-height:1.5;font-weight:500}
         @media(max-width:768px){.content{padding:18px}.buttons{flex-direction:column}.btn-primary,.btn-secondary,.btn-reset{width:100%;margin:0}.pro-con{grid-template-columns:1fr}}
@@ -68,21 +65,31 @@
 <body>
 <div class="container">
     <div class="header">
-        <h1>🔬 Salivary Gland Tool v5.1-beta</h1>
+        <h1>🔬 Salivary Gland Tool v5.0.2</h1>
         <p>Bug Fixes + Clinical Pragmatism</p>
-        <div class="version-badge">v5.1-beta | Ghiandola-consapevole | Pro/Con/Mancante | Abbandono | Mimica</div>
+        <div class="version-badge" style="display:flex;justify-content:space-between;align-items:center;">
+          <span>v5.0.2 | Pragmatico | Pro/Con/Missing | Coverage Disclaimer</span>
+          <button onclick="newCase();" style="background:#c53030;color:white;border:none;padding:6px 10px;border-radius:4px;cursor:pointer;font-size:11px;margin-left:10px;">↻ Nuovo caso</button>
+        </div>
     </div>
-    <div class="disclaimer">⚠️ v5.1-beta &nbsp;·&nbsp; Questo tool orienta il ragionamento diagnostico — non sostituisce il giudizio diagnostico. Ordina ipotesi esplicite da morfologia e dati ancillari selezionati. La diagnosi finale resta dipendente dal campione e dal patologo.</div>
+    <div class="disclaimer">⚠️ v5.0.2: Bugs fixed. SC rewritten. MSA/PolymorphousAC/EMC softened. Pro/Con/Missing added. Coverage disclaimer included.</div>
+    <div style="background:#f0f0f0;padding:10px;margin:10px 0;border-left:4px solid #276749;font-size:12px;line-height:1.6;">
+      <strong>Legenda sigle:</strong>
+      PA=Pleomorphic Adenoma · ACC=Acinic Cell Carcinoma · MEC=Mucoepidermoid Carcinoma · SC=Secretory Carcinoma · 
+      MSA=Myoepithelial Sialadenitis · AciCC=Acinic Cell Carcinoma (alt.) · CaExPA=Carcinoma ex Pleomorphic Adenoma · 
+      EMC=Epithelial-Myoepithelial Carcinoma · PolymorphousAC=Polymorphous Adenocarcinoma · HCCC=Hyalinizing Clear Cell Carcinoma · 
+      PNI=Perineural Invasion · MAML2=Mucin-Associated Adenocarcinoma Translocation · ETV6=Echinoderm Microtubule-Associated Protein-Like 4
+    </div>
     <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
     <div class="step-indicator" id="stepIndicator"></div>
     <div class="content" id="mainContent"></div>
 </div>
 
 <script>
-let currentStep=1,totalSteps=6,formData={};const SESSION_KEY='sgdt_v5_1_beta_session';
+let currentStep=0,totalSteps=7,formData={};const SESSION_KEY='sgdt_v5_0_2_session';
 
-// GATE 1 RULES — morphology-first exclusions and soft filters (v5.1-beta)
-function evaluateGateOneRule(entity, fd){
+// CORRECTED DEAL BREAKERS (V5.0.2: SOFTENED)
+function evaluateDealBreaker(entity, fd){
   switch(entity){
     case 'PA':
       if(fd.nuclear_grade==='high') return {hit:true,msg:'Nuclear grade high. Reconsider.'};
@@ -98,8 +105,10 @@ function evaluateGateOneRule(entity, fd){
       return {hit:false};
       
     case 'SC':
-      // v5.1-beta: Morphology-first. mammaglobin/ETV6 are confirmatory.
-      // Strong double-negative is a major con (handled in pro/con), not a hard gate.
+      // V5.0.2: SC defined by ETV6-NTRK3. Mammaglobin is DRIVER, not serous morphology.
+      // Softened: Not absolute if serous absent.
+      if(fd.mammaglobin==='neg' && fd.etv6==='neg') 
+        return {hit:true,msg:'No mammaglobin AND no ETV6 fusion: SC unlikely (but test mammaglobin first).'};
       return {hit:false};
       
     case 'MEC':
@@ -111,20 +120,18 @@ function evaluateGateOneRule(entity, fd){
       if(fd.serous_acinar==='absent') 
         return {hit:true,msg:'No serous acinar: AciCC unlikely.'};
       if(fd.cribriform==='yes' && fd.duality==='clear') 
-        return {hit:true,msg:'Cribriforme+duality pattern suggests ACC.'};
+        return {hit:true,msg:'Cribriform+duality pattern suggests ACC.'};
       return {hit:false};
       
     case 'MSA':
-      // v5.1-beta: Softened. Microcystic is TYPICAL, not absolute.
+      // V5.0.2: Softened. Microcystic is TYPICAL, not absolute.
       if(fd.microcystic!=='yes' && fd.duality!=='clear') 
         return {hit:true,msg:'No microcystic AND no duality: MSA less likely (but test MEF2C if morphology fits).'};
       return {hit:false};
       
     case 'CaExPA':
-      // Soft warning: passes gate but message signals caution.
-      // Future: consider 3-state (excluded / passed / caution) for CaExPA and other soft entities.
       if(fd.residualPA==='no' && fd.priorPA!=='yes') 
-        return {hit:false,msg:'No history/residual. Could be primary carcinoma or unrelated malignancy.'};
+        return {hit:false,msg:'No history/residual. Could be primary carcinoma or unrelated malignancy.'}; // Not a deal-breaker
       return {hit:false};
       
     case 'Warthin':
@@ -133,20 +140,20 @@ function evaluateGateOneRule(entity, fd){
       return {hit:false};
       
     case 'EMC':
-      // v5.1-beta: Softened. Clear cells + duality typical, not absolute.
+      // V5.0.2: Softened. Clear cells + duality typical, not absolute.
       if(fd.clear_cell!=='yes' || fd.duality!=='clear') 
         return {hit:false,msg:'EMC typical: clear + duality. But variants exist.'}; // Not hard deal-breaker
       return {hit:false};
       
     case 'PolymorphousAC':
-      // v5.1-beta: Softened. Varied patterns TYPICAL, not absolute requirement.
+      // V5.0.2: Softened. Varied patterns TYPICAL, not absolute requirement.
       if(fd.varied_patterns!=='yes' && fd.neural_invasion==='none') 
         return {hit:false,msg:'PolymorphousAC typical: varied + PNI. But not absolute.'}; // Not hard
       return {hit:false};
       
     case 'HCCC':
       if(fd.clear_cell!=='yes' || fd.stromal_type!=='hyaline') 
-        return {hit:false,msg:'HCCC usually shows clear cells with hyaline stroma; rare entity, recheck context and exclusions.'};
+        return {hit:false,msg:'HCCC typical: clear + hyaline. Rare, need EWSR1 fusion.'}; // Not hard
       return {hit:false};
       
     default: return {hit:false};
@@ -159,207 +166,82 @@ function getProConMissing(entity, fd){
   switch(entity){
     case 'ACC':
       procon.pro=[
-        fd.cribriform==='yes' ? '✓ Cribriforme architecture' : null,
-        fd.duality==='clear' ? '✓ Epithelial-myoepithelial duality' : null,
-        fd.neural_invasion==='extensive' ? '✓ Extensive perineural invasion' : null,
-        fd.myb==='pos' ? '✓ MYB rearrangement positive' : null
+        fd.cribriform==='yes' ? '✓ Cribriform' : null,
+        fd.duality==='clear' ? '✓ Duality' : null,
+        fd.neural_invasion==='extensive' ? '✓ Extensive PNI' : null,
+        fd.myb==='pos' ? '✓ MYB+' : null
       ].filter(Boolean);
       procon.con=[
-        fd.mucin_production==='abundant' ? '✗ Abundant mucin (favors MEC)' : null,
-        fd.serous_acinar==='prominent' ? '✗ Prominent serous acinar (favors AciCC)' : null
+        fd.mucin_production==='abundant' ? '✗ Abundant mucin' : null,
+        fd.serous_acinar==='prominent' ? '✗ Prominent serous' : null
       ].filter(Boolean);
       procon.missing=[
-        isMissing(fd.myb) ? '? MYB — distinguish ACC from EMC/other cribriform lesions' : null,
-        isMissing(fd.maml2) ? '? MAML2 — exclude MEC if mucin present' : null
+        !fd.myb ? '? MYB status' : null,
+        !fd.maml2 ? '? MAML2 status' : null
       ].filter(Boolean);
-      procon.abandon='High-grade transformation with comedonecrosis or solid growth without cribriform. MAML2 positivity with convincing mucinous component would strongly favor MEC.';
-      procon.mimic='MEC (if mucin present) · EMC (if duality + cribriform) · Salivary duct carcinoma';
-
       break;
       
     case 'MEC':
       procon.pro=[
-        ['scant','moderate','abundant'].includes(fd.mucin_production) ? '✓ Mucinous cells present' : null,
-        fd.maml2==='pos' ? '✓ MAML2 fusion positive' : null,
-        fd.neural_invasion==='focal' ? '✓ Focal perineural invasion' : null
+        fd.mucin_production!=='absent' ? '✓ Mucinous cells' : null,
+        fd.maml2==='pos' ? '✓ MAML2+' : null,
+        fd.neural_invasion==='focal' ? '✓ Focal PNI' : null
       ].filter(Boolean);
       procon.con=[
-        fd.cribriform==='yes' ? '✗ Cribriforme pattern (favors ACC)' : null,
-        fd.mucin_production==='absent' ? '✗ No mucin production' : null
+        fd.cribriform==='yes' ? '✗ Cribriform pattern' : null
       ].filter(Boolean);
       procon.missing=[
-        isMissing(fd.maml2) ? '? MAML2 — positive in ~80% MEC, discriminates from ACC' : null
+        !fd.maml2 ? '? MAML2 fusion' : null
       ].filter(Boolean);
-      procon.abandon='Pure cribriform with perineural invasion, no mucin at multiple levels, MYB+ on testing.';
-      procon.mimic='ACC (low-grade, mucinous, MAML2-) · PA with mucinous metaplasia · Mucoepidermoid metaplasia (non-neoplastic)';
       break;
       
     case 'SC':
       procon.pro=[
-        fd.mammaglobin==='pos' ? '✓ Mammaglobin positive' : null,
-        fd.etv6==='pos' ? '✓ ETV6-NTRK3 fusion confirmed' : null
+        fd.mammaglobin==='pos' ? '✓ Mammaglobin+' : null,
+        fd.etv6==='pos' ? '✓ ETV6-NTRK3+' : null,
+        fd.serous_acinar==='moderate' ? '✓ Serous differentiation' : null
       ].filter(Boolean);
       procon.con=[
-        fd.mammaglobin==='neg' ? '✗ Mammaglobin negative' : null,
-        fd.etv6==='neg' ? '✗ ETV6-NTRK3 not detected' : null
+        fd.serous_acinar==='absent' ? '✗ No serous' : null
       ].filter(Boolean);
       procon.missing=[
-        isMissing(fd.mammaglobin) ? '? Mammaglobin — high-value screen before molecular' : null,
-        isMissing(fd.etv6) ? '? ETV6-NTRK3 fusion — confirms diagnosis' : null
+        !fd.mammaglobin ? '? Mammaglobin (KEY marker)' : null,
+        !fd.etv6 ? '? ETV6-NTRK3 fusion' : null
       ].filter(Boolean);
-      procon.abandon='Mammaglobin negative on adequate testing; morphology not convincingly secretory; consider AciCC (DOG1+), low-grade MEC, or metastatic breast carcinoma.';
-      procon.mimic='AciCC (DOG1+, serous) · Low-grade MEC · Metastatic breast carcinoma';
       break;
       
     case 'PA':
       procon.pro=[
-        fd.stromal_type==='myxoid' ? '✓ Myxoid/chondromyxoid stroma' : null,
+        fd.stromal_type==='myxoid' ? '✓ Myxoid stroma' : null,
         fd.nuclear_grade==='low' ? '✓ Low nuclear grade' : null,
-        fd.necrosis==='no' ? '✓ No necrosis' : null,
-        fd.lef1==='pos' ? '~ LEF1 positive (ancillary, interpret cautiously)' : null,
-        fd.plag1==='pos' ? '✓ PLAG1 positive' : null
+        fd.necrosis==='no' ? '✓ No necrosis' : null
       ].filter(Boolean);
       procon.con=[
-        fd.mitotic_rate==='high' ? '✗ High mitotic rate' : null,
-        fd.neural_invasion==='extensive' ? '✗ Extensive perineural invasion' : null,
-        fd.necrosis==='yes' ? '✗ Necrosi present' : null
+        fd.mitotic_rate==='high' ? '✗ High mitotic' : null,
+        fd.neural_invasion==='extensive' ? '✗ Extensive PNI' : null
       ].filter(Boolean);
       procon.missing=[
-        isMissing(fd.plag1) ? '? PLAG1 — stronger ancillary support for PA' : null,
-        isMissing(fd.lef1) ? '? LEF1 — ancillary only, interpret cautiously (also positive in Warthin)' : null
+        !fd.lef1 ? '? LEF1 (supportive)' : null,
+        !fd.plag1 ? '? PLAG1 (supportive)' : null
       ].filter(Boolean);
-      procon.abandon='High-grade nuclear atypia, necrosis, atypical mitoses, or extensive invasive front without residual PA — consider CaExPA.';
-      procon.mimic='EMC (clear outer layer, duality) · ACC (if focal cribriform change) · CaExPA (if atypia zones present)';
       break;
       
     case 'MSA':
       procon.pro=[
-        fd.microcystic==='yes' ? '✓ Microcystic architecture (morphological axis)' : null,
-        fd.duality==='clear' ? '✓ Epithelial-myoepithelial duality (morphological axis)' : null,
-        fd.mammaglobin==='neg' ? '✓ Mammaglobin negative (excludes SC)' : null,
-        fd.nuclear_grade==='low' ? '✓ Low nuclear grade' : null,
-        fd.clear_cell==='yes' ? '~ Clear-cell component (ancillary, not defining)' : null
+        fd.microcystic==='yes' ? '✓ Microcystic' : null,
+        fd.duality==='clear' ? '✓ Duality' : null,
+        fd.mammaglobin==='neg' ? '✓ Mammaglobin neg' : null
       ].filter(Boolean);
       procon.con=[
-        fd.duality==='absent' ? '✗ No duality (MSA requires it)' : null,
-        fd.mammaglobin==='pos' ? '✗ Mammaglobin positive (favors SC)' : null,
-        fd.nuclear_grade==='high' ? '✗ High nuclear grade (against MSA)' : null
-      ].filter(Boolean);
-      procon.missing=[
-        isMissing(fd.mef2c) ? '? MEF2C::SS18 fusion — defines MSA, distinguishes from EMC and ACC' : null,
-        isMissing(fd.mammaglobin) ? '? Mammaglobin — exclude SC before pursuing MSA' : null
-      ].filter(Boolean);
-      procon.abandon='MEF2C::SS18 not detected on dedicated testing. Consider EMC (if duality + clear cells) or ACC (if cribriform).';
-      procon.mimic='EMC (if duality dominant) · ACC (if cribriform) · Low-grade MEC';
-      break;
-      
-    case 'AciCC':
-      procon.pro=[
-        fd.serous_acinar==='prominent' ? '✓ True acinar/zymogen-rich differentiation' : null,
-        fd.dog1==='pos' ? '✓ DOG1+' : null,
-        fd.mitotic_rate==='low' ? '✓ Low mitotic rate' : null
-      ].filter(Boolean);
-      procon.con=[
-        fd.cribriform==='yes' ? '✗ Cribriforme pattern' : null,
-        fd.duality==='clear' ? '✗ Clear duality' : null,
-        fd.mucin_production==='abundant' ? '✗ Abundant mucin' : null
-      ].filter(Boolean);
-      procon.missing=[
-        isMissing(fd.dog1) ? '? DOG1 — positive in AciCC, negative in SC and most MEC' : null
-      ].filter(Boolean);
-      procon.abandon='DOG1 negative on repeated testing; true duality present; MAML2 or MYB positive on molecular testing.';
-      procon.mimic='SC (if mammaglobin+) · Low-grade MEC · Metastatic renal/thyroid clear-cell lesion';
-      break;
-      
-    case 'Warthin':
-      procon.pro=[
-        fd.oncocytic==='prominent' ? '✓ Prominent oncocytic (core)' : null,
-        fd.lymphoid_stroma==='abundant' ? '✓ Abundant lymphoid stroma (core)' : null,
-        fd.mitotic_rate==='low' ? '✓ Low mitotic rate' : null,
-        fd.necrosis==='no' ? '✓ No necrosis' : null,
-        fd.papillary==='yes' ? '~ Papillary-cystic architecture (accessory)' : null
-      ].filter(Boolean);
-      procon.con=[
-        fd.oncocytic==='absent' ? '✗ No oncocytic' : null,
-        fd.lymphoid_stroma==='none' ? '✗ No lymphoid stroma' : null,
-        fd.neural_invasion==='extensive' ? '✗ Extensive PNI' : null
-      ].filter(Boolean);
-      procon.missing=[];
-      procon.abandon='No oncocytic change on multiple sampling; lymphoid stroma absent or sparse; nuclear atypia or necrosis present.';
-      procon.mimic='Oncocytoma (no lymphoid) · Oncocitaria MEC · Low-grade oncocytic carcinoma';
-      break;
-      
-    case 'EMC':
-      procon.pro=[
-        fd.clear_cell==='yes' ? '✓ Outer clear myoepithelial cells' : null,
-        fd.duality==='clear' ? '✓ Duality epithelial-myoepithelial' : null,
-        fd.p63==='pos' ? '✓ p63/SMA positive (myoepithelial)' : null
-      ].filter(Boolean);
-      procon.con=[
-        fd.clear_cell==='no' ? '✗ No clear cells' : null,
         fd.duality==='absent' ? '✗ No duality' : null
       ].filter(Boolean);
       procon.missing=[
-        isMissing(fd.p63) ? '? p63/SMA — confirm myoepithelial outer layer' : null
+        !fd.mef2c ? '? MEF2C::SS18 fusion' : null
       ].filter(Boolean);
-      procon.abandon='p63/SMA negative outer layer; MEF2C+ on fusion testing (favors MSA); no clear cell component and no duality.';
-      procon.mimic='PA (myxoid stroma, no outer clear layer) · ACC (cribriform) · MSA (MEF2C+)';
-      break;
-      
-    case 'PolymorphousAC':
-      procon.pro=[
-        fd.varied_patterns==='yes' ? '✓ Varied patterns' : null,
-        fd.neural_invasion==='focal' ? '✓ Focal PNI (targetoid)' : null,
-        fd.nuclear_grade==='intermediate' ? '✓ Intermediate grade' : null,
-        fd.major_minor==='minor' ? '✓ Minor gland site (expected)' : null
-      ].filter(Boolean);
-      procon.con=[
-        fd.varied_patterns==='no' ? '✗ Monomorphic' : null,
-        fd.neural_invasion==='none' ? '✗ No PNI' : null,
-        fd.nuclear_grade==='high' ? '✗ High grade' : null
-      ].filter(Boolean);
-      procon.missing=[];
-      procon.abandon='Truly monomorphic cytology, no targetoid growth, no PNI, major gland site only.';
-      procon.mimic='ACC (if cribriform dominates) · Canalicular adenoma (if trabecular) · Adenocarcinoma NOS';
-      break;
-      
-    case 'HCCC':
-      procon.pro=[
-        fd.clear_cell==='yes' ? '✓ Clear cells (glycogen-rich, PAS+)' : null,
-        fd.stromal_type==='hyaline' ? '✓ Hyaline stroma' : null,
-        fd.major_minor==='minor' ? '✓ Minor gland site (strongly expected)' : null
-      ].filter(Boolean);
-      procon.con=[
-        fd.clear_cell==='no' ? '✗ No clear cells' : null,
-        fd.stromal_type!=='hyaline' ? '✗ Stromal type not hyaline' : null,
-        fd.duality==='clear' ? '✗ Clear duality (favors EMC)' : null
-      ].filter(Boolean);
-      procon.missing=[
-        fd.major_minor==='parotid' ? '✗ Parotid site (unusual for HCCC — raises doubt)' : null,
-        fd.major_minor==='submandibular' ? '~ Submandibular site (uncommon for HCCC)' : null
-      ].filter(Boolean);
-      procon.abandon='Confirmatory molecular support absent, especially if morphology not classic; duality with p63+ outer layer favors EMC; metastatic RCC remains a key exclusion if stroma is not hyaline.';
-      procon.mimic='Metastatic clear cell RCC · EMC (if duality) · MEC clear cell variant';
-      break;
-      
-    case 'CaExPA':
-      procon.pro=[
-        fd.residualPA==='yes' ? '✓ AP residuo visibile' : null,
-        fd.neural_invasion==='extensive' ? '✓ Extensive PNI' : null,
-        fd.nuclear_grade==='high' ? '✓ High nuclear grade' : null,
-        fd.necrosis==='yes' ? '✓ Necrosi present' : null
-      ].filter(Boolean);
-      procon.con=[
-        fd.priorPA==='no' ? '~ No prior PA history (soft)' : null,
-        fd.residualPA==='no' ? '~ Nessun AP residuo visibile (debole)' : null
-      ].filter(Boolean);
-      procon.missing=[];
-      procon.abandon='High-grade carcinoma entirely de novo, no PA remnant on extensive sampling, no myxoid stroma, no morphological hint of pre-existing PA; consider salivary duct carcinoma or metastasis.';
-      procon.mimic='PA with reactive atypia · High-grade MEC · Salivary duct carcinoma';
       break;
       
     default:
-      procon.pro=['(entity not yet detailed)'];
+      procon.pro=['(entity not detailed yet)'];
       procon.con=[];
       procon.missing=[];
   }
@@ -370,7 +252,7 @@ function gateOne(){
   const entities=['PA','ACC','MEC','AciCC','SC','MSA','CaExPA','Warthin','EMC','PolymorphousAC','HCCC'];
   const result={};
   for(let e of entities){
-    const db=evaluateGateOneRule(e,formData);
+    const db=evaluateDealBreaker(e,formData);
     result[e]={passed:!db.hit, reason:db.msg||'Gate 1 passed'};
   }
   return result;
@@ -378,7 +260,6 @@ function gateOne(){
 
 function gateTwo(survivors){
   const scores={};
-  const gland=formData.major_minor;
   for(let e of Object.keys(survivors)){
     if(!survivors[e].passed) continue;
     let score=0;
@@ -392,45 +273,15 @@ function gateTwo(survivors){
     }else if(e==='SC'){
       if(formData.mammaglobin==='pos') score+=4;
     }else if(e==='MEC'){
-      if(['scant','moderate','abundant'].includes(formData.mucin_production)) score+=3;
-      // MEC gland-aware
-      if(gland==='parotid') score+=1;
-      if(gland==='minor') score-=1;
+      if(formData.mucin_production!=='absent') score+=3;
     }else if(e==='AciCC'){
       if(formData.serous_acinar==='prominent') score+=3;
-      if(formData.dog1==='pos') score+=2;
     }else if(e==='Warthin'){
       if(formData.oncocytic==='prominent' && formData.lymphoid_stroma==='abundant') score+=5;
-      if(formData.papillary==='yes') score+=2;
-      // Warthin gland-aware
-      if(gland==='parotid') score+=2;
-      if(gland==='minor') score-=3;
-    }else if(e==='EMC'){
-      if(formData.clear_cell==='yes') score+=2;
-      if(formData.duality==='clear') score+=2;
-    }else if(e==='PolymorphousAC'){
-      if(formData.varied_patterns==='yes') score+=2;
-      if(formData.neural_invasion==='focal') score+=2;
-      // PolymorphousAC gland-aware
-      if(gland==='minor') score+=3;
-      if(gland==='parotid') score-=2;
-    }else if(e==='HCCC'){
-      if(formData.clear_cell==='yes') score+=2;
-      if(formData.stromal_type==='hyaline') score+=2;
-      // HCCC gland-aware
-      if(gland==='minor') score+=3;
-      if(gland==='parotid') score-=2;
-    }else if(e==='CaExPA'){
-      if(formData.priorPA==='yes') score+=3;
-      if(formData.residualPA==='yes') score+=2;
-      if(formData.neural_invasion==='extensive') score+=2;
-    }else if(e==='MSA'){
-      if(formData.microcystic==='yes') score+=2;
-      if(formData.duality==='clear') score+=2;
     }else{
       score=1;
     }
-    scores[e]={score,fit:score>=8?'STRONG':score>=5?'INTERMEDIATE':'WEAK'};
+    scores[e]={score,conf:score>=8?'HIGH':score>=5?'MODERATE':'LOW'};
   }
   return scores;
 }
@@ -440,42 +291,26 @@ function checkDataQuality(){
   const missing=required.filter(v=>!formData[v]).length;
   const warnings=[];
   
-  if(missing>3) warnings.push('⚠️ DATI MANCANTI: >3 campi vuoti. Risultati inaffidabili.');
+  if(missing>3) warnings.push('⚠️ MISSING DATA: >3 fields empty. Results unreliable.');
   
   if(formData.cribriform==='yes' && formData.duality==='absent')
-    warnings.push('🔴 CONTRADICTORY: Cribriforme present but duality absent. Recheck.');
-
-  if(formData.microcystic==='yes' && formData.duality==='absent')
-    warnings.push('🔴 CONTRADDIZIONE: Microcistico senza dualità — MSA improbabile. Reverificare.');
-
-  if(formData.clear_cell==='yes' && formData.stromal_type!=='hyaline' && formData.duality==='absent')
-    warnings.push('⚠️ Cellule chiare senza stroma ialino o dualità — considerare carcinoma a cellule chiare metastatico o primitivo renale.');
-
-  if(formData.oncocytic==='prominent' && formData.lymphoid_stroma==='none' && formData.major_minor==='parotid')
-    warnings.push('⚠️ Oncocitaria without lymphoid stroma in parotid — Warthin less likely. Consider oncocytoma or oncocytic variant.');
+    warnings.push('🔴 CONTRADICTORY: Cribriform present but duality absent. Recheck.');
     
   return warnings;
 }
 
-function isMissing(v){
-  return v===undefined || v===null || v==='not_done';
-}
-
-function recommendNextTests(g1){
+function recommendNextTests(g1,g2){
   const survivors=Object.keys(g1).filter(k=>g1[k].passed);
   const recs=[];
   
   if(survivors.includes('ACC') && survivors.includes('MEC'))
-    recs.push('→ Test molecolare MAML2 (MEC+) vs MYB (ACC+)');
+    recs.push('→ MAML2 (MEC+) vs MYB (ACC+) molecular testing');
   
-  if(survivors.includes('SC') && isMissing(formData.mammaglobin))
-    recs.push('→ Mammaglobina — screening SC ad alto valore, eseguire prima del test molecolare');
+  if(survivors.includes('SC') && !formData.mammaglobin)
+    recs.push('→ Mammaglobin (KEY SC marker) — test immediately');
   
-  if(survivors.includes('SC') && formData.mammaglobin==='pos' && isMissing(formData.etv6))
-    recs.push('→ Fusione ETV6-NTRK3 — confermare SC se mammaglobina positiva');
-
-  if(survivors.includes('MSA') && isMissing(formData.mef2c))
-    recs.push('→ Fusione MEF2C::SS18 — definisce MSA, distingue da EMC e ACC');
+  if(survivors.includes('MSA') && !formData.mef2c)
+    recs.push('→ MEF2C::SS18 fusion testing');
   
   return recs;
 }
@@ -485,32 +320,36 @@ function checkOutsideModel(g1){
 }
 
 function save(){
-  for(let n of ['major_minor','ihc_status','cribriform','duality','microcystic','mucin_production','serous_acinar','nuclear_grade','necrosis','neural_invasion','stromal_type','oncocytic','papillary','priorPA','residualPA','lymphoid_stroma','clear_cell','varied_patterns','dog1','maml2','lef1','myb','p63','etv6','mammaglobin','plag1','mef2c','mitotic_rate']){
+  for(let n of ['cribriform','solid_nests','duality','microcystic','mucin_production','serous_acinar','nuclear_grade','necrosis','neural_invasion','stromal_type','oncocytic','papillary','myoepithelial_invasive','priorPA','residualPA','lymphoid_stroma','clear_cell','varied_patterns','dog1','maml2','lef1','myb','etv6','mammaglobin','prag1','mef2c','mitotic_rate']){
     const v=document.querySelector(`input[name="${n}"]:checked`)?.value;
     if(v) formData[n]=v;
-  }
-  // IHC ghost cleanup: se ihc_status torna a pending, cancella tutti i valori IHC dal motore
-  if(formData.ihc_status !== 'done'){
-    ['dog1','maml2','lef1','myb','p63','etv6','mammaglobin','plag1','mef2c'].forEach(k => delete formData[k]);
   }
   sessionStorage.setItem(SESSION_KEY,JSON.stringify(formData));
 }
 
 function resetCase(){
-  if(confirm('Reset case? Clear all fields?')){
+  if(confirm('Ripristinare il caso? Cancellare tutti i dati?')){
     formData={};
     sessionStorage.removeItem(SESSION_KEY);
-    currentStep=1;
+    currentStep=0;
     render();
     window.scrollTo(0,0);
   }
+}
+
+function newCase(){
+  console.log('newCase() called');
+  sessionStorage.clear();
+  console.log('sessionStorage cleared');
+  console.log('about to reload...');
+  location.reload();
 }
 
 function updateProgress(){
   const p=(currentStep/totalSteps)*100;
   document.getElementById('progressFill').style.width=p+'%';
   let h='';
-  for(let i=1;i<=totalSteps;i++){
+  for(let i=0;i<=totalSteps;i++){
     let c='step-dot';
     if(i<currentStep)c+=' completed';
     else if(i===currentStep)c+=' active';
@@ -520,109 +359,117 @@ function updateProgress(){
 }
 
 function next(){save();currentStep++;if(currentStep>totalSteps)currentStep=totalSteps;render();window.scrollTo(0,0);}
-function prev(){save();currentStep--;if(currentStep<1)currentStep=1;render();window.scrollTo(0,0);}
+function prev(){save();currentStep--;if(currentStep<0)currentStep=0;render();window.scrollTo(0,0);}
 
 function mkRad(name,opts){return opts.map(([v,l])=>`<label><input type="radio" name="${name}" value="${v}" ${formData[name]===v?'checked':''}><span>${l}</span></label>`).join('');}
 
 function render(){
   let h='';
   
-  if(currentStep===1){
-    h=`<div class="step active"><h3>Step 1/6: Tipo di ghiandola & Architettura</h3>
-    <div class="form-group"><label>Tipo di ghiandola</label><div class="guidance-text">L'OMS mostra pattern di prevalenza diversi. Ghiandole maggiori vs minori hanno diagnosi differenziali distinte.</div><div class="radio-group">${mkRad('major_minor',[['parotid','Parotide'],['submandibular','Sottomandibolare/Sottolinguale'],['minor','Minore (intraorale)']])}</div></div>
-    <div class="form-group"><label>Cribriforme</label><div class="radio-group">${mkRad('cribriform',[['yes','Sì'],['partial','Parziale'],['no','No']])}</div></div>
-    <div class="form-group"><label>Dualità (epiteliale-mioepiteliale)</label><div class="radio-group">${mkRad('duality',[['clear','Chiara'],['borderline','Borderline'],['absent','Assente']])}</div></div>
-    <div class="form-group"><label>Cellule chiare</label><div class="radio-group">${mkRad('clear_cell',[['yes','Sì'],['no','No']])}</div></div>
-    <div class="form-group"><label>Tipo stromale</label><div class="radio-group">${mkRad('stromal_type',[['myxoid','Mixoide'],['hyaline','Ialino'],['dense_collagen','Collagene denso']])}</div></div>
+  if(currentStep===0){
+    h=`<div class="step active"><h3>Step 0/7: Tipo di campione</h3>
+    <div class="form-group"><label>Tipo di campione *</label><div class="radio-group">${mkRad('specimen_type',[['trucut','Trucut / Core biopsy'],['resection','Pezzo operatorio'],['fnab','FNAB / Citologia']])}</div></div>
     <div class="buttons"><button class="btn-secondary" disabled>← Indietro</button><button class="btn-primary" onclick="next()">Avanti →</button><button class="btn-reset" onclick="resetCase()">↻ Ricomincia</button></div></div>`;
   }
   
+  else if(currentStep===1){
+    h=`<div class="step active"><h3>Step 1/7: Architettura</h3>
+    <div class="form-group"><label>Cribriforme</label><div class="radio-group">${mkRad('cribriform',[['yes','Sì'],['partial','Parziale'],['no','No']])}</div></div>
+    <div class="form-group"><label>Dualità (epiteliale-mioepiteliale)</label><div class="radio-group">${mkRad('duality',[['clear','chiaro'],['borderline','borderline'],['absent','Assente']])}</div></div>
+    <div class="form-group"><label>Nidi solidi</label><div class="radio-group">${mkRad('solid_nests',[['absent','Assente'],['focal','focale'],['prominent','prominente']])}</div></div>
+    <div class="form-group"><label>Cellule chiare</label><div class="radio-group">${mkRad('clear_cell',[['yes','Sì'],['no','No']])}</div></div>
+    <div class="form-group"><label>Tipo stromale</label><div class="radio-group">${mkRad('stromal_type',[['myxoid','Mixoide'],['hyaline','Ialino'],['dense_collagen','Collagene denso']])}</div></div>
+    <div class="buttons"><button class="btn-secondary" disabled>← Indietro</button><button class="btn-primary" onclick="next()">Avanti →</button><button class="btn-reset" onclick="resetCase()">↻ Reset</button></div></div>`;
+  }
+  
   else if(currentStep===2){
-    h=`<div class="step active"><h3>Step 2/6: Citologia</h3>
-    <div class="form-group"><label>Produzione di mucina</label><div class="radio-group">${mkRad('mucin_production',[['abundant','Abbondante'],['moderate','Moderata'],['scant','Scarsa'],['absent','Assente']])}</div></div>
-    <div class="form-group"><label>Acinare sierosa</label><div class="radio-group">${mkRad('serous_acinar',[['prominent','Prominente'],['moderate','Moderata'],['minimal','Minimale'],['absent','Assente']])}</div></div>
-    <div class="form-group"><label>Oncocitaria</label><div class="radio-group">${mkRad('oncocytic',[['prominent','Prominente'],['absent','Assente']])}</div></div>
-    <div class="form-group"><label>Pattern microcistico</label><div class="radio-group">${mkRad('microcystic',[["yes","Yes"],["no","No"]])}</div></div>
+    h=`<div class="step active"><h3>Step 2/7: Citologia</h3>
+    <div class="form-group"><label>Produzione mucina</label><div class="radio-group">${mkRad('mucin_production',[['abundant','Abbondante'],['moderate','Moderata'],['scant','Scarsa'],['absent','Assente']])}</div></div>
+    <div class="form-group"><label>Acinare sierosa</label><div class="radio-group">${mkRad('serous_acinar',[['prominent','prominente'],['moderate','Moderata'],['minimal','minimale'],['absent','Assente']])}</div></div>
+    <div class="form-group"><label>Oncocitaria</label><div class="radio-group">${mkRad('oncocytic',[['prominent','prominente'],['absent','Assente']])}</div></div>
     <div class="form-group"><label>Architettura papillare</label><div class="radio-group">${mkRad('papillary',[['yes','Sì'],['no','No']])}</div></div>
     <div class="form-group"><label>Pattern variati</label><div class="radio-group">${mkRad('varied_patterns',[['yes','Pattern multipli'],['no','Uniforme']])}</div></div>
-    <div class="buttons"><button class="btn-secondary" onclick="prev()">← Indietro</button><button class="btn-primary" onclick="next()">Avanti →</button><button class="btn-reset" onclick="resetCase()">↻ Ricomincia</button></div></div>`;
+    <div class="buttons"><button class="btn-secondary" onclick="prev()">← Indietro</button><button class="btn-primary" onclick="next()">Avanti →</button><button class="btn-reset" onclick="resetCase()">↻ Reset</button></div></div>`;
   }
   
   else if(currentStep===3){
-    h=`<div class="step active"><h3>Step 3/6: Invasione & Comportamento</h3>
-    <div class="form-group"><label>Invasione perineurale (PNI)</label><div class="radio-group">${mkRad('neural_invasion',[['extensive','Estesa'],['focal','Focale'],['none','Assente']])}</div></div>
-    <div class="form-group"><label>Necrosi</label><div class="radio-group">${mkRad('necrosis',[['no','No'],['focal','Focale'],['yes','Sì']])}</div></div>
-    <div class="form-group"><label>Indice mitotico</label><div class="radio-group">${mkRad('mitotic_rate',[['low','Basso'],['moderate','Moderata'],['high','Alto'],['not_done','Non valutato']])}</div></div>
-    <div class="form-group"><label>Grado nucleare</label><div class="radio-group">${mkRad('nuclear_grade',[['low','Basso'],['intermediate','Intermedio'],['high','Alto']])}</div></div>
-    <div class="buttons"><button class="btn-secondary" onclick="prev()">← Indietro</button><button class="btn-primary" onclick="next()">Avanti →</button><button class="btn-reset" onclick="resetCase()">↻ Ricomincia</button></div></div>`;
+    h=`<div class="step active"><h3>Step 3/7: Invasion & Behavior</h3>
+    <div class="form-group"><label>Invasione perineurale (PNI)</label><div class="radio-group">${mkRad('neural_invasion',[['extensive','estesa'],['focal','focale'],['none','None']])}</div></div>
+    <div class="form-group"><label>Necrosi</label><div class="radio-group">${mkRad('necrosis',[['no','No'],['focal','focale'],['yes','Sì']])}</div></div>
+    <div class="form-group"><label>Indice mitotico</label><div class="radio-group">${mkRad('mitotic_rate',[['low','Low'],['moderate','Moderata'],['high','High'],['not_done','Non valutato']])}</div></div>
+    <div class="form-group"><label>Grado nucleare</label><div class="radio-group">${mkRad('nuclear_grade',[['low','Low'],['intermediate','Intermediate'],['high','High']])}</div></div>
+    <div class="form-group"><label>Mioepiteliale invasivo</label><div class="radio-group">${mkRad('myoepithelial_invasive',[['yes','Sì'],['no','No']])}</div></div>
+    <div class="buttons"><button class="btn-secondary" onclick="prev()">← Indietro</button><button class="btn-primary" onclick="next()">Avanti →</button><button class="btn-reset" onclick="resetCase()">↻ Reset</button></div></div>`;
   }
   
   else if(currentStep===4){
-    h=`<div class="step active"><h3>Step 4/6: Contesto clinico</h3>
+    h=`<div class="step active"><h3>Step 4/7: Clinical Context</h3>
     <div class="form-group"><label>Anamnesi di AP precedente</label><div class="radio-group">${mkRad('priorPA',[['yes','Sì'],['no','No']])}</div></div>
     <div class="form-group"><label>AP residuo visibile</label><div class="radio-group">${mkRad('residualPA',[['yes','Sì'],['no','No']])}</div></div>
-    <div class="form-group"><label>Stroma linfoide</label><div class="radio-group">${mkRad('lymphoid_stroma',[['abundant','Abbondante'],['none','Assente']])}</div></div>
-    <div class="buttons"><button class="btn-secondary" onclick="prev()">← Indietro</button><button class="btn-primary" onclick="next()">Avanti →</button><button class="btn-reset" onclick="resetCase()">↻ Ricomincia</button></div></div>`;
+    <div class="form-group"><label>Stroma linfoide</label><div class="radio-group">${mkRad('lymphoid_stroma',[['abundant','Abbondante'],['none','None']])}</div></div>
+    <div class="buttons"><button class="btn-secondary" onclick="prev()">← Indietro</button><button class="btn-primary" onclick="next()">Avanti →</button><button class="btn-reset" onclick="resetCase()">↻ Reset</button></div></div>`;
   }
   
   else if(currentStep===5){
-    h=`<div class="step active"><h3>Step 5/6: IHC & Molecolare (opzionale)</h3>
-    <div class="form-group"><label>Stato IHC/Molecolare</label><div class="radio-group">${mkRad('ihc_status',[['done','Eseguito / Disponibile'],['pending','In attesa / Non eseguito']])}</div></div>
-    ${formData.ihc_status==='done'?`
+    h=`<div class="step active"><h3>Step 5/7: IHC (optional)</h3>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 -5px;">
     <div><div class="form-group"><label>DOG1</label><div class="radio-group">${mkRad('dog1',[['pos','Positivo'],['neg','Negativo'],['not_done','Non eseguito']])}</div></div>
     <div class="form-group"><label>MAML2</label><div class="radio-group">${mkRad('maml2',[['pos','Positivo'],['neg','Negativo'],['not_done','Non eseguito']])}</div></div></div>
-    <div><div class="form-group"><label>MYB</label><div class="radio-group">${mkRad('myb',[['pos','Positivo'],['neg','Negativo'],['not_done','Non eseguito']])}</div></div>
-    <div class="form-group"><label>Mammaglobin</label><div class="radio-group">${mkRad('mammaglobin',[['pos','Positivo'],['neg','Negativo'],['not_done','Non eseguito']])}</div></div></div>
+    <div><div class="form-group"><label>Mammaglobin</label><div class="radio-group">${mkRad('mammaglobin',[['pos','Positivo'],['neg','Negativo'],['not_done','Non eseguito']])}</div></div>
+    <div class="form-group"><label>p63/SMA</label><div class="radio-group">${mkRad('p63',[['pos','Positivo'],['neg','Negativo'],['not_done','Non eseguito']])}</div></div></div>
     </div>
-    <div style="margin-top:10px;"><div class="form-group"><label>p63 / SMA <small style="font-weight:normal;color:#718096;">(proxy mioepiteliale — non equivale a marker singolo)</small></label><div class="radio-group">${mkRad('p63',[['pos','Positivo'],['neg','Negativo'],['not_done','Non eseguito']])}</div></div>
-    <div class="form-group"><label>LEF1</label><div class="radio-group">${mkRad('lef1',[['pos','Positivo'],['neg','Negativo'],['not_done','Non eseguito']])}</div></div>
+    <div style="margin-top:10px;"><div class="form-group"><label>LEF1</label><div class="radio-group">${mkRad('lef1',[['pos','Positivo'],['neg','Negativo'],['not_done','Non eseguito']])}</div></div>
     <div class="form-group"><label>PLAG1</label><div class="radio-group">${mkRad('plag1',[['pos','Positivo'],['neg','Negativo'],['not_done','Non eseguito']])}</div></div></div>
-    <div style="margin-top:10px;"><div class="form-group"><label>MEF2C::SS18 (MSA)</label><div class="radio-group">${mkRad('mef2c',[['pos','Positivo'],['neg','Negativo'],['not_done','Non eseguito']])}</div></div>
-    <div class="form-group"><label>ETV6-NTRK3 (SC)</label><div class="radio-group">${mkRad('etv6',[['pos','Positivo'],['neg','Negativo'],['not_done','Non eseguito']])}</div></div></div>
-    `:``}
-    <div class="buttons"><button class="btn-secondary" onclick="prev()">← Indietro</button><button class="btn-primary" onclick="next()">📊 Risultati →</button><button class="btn-reset" onclick="resetCase()">↻ Ricomincia</button></div></div>`;
+    <div class="buttons"><button class="btn-secondary" onclick="prev()">← Indietro</button><button class="btn-primary" onclick="next()">Avanti →</button><button class="btn-reset" onclick="resetCase()">↻ Reset</button></div></div>`;
   }
   
   else if(currentStep===6){
+    h=`<div class="step active"><h3>Step 6/7: Molecolare (opzionale)</h3>
+    <div class="guidance-text">Test molecolari confermatori. Selezionare "Not done" se non eseguiti.</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 -5px;">
+    <div><div class="form-group"><label>MYB</label><div class="radio-group">${mkRad('myb',[['pos','Positivo'],['neg','Negativo'],['not_done','Non eseguito']])}</div></div>
+    <div class="form-group"><label>MEF2C::SS18 (MSA)</label><div class="radio-group">${mkRad('mef2c',[['pos','Positivo'],['neg','Negativo'],['not_done','Non eseguito']])}</div></div></div>
+    <div><div class="form-group"><label>ETV6-NTRK3 (SC)</label><div class="radio-group">${mkRad('etv6',[['pos','Positivo'],['neg','Negativo'],['not_done','Non eseguito']])}</div></div></div>
+    </div>
+    <div class="buttons"><button class="btn-secondary" onclick="prev()">← Indietro</button><button class="btn-primary" onclick="next()">📊 Risultati →</button><button class="btn-reset" onclick="resetCase()">↻ Reset</button></div></div>`;
+  }
+  
+  else if(currentStep===7){
     save();
     const g1=gateOne();
     const passed=Object.keys(g1).filter(k=>g1[k].passed);
     const excluded=Object.keys(g1).filter(k=>!g1[k].passed);
-    const cautions=Object.keys(g1).filter(k=>g1[k].passed && g1[k].reason!=='Gate 1 passed');
     const g2=gateTwo(g1);
     const dqWarnings=checkDataQuality();
-    const nextTests=recommendNextTests(g1);
+    const nextTests=recommendNextTests(g1,g2);
     const outside=checkOutsideModel(g1);
     const ranked=passed.sort((a,b)=>(g2[b]?.score||0)-(g2[a]?.score||0));
     
-    h=`<div class="step active"><h3>Step 6/6: Risultati (v5.1-beta)</h3>
+    h=`<div class="step active"><h3>Step 7/7: Risultati (v5.0.2)</h3>
     ${dqWarnings.length>0?dqWarnings.map(w=>`<div class="data-quality-warning">${w}</div>`).join(''):''}
-    <h4>🔐 Gate 1: Validazione morfologica</h4>
+    <h4>🔐 Gate 1: Morphology Validation</h4>
     <div class="gates-summary">
-      ${passed.length>0?`<div style="color:#276749;font-weight:600;">✓ PASSATO (${passed.length}):</div>${passed.map(e=>`<div class="gate-item" style="color:#276749;">• ${e}</div>`).join('')}`:
-      `<div style="color:#c53030;font-weight:600;">✗ NESSUN SOPRAVVISSUTO</div>`}
+      ${passed.length>0?`<div style="color:#276749;font-weight:600;">✓ PASSED (${passed.length}):</div>${passed.map(e=>`<div class="gate-item" style="color:#276749;">• ${e}</div>`).join('')}`:
+      `<div style="color:#c53030;font-weight:600;">✗ NO SURVIVORS</div>`}
     </div>
-    ${cautions.length>0?`<h4>⚠️ Note di gate morbido (${cautions.length})</h4>${cautions.map(e=>`<div class="gate-caution">~ ${e}: ${g1[e].reason}</div>`).join('')}`:''}
-    ${excluded.length>0?`<h4>⛔ Escluso (${excluded.length})</h4>${excluded.map(e=>`<div class="entity-card excluded"><div class="entity-title entity-excluded">✗ ${e}</div><div class="entity-reason">${g1[e].reason}</div></div>`).join('')}`:''}
-    ${outside?`<div class="entity-card outside"><div class="entity-title entity-outside">🟣 FUORI DAL MODELLO ATTUALE</div><div class="entity-reason">Non rientra nelle entità salivari standard. Considerare: lesioni cistiche, mimici benigni, lesioni non salivari, entità rare.</div></div>`:''}
-    ${ranked.length>0?`<h4>✓ Gate 2: Sopravvissuti in ordine</h4>${ranked.slice(0,5).map((e,i)=>{const pc=getProConMissing(e,formData);return`<div class="entity-card passed"><div class="entity-title entity-passed">${i+1}. ${e}</div><div class="entity-reason">Pattern fit: ${g2[e].fit} · Score: ${g2[e].score}</div>${pc.pro.length>0 || pc.con.length>0?`<div class="pro-con">${pc.pro.length>0?`<div class="pro"><strong>✓ A favore:</strong><br/>${pc.pro.join('<br/>')}</div>`:''}${pc.con.length>0?`<div class="con"><strong>✗ Contro:</strong><br/>${pc.con.join('<br/>')}</div>`:''}</div>`:''}${pc.missing.length>0?`<div class="missing"><strong>? Mancante:</strong><br/>${pc.missing.join('<br/>')}</div>`:''}${pc.abandon?`<div class="abandon"><strong>🚫 Abbandonerei se:</strong><br/>${pc.abandon}</div>`:''}${pc.mimic?`<div class="mimic"><strong>⚠️ Alternative diagnostiche più insidiose:</strong><br/>${pc.mimic}</div>`:''}</div>`}).join('')}`:''}
+    ${excluded.length>0?`<h4>⛔ Excluded (${excluded.length})</h4>${excluded.map(e=>`<div class="entity-card excluded"><div class="entity-title entity-excluded">✗ ${e}</div><div class="entity-reason">${g1[e].reason}</div></div>`).join('')}`:''}
+    ${outside?`<div class="entity-card outside"><div class="entity-title entity-outside">🟣 OUTSIDE CURRENT MODEL</div><div class="entity-reason">Does not fit standard salivary entities. Consider: cystic lesions, benign mimics, non-salivary, rare entities.</div></div>`:''}
+    ${ranked.length>0?`<h4>✓ Gate 2: Ranked Survivors</h4>${ranked.slice(0,5).map((e,i)=>{const pc=getProConMissing(e,formData);return`<div class="entity-card passed"><div class="entity-title entity-passed">${i+1}. ${e}</div><div class="entity-reason">Score: ${g2[e].score} (${g2[e].conf})</div>${pc.pro.length>0 || pc.con.length>0?`<div class="pro-con">${pc.pro.length>0?`<div class="pro"><strong>✓ For:</strong><br/>${pc.pro.join('<br/>')}</div>`:''}${pc.con.length>0?`<div class="con"><strong>✗ Against:</strong><br/>${pc.con.join('<br/>')}</div>`:''}</div>`:''}${pc.missing.length>0?`<div class="missing"><strong>? Missing:</strong><br/>${pc.missing.join('<br/>')}</div>`:''}</div>`}).join('')}`:''}
     ${nextTests.length>0?`<h4>🧪 Esami successivi:</h4>${nextTests.map(t=>`<div class="next-test">${t}</div>`).join('')}`:''}
-    <h4>ℹ️ Copertura del modello</h4>
+    <h4>ℹ️ Model Coverage</h4>
     <div class="coverage-disclaimer">
     <strong>Questo tool NON copre bene:</strong><br/>
-    • Lesioni cistiche benigne (cisti da ritenzione, mucoceli)<br/>
-    • Entità duttali (carcinoma del dotto intercalato)<br/>
-    • Entità rare (varianti di carcinoma del dotto salivare)<br/>
-    • Mimici non salivari (melanoma, linfoma, metastasi)<br/>
-    ${formData.major_minor==='minor'?'• Lesioni duttali papillari (ghiandole minori)<br/>':''}
-    ${formData.major_minor==='parotid'?'• Carcinoma metastatico alla parotide)<br/>':''}
-    <strong>Copre meglio:</strong><br/>
-    ${formData.major_minor==='minor'?'✓ PolymorfAC, HCCC, lesioni a cellule chiare':''}
-    ${formData.major_minor==='parotid'?'✓ AP, MEC, Warthin, ACC':''}
-    ${formData.major_minor==='submandibular'?'✓ Misto (parotide + minori)':''}
+    • Lesioni cistiche benigne (cisti di ritenzione, mucoceli)<br/>
+    • Entità duttali (carcinoma dei dotti intercalati)<br/>
+    • Entità rare (varianti di carcinoma duttale salivare)<br/>
+    • Mimics non salivari (melanoma, linfoma, metastasi)<br/>
+    • Lesioni al di fuori di parotide/sottomandibolare (necessaria specificità per ghiandole minori)
     </div>
-    <div class="buttons"><button class="btn-secondary" onclick="resetCase()">↻ Nuovo caso</button></div></div>`;
+    <div class="buttons"><button class="btn-secondary" onclick="newCase();">↻ Nuovo caso</button></div></div>`;
+  }
+  else {
+    h=`<div class="step active"><p style="padding:20px;text-align:center;color:#c53030;font-weight:600;">Step not found. Please restart.</p>
+    <div class="buttons"><button class="btn-primary" onclick="currentStep=0;render();window.scrollTo(0,0);">↻ Restart</button></div></div>`;
   }
   
   document.getElementById('mainContent').innerHTML=h;
