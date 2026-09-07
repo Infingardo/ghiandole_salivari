@@ -1,6 +1,6 @@
-# Salivary Gland Tool — v5.0.3
+# Salivary Gland Tool — v5.1.0
 
-> **Nota:** questo readme documentava il ramo sperimentale v5.1-beta (aprile 2026), poi abbandonato. La linea stabile è proseguita con la 5.0.x: la versione corrente è la **5.0.3** (pattern molecolare HRAS Q61 + dual PIK3CA per CaExPA ed EMC). Le sezioni che seguono possono descrivere funzionalità mai entrate nella linea stabile.
+> **Nota:** questo readme documentava il ramo sperimentale v5.1-beta (aprile 2026), poi abbandonato. La linea stabile è proseguita con la 5.0.x ed è ora alla **5.1.0** (logica a tre stati nei cancelli, criteri architetturali sospesi su campioni limitati, punteggio proprio per MSA/carcinoma polimorfo/HCCC; pattern HRAS Q61 + dual PIK3CA invariato dalla 5.0.3). Le sezioni che seguono possono descrivere funzionalità mai entrate nella linea stabile: fa fede il CHANGELOG.
 
 **Tool di orientamento diagnostico per patologia delle ghiandole salivari.**
 

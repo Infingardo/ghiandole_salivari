@@ -1,5 +1,70 @@
 # 📝 Salivary Gland Tool - Changelog
 
+## v5.1.0 (Settembre 2026) — Un reperto non valutato non è un reperto assente
+
+### Il difetto di fondo
+I due cancelli conoscevano **due stati** (presente / assente) per un dato che ne ha **tre**.
+`fd.x !== 'atteso'` è vero anche per un campo che nessuno ha compilato, quindi il modello
+trattava il silenzio come una negazione documentata. Conseguenza misurata su form vuoto (v5.0.3):
+
+```
+sopravvissute: MEC, PolymorphousAC, HCCC, PA, ACC, AciCC, SC, CaExPA, EMC
+ESCLUSE:
+  ✗ MSA     — "No microcystic AND no duality: MSA less likely."
+  ✗ Warthin — "Warthin requires BOTH oncocytic + abundant lymphoid."
+classifica: MEC 3/LOW | PolymorphousAC 1/LOW | HCCC 1/LOW | PA 0 | ACC 0 | …
+```
+
+Due entità escluse e una diagnosi in testa alla classifica su un caso in cui **non era stato
+guardato nulla**. Stessa uscita in v5.1.0: nessuna esclusione, tutte a zero, ogni entità
+marcata *non verificata* con l'elenco dei campi mancanti.
+
+### Modifiche
+1. **Tre stati espliciti.** `isSet` / `is` / `isNot`. `isNot` esige il dato: un campo vuoto o
+   `not_done` non contraddice nulla. I deal-breaker di MSA e Warthin escludono solo se un campo
+   **compilato** contraddice.
+2. **Gate 1 distingue "superata" da "non verificata".** Le entità che passano per mancanza di
+   dati sono mostrate in ambra con la ragione, non in verde insieme a quelle davvero validate.
+3. **`specimen_type` collegato.** Era chiesto per primo, con l'asterisco di obbligatorio, e poi
+   scartato: non entrava nemmeno in `save()`. Su **trucut / FNAB** le esclusioni fondate
+   sull'*assenza* di un reperto architetturale (cribriforme, dualità, microcistico, stroma, PNI)
+   diventano "non determinabile". Un reperto architetturale **visto** su core biopsy resta un
+   dato e continua a escludere.
+4. **MEC.** `mucin_production !== 'absent'` dava 3 punti a mucina mai guardata. Ora servono
+   `scant | moderate | abundant`.
+5. **Entità senza criteri.** MSA aveva un deal-breaker e un test raccomandato ma nessun punteggio:
+   restava a 1 anche con MEF2C::SS18 positiva. Aggiunti criteri propri per MSA (MEF2C +4,
+   microcistico +2), carcinoma polimorfo (pattern multipli +3), HCCC (cellule chiare +3, stroma
+   ialino +2), più MYB::NFIB → ACC (+2) e DOG1 → AciCC (+3). Il ramo generico `score=1` non è
+   più raggiungibile.
+6. **Pro/Con completi.** AciCC, Warthin, carcinoma polimorfo e HCCC uscivano con
+   "(entity not detailed yet)" — anche quando erano prime in classifica.
+7. **Campi morti.** `microcystic` era letto da tre regole e **non veniva mai chiesto**: aggiunta
+   la domanda in Step 1. `p63/SMA` era chiesto e non salvato: ora entra nel pro/con delle entità
+   bifasiche. `save()` cercava `prag1` mentre il form scrive `plag1`: la risposta PLAG1 finiva
+   nel nulla e il tool continuava a chiederla come mancante. Restano dichiarati non usati —
+   e mostrati come tali all'utente — `solid_nests` e `myoepithelial_invasive`.
+8. **`newCase()`** chiamava `sessionStorage.clear()`, che svuota l'intera origine: su
+   infingardo.github.io gli altri strumenti condividono il dominio. Ora rimuove solo la
+   propria chiave.
+9. **CaExPA** non è più esclusa da Gate 1: l'assenza di PA residuo era mostrata come "reason"
+   di un'entità *passata*, dove per tutte le altre quel campo spiega perché è fuori. È una nota.
+
+### Infrastruttura
+- Logica estratta in **`engine.js`** (nessun DOM), consumata dalla pagina e da Node.
+- **`npm test`** → `tests/run.mjs`, 176 asserzioni, nessun framework. Oltre al comportamento,
+  le invarianti strutturali: il motore non è duplicato nella pagina, ogni campo del form entra
+  in `save()` e viceversa, ogni entità di Gate 1 ha un ramo in Gate 2, ogni nome usato dalla
+  pagina è esposto dal motore, e — la più utile — **ogni valore con cui il motore confronta un
+  campo deve essere un valore che quel campo può davvero assumere**. Quest'ultima ha subito
+  pescato un `mucin_production === 'focal'` scritto contro un form che offre `scant`.
+
+### Aperto
+`solid_nests` e `myoepithelial_invasive` sono raccolti e non usati: o si collegano con criteri
+espliciti o si tolgono dal wizard. Nessuna regola inventata qui.
+
+---
+
 ## v4.1 (Gennaio 2026) - Scoring Optimization Release
 
 ### 🎯 Obiettivo Release
