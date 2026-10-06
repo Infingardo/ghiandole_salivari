@@ -91,7 +91,14 @@ function evaluateDealBreaker(entity, fd){
       
     case 'HCCC':
       return {hit:false};
-      
+
+    case 'BasalCell':
+      // v5.3.0: nessun deal-breaker. La β-catenina nucleare e' presente solo in una quota
+      // (CTNNB1 ~60% dei BCA) e va cercata a chiazze nelle cellule abluminali/stromali:
+      // un reperto negativo non esclude. Adenoma e adenocarcinoma si distinguono solo per
+      // l'invasione, non valutabile su biopsia: qui sono una sola entita'.
+      return {hit:false};
+
     default: return {hit:false};
   }
 }
@@ -107,7 +114,7 @@ const PHENOTYPE_LABEL = {
   glandular:'monofasico ghiandolare (p40 negativo)',
   squamoid:'monofasico squamoide (p40 diffuso)' };
 // CaExPA non ha famiglia: il fenotipo dipende dalle componenti.
-const ENTITY_FAMILY = { PA:'biphasic', ACC:'biphasic', EMC:'biphasic', Warthin:'biphasic',
+const ENTITY_FAMILY = { PA:'biphasic', ACC:'biphasic', EMC:'biphasic', Warthin:'biphasic', BasalCell:'biphasic',
   SC:'glandular', MSA:'glandular', PolymorphousAC:'glandular', AciCC:'glandular',
   MEC:'squamoid', HCCC:'squamoid' };
 const S100_POS_GLANDULAR = ['SC','MSA','PolymorphousAC'];
@@ -197,6 +204,8 @@ function getProConMissing(entity, fd){
         hrasPos ? '✗ HRAS Q61+ (non tipico di ACC)' : null,
         fd.p63==='neg' ? '✗ p63/SMA negativo: senza componente mioepiteliale l ACC è difficile da sostenere' : null,
         (fd.plag1==='pos' || fd.hmga2==='pos') ? '✗ PLAG1/HMGA2+ (orienta su PA; non sensibile né specifico al 100%)' : null,
+        fd.bcatenin==='nuclear' ? '✗ β-catenina nucleare (orienta su basal cell)' : null,
+        fd.spindle_stroma==='yes' ? '✗ Stroma fusato interposto (orienta su basal cell)' : null,
         fd.myb==='neg' ? '✗ MYB IHC negativa (non esclude: >80% degli ACC la esprime, ma una quota no; testare la fusione)' : null
       ].filter(Boolean);
       procon.missing=[
@@ -250,6 +259,8 @@ function getProConMissing(entity, fd){
         fd.nuclear_grade==='high' ? '✗ Alto grado nucleare (isolato non esclude il PA: atipia bizzarra possibile)' : null,
         fd.neural_invasion==='extensive' ? '✗ Extensive PNI' : null,
         fd.myb==='pos' ? '✗ MYB+ (orienta su ACC; non specifico)' : null,
+        fd.bcatenin==='nuclear' ? '✗ β-catenina nucleare (orienta su basal cell)' : null,
+        fd.spindle_stroma==='yes' ? '✗ Stroma fusato interposto (orienta su basal cell, specie se PA cellulare)' : null,
         hrasPos ? '✗ HRAS Q61+ (suggerisce trasformazione maligna)' : null
       ].filter(Boolean);
       // v5.2.0: LEF1 tolto (aspecifico, sconsigliato); PLAG1 e HMGA2 insieme (fusioni in ~70% dei PA).
@@ -382,6 +393,26 @@ function getProConMissing(entity, fd){
       ].filter(Boolean);
       break;
 
+    case 'BasalCell':
+      procon.pro=[
+        fd.spindle_stroma==='yes' ? '✓ Stroma fusato tra le isole (quasi patognomonico)' : null,
+        fd.bcatenin==='nuclear' ? '✓ β-catenina nucleare (cellule abluminali / stroma fusato)' : null,
+        fd.basal_driver==='pos' ? '✓ CTNNB1 / CYLD mutato' : null,
+        fd.duality==='clear' ? '✓ Dualità' : null
+      ].filter(Boolean);
+      procon.con=[
+        fd.necrosis==='yes' ? '✗ Necrosi (inusuale: considerare BCAC ad alto grado o altra neoplasia)' : null,
+        fd.nuclear_grade==='high' ? '✗ Alto grado nucleare (inusuale nei basal cell)' : null,
+        fd.mucin_production==='abundant' ? '✗ Mucina abbondante (orienta su MEC)' : null
+      ].filter(Boolean);
+      procon.missing=[
+        !isSet(fd.bcatenin) ? '? β-catenina IHC (nucleare, anche a chiazze, nelle cellule abluminali/stromali; negativa non esclude)' : null,
+        !isSet(fd.spindle_stroma) ? '? Stroma fusato interposto tra le isole' : null,
+        !isSet(fd.basal_driver) ? '? CTNNB1 (~60% dei BCA) / CYLD (fino al 30% dei BCAC)' : null,
+        '? Invasione: è l\'unico criterio tra adenoma e adenocarcinoma, non valutabile su biopsia (descrivere, non forzare)'
+      ].filter(Boolean);
+      break;
+
     default:
       procon.pro=['(entity not detailed yet)'];
       procon.con=[];
@@ -395,7 +426,7 @@ function getProConMissing(entity, fd){
 
 function gateOne(fd){
   fd = fd || formData;
-  const entities=['PA','ACC','MEC','AciCC','SC','MSA','CaExPA','Warthin','EMC','PolymorphousAC','HCCC'];
+  const entities=['PA','ACC','MEC','AciCC','SC','MSA','CaExPA','Warthin','EMC','PolymorphousAC','HCCC','BasalCell'];
   const limited = LIMITED_SPECIMENS.includes(fd.specimen_type);
   const result={};
   for(let e of entities){
@@ -478,6 +509,11 @@ function gateTwo(survivors, fd){
       if(formData.microcystic==='yes') score+=2;
     }else if(e==='PolymorphousAC'){
       if(formData.varied_patterns==='yes') score+=3;   // pattern architetturali multipli: il carattere eponimo
+    }else if(e==='BasalCell'){
+      if(formData.spindle_stroma==='yes') score+=3;   // stroma fusato tra le isole: quasi patognomonico
+      if(formData.bcatenin==='nuclear') score+=3;     // anche a chiazze
+      if(formData.basal_driver==='pos') score+=3;     // CTNNB1 / CYLD
+      if(formData.duality==='clear') score+=1;
     }else if(e==='HCCC'){
       if(formData.clear_cell==='yes') score+=3;
       if(formData.stromal_type==='hyaline') score+=2;  // stroma ialino: il carattere eponimo
@@ -529,6 +565,10 @@ function recommendNextTests(g1,g2,fd){
     recs.push('→ MEF2C::SS18 fusion testing');
   if(survivors.includes('AciCC') && !isSet(fd.dog1))
     recs.push('→ DOG1 IHC (marker di riferimento AciCC)');
+  // v5.3.0: basal cell vs ACC / PA cellulare nel basaloide bifasico
+  if(survivors.includes('BasalCell') && !isSet(fd.bcatenin) &&
+     (is(fd.p40,'abluminal') || is(fd.duality,'clear','borderline') || is(fd.cribriform,'yes','partial')))
+    recs.push('→ β-catenina IHC (nucleare, anche a chiazze, in cellule abluminali/stroma fusato): sostiene basal cell contro ACC e PA cellulare; LEF1 non raccomandato');
   // v5.2.0: pannello di primo livello dell'articolo (p40, CD117, S100)
   if(!isSet(fd.p40))
     recs.push('→ Pannello di primo livello: p40 + CD117 + S100 (smista in bifasico / monofasico ghiandolare / squamoide)');
@@ -597,6 +637,8 @@ function managementBucket(g1, g2, fd){
   if(accInGioco && indiziACC.length > 0){
     const rat = ['Morfologia basaloide non apertamente di alto grado: ACC non esclusa (' + indiziACC.join(', ') + ').'];
     if(segni.length === 1) rat.push('Segno isolato di alto grado: ' + segni[0] + '.');
+    const basalTop = !!(g2 && g2.BasalCell && g2.BasalCell.score > 0 && g2.BasalCell.score === maxScore);
+    if(basalTop) rat.push('Neoplasia basocellulare in testa al ranking (stroma fusato / β-catenina / CTNNB1-CYLD): ACC meno probabile, ma non esclusa senza MYB/MYBL1::NFIB.');
     const tests = [];
     if(is(fd.myb,'neg')) tests.push('MYB IHC negativa non esclude ACC (>80% positivi): testare la fusione MYB/MYBL1::NFIB (FISH/NGS)');
     else if(is(fd.myb,'pos')) tests.push('MYB IHC non è specifica (~15% dei non-ACC è positivo): confermare la fusione MYB/MYBL1::NFIB se la morfologia non è tipica');

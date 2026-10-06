@@ -19,7 +19,7 @@ const check = (n, c, d = '') => c ? pass++ : (fail++, failures.push(n + (d ? ` �
 const eq = (n, a, b) => check(n, a === b, `atteso ${JSON.stringify(b)}, ottenuto ${JSON.stringify(a)}`);
 const section = t => console.log(`\n• ${t}`);
 
-const ENTITIES = ['PA','ACC','MEC','AciCC','SC','MSA','CaExPA','Warthin','EMC','PolymorphousAC','HCCC'];
+const ENTITIES = ['PA','ACC','MEC','AciCC','SC','MSA','CaExPA','Warthin','EMC','PolymorphousAC','HCCC','BasalCell'];
 const run = fd => { const g1 = gateOne(fd); return { g1, g2: gateTwo(g1, fd) }; };
 const escluse = g1 => Object.keys(g1).filter(k => !g1[k].passed);
 const classifica = g2 => Object.entries(g2).sort((a,b) => b[1].score - a[1].score);
@@ -181,7 +181,7 @@ section('pro/con: nessuna entita rimane un segnaposto');
     serous_acinar:'prominent', nuclear_grade:'low', necrosis:'no', neural_invasion:'focal',
     stromal_type:'hyaline', oncocytic:'prominent', lymphoid_stroma:'abundant',
     clear_cell:'yes', varied_patterns:'yes', microcystic:'yes', papillary:'yes',
-    dog1:'pos', maml2:'pos', myb:'pos', etv6:'pos', mammaglobin:'pos', mef2c:'pos',
+    dog1:'pos', maml2:'pos', myb:'pos', etv6:'pos', mammaglobin:'pos', mef2c:'pos', spindle_stroma:'yes', bcatenin:'nuclear', basal_driver:'pos',
     priorPA:'yes', residualPA:'yes', hras:'pos', pik3ca:'dual' };
   ENTITIES.forEach(e => {
     const pc = getProConMissing(e, ricco);
@@ -454,6 +454,68 @@ section('v5.2.0 — livello fenotipico p40 / CD117 / S100 (Fig. 2)');
   const fd = { p40:'neg', s100:'pos' }; const snap = JSON.stringify(fd);
   phenotypeOf(fd); phenotypeAdjust('SC', fd); phenotypeProCon('SC', fd);
   eq('le funzioni di fenotipo non mutano il form', JSON.stringify(fd), snap);
+}
+
+section('v5.3.0 — neoplasia basocellulare (adenoma / adenocarcinoma)');
+{
+  // tre stati
+  eq('form vuoto: basal cell a zero', score({}, 'BasalCell'), 0);
+  check('form vuoto: non esclusa', run({}).g1.BasalCell.passed);
+  eq('nessun deal-breaker, nemmeno con dati contrari',
+    evaluateDealBreaker('BasalCell', { bcatenin:'neg', spindle_stroma:'no', necrosis:'yes', nuclear_grade:'high' }).hit, false);
+  check('β-catenina negativa non esclude e non toglie punti',
+    run({ bcatenin:'neg' }).g1.BasalCell.passed && score({ bcatenin:'neg' }, 'BasalCell') === 0);
+  eq('"not_done" non vale come negativo', score({ bcatenin:'not_done', basal_driver:'not_done' }, 'BasalCell'), 0);
+
+  // punteggi
+  eq('stroma fusato: +3', score({ spindle_stroma:'yes' }, 'BasalCell'), 3);
+  eq('stroma fusato assente: 0', score({ spindle_stroma:'no' }, 'BasalCell'), 0);
+  eq('β-catenina nucleare: +3', score({ bcatenin:'nuclear' }, 'BasalCell'), 3);
+  eq('CTNNB1/CYLD mutato: +3', score({ basal_driver:'pos' }, 'BasalCell'), 3);
+  eq('dualità netta: +1', score({ duality:'clear' }, 'BasalCell'), 1);
+  eq('i tre reperti insieme + dualità: HIGH',
+    run({ spindle_stroma:'yes', bcatenin:'nuclear', basal_driver:'pos', duality:'clear' }).g2.BasalCell.conf, 'HIGH');
+  eq('fenotipo bifasico: +2', score({ p40:'abluminal' }, 'BasalCell'), 2);
+  eq('p40 negativo la penalizza', score({ p40:'neg' }, 'BasalCell'), -3);
+  eq('la sua famiglia fenotipica e il bifasico', ENTITY_FAMILY.BasalCell, 'biphasic');
+
+  // caso di scuola: basaloide cribriforme con stroma fusato e β-catenina nucleare
+  const bc = { specimen_type:'resection', duality:'clear', cribriform:'partial', nuclear_grade:'low', necrosis:'no',
+               p40:'abluminal', cd117:'luminal', spindle_stroma:'yes', bcatenin:'nuclear' };
+  eq('stroma fusato + β-catenina nucleare: in testa il basal cell', classifica(run(bc).g2)[0][0], 'BasalCell');
+  const acc = { ...bc, spindle_stroma:undefined, bcatenin:'neg', cribriform:'yes', myb:'pos', neural_invasion:'extensive' };
+  eq('ACC classico con MYB+ e PNI resta un ACC', classifica(run(acc).g2)[0][0], 'ACC');
+
+  // pro/con sulle altre entità
+  check('ACC: β-catenina nucleare tra i contro', getProConMissing('ACC', { bcatenin:'nuclear' }).con.some(c => /basal cell/.test(c)));
+  check('ACC: stroma fusato tra i contro', getProConMissing('ACC', { spindle_stroma:'yes' }).con.some(c => /basal cell/.test(c)));
+  check('PA: β-catenina nucleare tra i contro', getProConMissing('PA', { bcatenin:'nuclear' }).con.some(c => /basal cell/.test(c)));
+  eq('la β-catenina non sposta il punteggio di ACC', score({ bcatenin:'nuclear' }, 'ACC'), 0);
+  eq('né quello del PA', score({ bcatenin:'nuclear' }, 'PA'), 0);
+
+  const pc = getProConMissing('BasalCell', { necrosis:'yes' });
+  check('necrosi è un contro', pc.con.some(c => /Necrosi/.test(c)));
+  check('chiede β-catenina, stroma e driver', ['β-catenina','Stroma fusato','CTNNB1'].every(k => pc.missing.some(m => m.includes(k))));
+  check('dice che adenoma e adenocarcinoma non si distinguono su biopsia',
+    pc.missing.some(m => /Invasione/.test(m) && /biopsia/.test(m)));
+  check('con β-catenina fatta non la richiede più',
+    !getProConMissing('BasalCell', { bcatenin:'neg' }).missing.some(m => /β-catenina/.test(m)));
+
+  // esami successivi
+  const rec = fd => { const { g1, g2 } = run(fd); return recommendNextTests(g1, g2, fd).join(' | '); };
+  check('basaloide bifasico senza β-catenina: la raccomanda', /β-catenina IHC/.test(rec({ p40:'abluminal' })));
+  check('dualità: la raccomanda', /β-catenina IHC/.test(rec({ duality:'clear' })));
+  check('cribriforme: la raccomanda', /β-catenina IHC/.test(rec({ cribriform:'yes' })));
+  check('senza indizi basaloidi non la raccomanda', !/β-catenina IHC/.test(rec({ mucin_production:'abundant' })));
+  check('β-catenina già fatta: non la richiede', !/β-catenina IHC/.test(rec({ p40:'abluminal', bcatenin:'neg' })));
+  check('LEF1 sconsigliato nel testo', /LEF1 non raccomandato/.test(rec({ p40:'abluminal' })));
+
+  // orientamento gestionale
+  const bucket = fd => { const { g1, g2 } = run(fd); return managementBucket(g1, g2, fd); };
+  const b = bucket(bc);
+  eq('basaloide con basal cell in testa: resta da escludere l ACC', b.id, 'basaloide_acc');
+  check('ma il basal cell è dichiarato in testa', /basocellulare in testa/.test(b.rationale.join(' ')), b.rationale.join(' '));
+  check('senza basal cell in testa la riga non c è', !/basocellulare in testa/.test(bucket(acc).rationale.join(' ')));
 }
 
 section('purezza e invarianti di progetto');
