@@ -25,7 +25,8 @@ const LIMITED_SPECIMENS = ['trucut','fnab'];
 // Campi raccolti dal form e non ancora usati da nessuna regola. Elencati qui di
 // proposito: un test verifica che la lista corrisponda alla realta', cosi' restano
 // visibili invece di sparire in fondo a un wizard.
-const UNSCORED_FIELDS = ['solid_nests','myoepithelial_invasive'];
+// v5.6.0: solid_nests e myoepithelial_invasive entrano nel carcinoma mioepiteliale: non resta nulla di inutilizzato.
+const UNSCORED_FIELDS = [];
 
 function evaluateDealBreaker(entity, fd){
   switch(entity){
@@ -92,6 +93,14 @@ function evaluateDealBreaker(entity, fd){
     case 'HCCC':
       return {hit:false};
 
+    case 'MyoCa':
+      // v5.6.0: per definizione esprime cheratina/EMA piu' almeno un marcatore mioepiteliale
+      // (p40/p63, SMA/calponina, S100/SOX10). Esclusa solo se p40, SMA/calponina, S100 e SOX10
+      // sono TUTTI documentati negativi: il fenotipo e' molto variabile, un solo negativo non basta.
+      if(['p40','myogenic','s100','sox10'].every(f => fd[f]==='neg'))
+        return {hit:true,msg:'p40, SMA/calponina, S100 e SOX10 tutti negativi: nessun marcatore mioepiteliale documentato, carcinoma mioepiteliale improbabile.'};
+      return {hit:false,needs:['p40','myogenic','s100','sox10']};
+
     case 'MucinousAC':
       // v5.5.0: la mucina e' il carattere definitorio: esclude solo se documentata assente.
       // NKX3.1 e AKT1 negativi non escludono (NKX3.1 "comune", AKT1 p.E17K conferma ma non in tutti).
@@ -149,7 +158,7 @@ function phenotypeOf(fd){
     if(is(fd.p63,'pos')) notes.push('p63+ con p40 negativo: p63 è aspecifico nei monofasici ghiandolari, non va letto come strato mioepiteliale.');
   }
   if(id === 'squamoid' && (is(fd.s100,'pos') || is(fd.sox10,'pos')))
-    notes.push('S100/SOX10+ in fenotipo squamoide: orienta su carcinoma mioepiteliale (non coperto dal modello); il SCC metastatico e il MEC li negano.');
+    notes.push('S100/SOX10+ in fenotipo squamoide: orienta su carcinoma mioepiteliale; il SCC metastatico e il MEC li negano.');
   return { id, label:'Fenotipo ' + PHENOTYPE_LABEL[id], notes };
 }
 
@@ -192,7 +201,7 @@ function phenotypeProCon(e, fd){
   if(obs === 'glandular' && is(fd.s100,'pos') && S100_POS_GLANDULAR.includes(e)) pro.push('✓ S100 diffusamente positivo');
   if(obs === 'glandular' && is(fd.s100,'neg') && S100_POS_GLANDULAR.includes(e)) con.push('✗ S100 negativo (atteso diffusamente positivo)');
   if(obs === 'squamoid' && (is(fd.s100,'pos') || is(fd.sox10,'pos')) && (e === 'MEC' || e === 'HCCC'))
-    con.push('✗ S100/SOX10+ (orienta su carcinoma mioepiteliale, non coperto)');
+    con.push('✗ S100/SOX10+ (orienta su carcinoma mioepiteliale)');
   return { pro, con };
 }
 
@@ -401,9 +410,13 @@ function getProConMissing(entity, fd){
     case 'HCCC':
       procon.pro=[
         fd.clear_cell==='yes' ? '✓ Cellule chiare (glicogeno)' : null,
-        fd.stromal_type==='hyaline' ? '✓ Stroma ialino (carattere eponimo)' : null
+        fd.stromal_type==='hyaline' ? '✓ Stroma ialino (carattere eponimo)' : null,
+        fd.myogenic==='neg' ? '✓ SMA/calponina negative (la distinguono dal mioepiteliale)' : null,
+        fd.ewsr1==='atf1' ? '✓ EWSR1::ATF1/CREM (diagnostica)' : null
       ].filter(Boolean);
       procon.con=[
+        fd.myogenic==='pos' ? '✗ SMA/calponina+ (l\'HCCC è negativa: orienta su mioepiteliale / EMC)' : null,
+        fd.ewsr1==='other' ? '✗ EWSR1 con altro partner (orienta su mioepiteliale)' : null,
         fd.duality==='clear' ? '✗ Dualità mioepiteliale netta (orienta su EMC)' : null,
         fd.mucin_production==='abundant' ? '✗ Mucina abbondante (orienta su MEC a cellule chiare)' : null
       ].filter(Boolean);
@@ -411,7 +424,39 @@ function getProConMissing(entity, fd){
         !fd.clear_cell ? '? Cellule chiare' : null,
         !fd.stromal_type ? '? Tipo di stroma' : null,
         // v5.2.0: p63/p40 diffusi sono ATTESI in HCCC (fenotipo squamoide): non lo distinguono dall'EMC.
-        '? SMA/calponina e S100/SOX10 (devono essere negativi) ed EWSR1::ATF1 — p63/SMA+ non esclude HCCC, la distingue dall EMC solo la negatività dei marcatori mioepiteliali veri'
+        // v5.6.0: ora SMA/calponina ed EWSR1 sono campi: la riga sparisce quando entrambi sono compilati.
+        !isSet(fd.myogenic) || !isSet(fd.ewsr1) ? '? SMA/calponina e S100/SOX10 (devono essere negativi) ed EWSR1::ATF1 — p63/SMA+ non esclude HCCC, la distingue dall EMC solo la negatività dei marcatori mioepiteliali veri' : null
+      ].filter(Boolean);
+      break;
+
+    case 'MyoCa':
+      procon.pro=[
+        fd.myogenic==='pos' ? '✓ SMA/calponina+ (marcatore mioepiteliale)' : null,
+        fd.s100==='pos' || fd.sox10==='pos' ? '✓ S100/SOX10+ (cresta neurale)' : null,
+        fd.p40==='diffuse' ? '✓ p40 diffuso' : null,
+        fd.myoepithelial_invasive==='yes' ? '✓ Componente mioepiteliale invasiva' : null,
+        fd.solid_nests==='prominent' ? '✓ Nidi solidi prominenti (grandi isole a bordi lobulati)' : null,
+        fd.duality==='absent' ? '✓ Nessuna dualità (nessun elemento luminale vero)' : null,
+        fd.stromal_type==='myxoid' ? '✓ Stroma mixoide' : null,
+        fd.clear_cell==='yes' ? '✓ Cellule chiare (variante con EWSR1/PLAG1)' : null,
+        fd.necrosis==='yes' || fd.necrosis==='focal' ? '✓ Necrosi / degenerazione al centro dei lobuli' : null,
+        fd.ewsr1==='other' ? '✓ Fusione EWSR1 con altro partner' : null,
+        fd.plag1==='pos' ? '✓ PLAG1+ (descritto in una quota)' : null
+      ].filter(Boolean);
+      procon.con=[
+        fd.cd117==='luminal' ? '✗ CD117 luminale: dotti veri presenti (orienta su EMC / PA)' : null,
+        fd.duality==='clear' ? '✗ Dualità netta (orienta su EMC)' : null,
+        fd.ewsr1==='atf1' ? '✗ EWSR1::ATF1/CREM (orienta su HCCC)' : null,
+        fd.stromal_type==='hyaline' && fd.clear_cell==='yes' ? '✗ Cellule chiare con stroma ialino (orienta su HCCC)' : null
+      ].filter(Boolean);
+      procon.missing=[
+        !isSet(fd.myogenic) ? '? SMA / calponina' : null,
+        !isSet(fd.s100) || !isSet(fd.sox10) ? '? S100 / SOX10' : null,
+        !isSet(fd.p40) ? '? p40 (o p63)' : null,
+        !isSet(fd.cd117) ? '? CD117: l\'assenza di dotti CD117+ sostiene il mioepiteliale contro EMC e PA' : null,
+        !isSet(fd.ewsr1) ? '? EWSR1 (FISH/NGS; più frequente nelle forme a cellule chiare), PLAG1' : null,
+        '? Pannello ampio: il fenotipo è molto variabile e la diagnosi richiede cheratina/EMA più almeno un marcatore mioepiteliale',
+        '? Aspetto blando non rassicura: invasione ampia a bordi lobulati e comportamento metastatico descritti'
       ].filter(Boolean);
       break;
 
@@ -493,7 +538,7 @@ function getProConMissing(entity, fd){
 
 function gateOne(fd){
   fd = fd || formData;
-  const entities=['PA','ACC','MEC','AciCC','SC','MSA','CaExPA','Warthin','EMC','PolymorphousAC','HCCC','BasalCell','SDC','MucinousAC'];
+  const entities=['PA','ACC','MEC','AciCC','SC','MSA','CaExPA','Warthin','EMC','PolymorphousAC','HCCC','BasalCell','SDC','MucinousAC','MyoCa'];
   const limited = LIMITED_SPECIMENS.includes(fd.specimen_type);
   const result={};
   for(let e of entities){
@@ -576,6 +621,18 @@ function gateTwo(survivors, fd){
       if(formData.microcystic==='yes') score+=2;
     }else if(e==='PolymorphousAC'){
       if(formData.varied_patterns==='yes') score+=3;   // pattern architetturali multipli: il carattere eponimo
+    }else if(e==='MyoCa'){
+      if(formData.myogenic==='pos') score+=2;
+      if(formData.s100==='pos' || formData.sox10==='pos') score+=2;
+      if(formData.p40==='diffuse') score+=1;
+      if(formData.myoepithelial_invasive==='yes') score+=2;
+      if(formData.solid_nests==='prominent') score+=1;
+      if(formData.duality==='absent') score+=1;           // nessun elemento luminale vero
+      if(formData.cd117==='luminal') score-=2;            // dotti CD117+: non e' un mioepiteliale puro
+      if(formData.ewsr1==='other') score+=2;
+      if(formData.stromal_type==='myxoid') score+=1;
+      if(formData.clear_cell==='yes') score+=1;
+      if(formData.necrosis==='yes' || formData.necrosis==='focal') score+=1;
     }else if(e==='MucinousAC'){
       if(formData.mucin_production==='abundant') score+=3;
       else if(formData.mucin_production==='moderate') score+=1;
@@ -598,6 +655,9 @@ function gateTwo(survivors, fd){
     }else if(e==='HCCC'){
       if(formData.clear_cell==='yes') score+=3;
       if(formData.stromal_type==='hyaline') score+=2;  // stroma ialino: il carattere eponimo
+      if(formData.ewsr1==='atf1') score+=3;            // EWSR1::ATF1/CREM: diagnostica
+      if(formData.myogenic==='neg') score+=1;
+      if(formData.myogenic==='pos') score-=2;          // HCCC e' SMA/calponina negativa
     }else{
       score=1;
     }
@@ -646,6 +706,10 @@ function recommendNextTests(g1,g2,fd){
     recs.push('→ MEF2C::SS18 fusion testing');
   if(survivors.includes('AciCC') && !isSet(fd.dog1))
     recs.push('→ DOG1 IHC (marker di riferimento AciCC)');
+  // v5.6.0: carcinoma mioepiteliale — pannello ampio, EWSR1 nelle forme a cellule chiare
+  if(survivors.includes('MyoCa') && !isSet(fd.myogenic) &&
+     (is(fd.p40,'diffuse') || is(fd.s100,'pos') || is(fd.sox10,'pos') || is(fd.duality,'absent')))
+    recs.push('→ SMA + calponina (con S100/SOX10): per il mioepiteliale serve un pannello ampio; CD117 per escludere dotti veri; EWSR1/PLAG1 se ricco di cellule chiare');
   // v5.5.0: adenocarcinoma mucinoso — NKX3.1 (con la cautela prostatica) e AKT1 p.E17K
   if(survivors.includes('MucinousAC') && !isSet(fd.nkx31) &&
      (fd.mucin_production==='abundant' || (is(fd.p40,'neg') && is(fd.s100,'neg'))))
@@ -670,7 +734,7 @@ function recommendNextTests(g1,g2,fd){
     if(ph==='squamoid' && survivors.includes('MEC') && !isSet(fd.maml2))
       recs.push('→ MAML2 (MEC) · EWSR1::ATF1 (HCCC); mucicarminio/PAS-D per la mucina');
     if(ph==='squamoid' && (is(fd.s100,'pos') || is(fd.sox10,'pos')))
-      recs.push('→ S100/SOX10+ in fenotipo squamoide: considerare carcinoma mioepiteliale (SMA, calponina, EWSR1) — non coperto dal modello');
+      recs.push('→ S100/SOX10+ in fenotipo squamoide: considerare carcinoma mioepiteliale (SMA, calponina, EWSR1)');
     if(ph==='biphasic' && !isSet(fd.cd117))
       recs.push('→ CD117: conferma la componente luminale del bifasico');
   }
@@ -746,6 +810,13 @@ function managementBucket(g1, g2, fd){
     return out('indeterminato', 'Segno isolato di alto grado',
       ['Un solo segno: ' + segni[0] + '. Non basta per assegnare alto grado.'],
       'Grado non assegnabile: rivalutare sul pezzo operatorio o ricampionare; riportare in forma descrittiva.');
+
+  // v5.6.0: il carcinoma mioepiteliale e' "ingannevolmente blando": un grado basso non rassicura
+  const myoTop = !!(g2 && g2.MyoCa && g2.MyoCa.score > 0 && g2.MyoCa.score === maxScore && g2.MyoCa.conf !== 'LOW');
+  if(myoTop && is(fd.nuclear_grade,'low'))
+    return out('indeterminato', 'Carcinoma mioepiteliale: il grado basso non rassicura',
+      ['Carcinoma mioepiteliale in testa al ranking: invasione ampia a bordi lobulati e comportamento metastatico descritti nonostante l\'aspetto blando.'],
+      'Non assegnare basso grado sull\'atipia: valutare l\'invasione sul pezzo operatorio e discutere il comportamento con il clinico.');
 
   if(is(fd.nuclear_grade,'low') && is(fd.necrosis,'no'))
     return out('basso_grado', 'BENIGNO / BASSO GRADO',
