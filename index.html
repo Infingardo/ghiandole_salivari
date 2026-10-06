@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Salivary Gland v5.3.0 — reperto non valutato ≠ reperto assente</title>
+    <title>Salivary Gland v5.4.0 — reperto non valutato ≠ reperto assente</title>
     <style>
         *{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',system-ui,Arial,sans-serif;background:linear-gradient(135deg,#1a365d 0%,#2d3748 100%);min-height:100vh;padding:20px;color:#2d3748}
         .container{max-width:1200px;margin:0 auto;background:#fff;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden}
@@ -67,14 +67,14 @@
 <body>
 <div class="container">
     <div class="header">
-        <h1>🔬 Salivary Gland Tool v5.3.0</h1>
+        <h1>🔬 Salivary Gland Tool v5.4.0</h1>
         <p>+ HRAS Q61 / dual PIK3CA pattern (CaExPA · MioepitelialCA)</p>
         <div class="version-badge" style="display:flex;justify-content:space-between;align-items:center;">
-          <span>v5.3.0 | Pragmatico | Pro/Con/Missing | tri-state | HRAS+PIK3CA</span>
+          <span>v5.4.0 | Pragmatico | Pro/Con/Missing | tri-state | HRAS+PIK3CA</span>
           <button onclick="newCase();" style="background:#c53030;color:white;border:none;padding:6px 10px;border-radius:4px;cursor:pointer;font-size:11px;margin-left:10px;">↻ Nuovo caso</button>
         </div>
     </div>
-    <div class="disclaimer">⚠️ v5.3.0: aggiunta la neoplasia basocellulare (adenoma/adenocarcinoma, β-catenina). Dalla 5.2.0: aggiunto l'orientamento gestionale (basso grado / alto grado / basaloide con ACC da escludere, da Higgins &amp; Cipriani 2026); l'alto grado nucleare isolato non esclude più il PA; HMGA2 al posto di LEF1. Dalla 5.1.0: un reperto non valutato non vale più come reperto assente. I cancelli escludono solo su dati compilati; su core biopsy e agoaspirato i criteri architetturali sono sospesi. MSA, carcinoma polimorfo e HCCC hanno ora criteri di punteggio propri. Pattern HRAS Q61 + dual PIK3CA invariato dalla 5.0.3 (esperienza clinica diretta, caso parotide 2025-26).</div>
+    <div class="disclaimer">⚠️ v5.4.0: aggiunto il carcinoma duttale salivare (AR, HER2). Dalla 5.3.0: aggiunta la neoplasia basocellulare (adenoma/adenocarcinoma, β-catenina). Dalla 5.2.0: aggiunto l'orientamento gestionale (basso grado / alto grado / basaloide con ACC da escludere, da Higgins &amp; Cipriani 2026); l'alto grado nucleare isolato non esclude più il PA; HMGA2 al posto di LEF1. Dalla 5.1.0: un reperto non valutato non vale più come reperto assente. I cancelli escludono solo su dati compilati; su core biopsy e agoaspirato i criteri architetturali sono sospesi. MSA, carcinoma polimorfo e HCCC hanno ora criteri di punteggio propri. Pattern HRAS Q61 + dual PIK3CA invariato dalla 5.0.3 (esperienza clinica diretta, caso parotide 2025-26).</div>
     <div style="background:#f0f0f0;padding:10px;margin:10px 0;border-left:4px solid #276749;font-size:12px;line-height:1.6;">
       <strong>Legenda sigle:</strong>
       PA=Pleomorphic Adenoma · ACC=Acinic Cell Carcinoma · MEC=Mucoepidermoid Carcinoma · SC=Secretory Carcinoma · 
@@ -87,12 +87,12 @@
     <div class="content" id="mainContent"></div>
 </div>
 
-<script src="engine.js?v=5.3.0"></script>
+<script src="engine.js?v=5.4.0"></script>
 <script>
-let currentStep=0,totalSteps=7,formData={};const SESSION_KEY='sgdt_v5_3_0_session';
+let currentStep=0,totalSteps=7,formData={};const SESSION_KEY='sgdt_v5_4_0_session';
 
 function save(){
-  for(let n of ['specimen_type','cribriform','solid_nests','duality','microcystic','mucin_production','serous_acinar','nuclear_grade','necrosis','neural_invasion','stromal_type','oncocytic','papillary','myoepithelial_invasive','priorPA','residualPA','lymphoid_stroma','clear_cell','varied_patterns','dog1','maml2','myb','etv6','mammaglobin','plag1','hmga2','p40','cd117','s100','sox10','spindle_stroma','bcatenin','basal_driver','mef2c','p63','mitotic_rate','hras','pik3ca','smarca4','nut','ck']){
+  for(let n of ['specimen_type','cribriform','solid_nests','duality','microcystic','mucin_production','serous_acinar','nuclear_grade','necrosis','neural_invasion','stromal_type','oncocytic','papillary','myoepithelial_invasive','priorPA','residualPA','lymphoid_stroma','clear_cell','varied_patterns','dog1','maml2','myb','etv6','mammaglobin','plag1','hmga2','p40','cd117','s100','sox10','spindle_stroma','bcatenin','basal_driver','apocrine','ar','her2','mef2c','p63','mitotic_rate','hras','pik3ca','smarca4','nut','ck']){
     const v=document.querySelector(`input[name="${n}"]:checked`)?.value;
     if(v) formData[n]=v;
   }
@@ -160,6 +160,7 @@ function render(){
     <div class="form-group"><label>Produzione mucina</label><div class="radio-group">${mkRad('mucin_production',[['abundant','Abbondante'],['moderate','Moderata'],['scant','Scarsa'],['absent','Assente']])}</div></div>
     <div class="form-group"><label>Acinare sierosa</label><div class="radio-group">${mkRad('serous_acinar',[['prominent','prominente'],['moderate','Moderata'],['minimal','minimale'],['absent','Assente']])}</div></div>
     <div class="form-group"><label>Oncocitaria</label><div class="radio-group">${mkRad('oncocytic',[['prominent','prominente'],['absent','Assente']])}</div></div>
+    <div class="form-group"><label>Citologia apocrina (cellule grandi, nucleoli prominenti, citoplasma eosinofilo, snouts apicali)</label><div class="radio-group">${mkRad('apocrine',[['yes','Sì'],['no','No']])}</div></div>
     <div class="form-group"><label>Architettura papillare</label><div class="radio-group">${mkRad('papillary',[['yes','Sì'],['no','No']])}</div></div>
     <div class="form-group"><label>Pattern variati</label><div class="radio-group">${mkRad('varied_patterns',[['yes','Pattern multipli'],['no','Uniforme']])}</div></div>
     <div class="buttons"><button class="btn-secondary" onclick="prev()">← Indietro</button><button class="btn-primary" onclick="next()">Avanti →</button><button class="btn-reset" onclick="resetCase()">↻ Reset</button></div></div>`;
@@ -197,6 +198,8 @@ function render(){
     <div>
       <div class="form-group"><label>DOG1</label><div class="radio-group">${mkRad('dog1',[['pos','Positivo'],['neg','Negativo'],['not_done','Non eseguito']])}</div></div>
       <div class="form-group"><label>MAML2</label><div class="radio-group">${mkRad('maml2',[['pos','Positivo'],['neg','Negativo'],['not_done','Non eseguito']])}</div></div>
+      <div class="form-group"><label>AR (recettore androgeni)</label><div class="radio-group">${mkRad('ar',[['pos','Positivo'],['neg','Negativo'],['not_done','Non eseguito']])}</div></div>
+      <div class="form-group"><label>HER2 (IHC 3+ / ISH+)</label><div class="radio-group">${mkRad('her2',[['pos','Positivo'],['neg','Negativo'],['not_done','Non eseguito']])}</div></div>
       <div class="form-group"><label>CK (pan / AE1-AE3)</label><div class="radio-group">${mkRad('ck',[['pos','Positivo'],['focal','Focale'],['neg','Negativo'],['not_done','Non eseguito']])}</div></div>
     </div>
     <div>
@@ -259,7 +262,7 @@ function render(){
         <strong>Implicazione terapeutica (nessuna approvazione per salivari):</strong> binimetinib (MEK-inibitore, HRAS-mut, trial) ± everolimus (mTOR, dual PIK3CA). Discussione MDT obbligatoria.
       </div>` : '';
     
-    h=`<div class="step active"><h3>Step 7/7: Risultati (v5.3.0)</h3>
+    h=`<div class="step active"><h3>Step 7/7: Risultati (v5.4.0)</h3>
     ${hrasAlert}
     ${dqWarnings.length>0?dqWarnings.map(w=>`<div class="data-quality-warning">${w}</div>`).join(''):''}
     <h4>🧭 Orientamento gestionale</h4>
@@ -285,7 +288,6 @@ function render(){
     <strong>Questo tool NON copre bene:</strong><br/>
     • Lesioni cistiche benigne (cisti di ritenzione, mucoceli)<br/>
     • Entità duttali (carcinoma dei dotti intercalati)<br/>
-    • Carcinoma duttale salivare (SDC) — vedi IHC HER2, AR<br/>
     • Mimics non salivari (melanoma, linfoma, metastasi)<br/>
     • NUT carcinoma e SMARCA4-deficient: considerare se HRAS+dual PIK3CA + CK-neg<br/>
     • Lesioni al di fuori di parotide/sottomandibolare

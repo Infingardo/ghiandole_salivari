@@ -1,5 +1,33 @@
 # 📝 Salivary Gland Tool - Changelog
 
+## v5.4.0 (Ottobre 2026) — Carcinoma duttale salivare (SDC)
+
+Fonte: Higgins & Cipriani, AIMM 2026. L'SDC è un carcinoma di alto grado per cui AR e HER2 sono
+insieme marcatori e bersagli terapeutici; il modello non lo intercettava (era elencato tra i limiti).
+
+- **Nuova entità `SDC`** (12 → 13), famiglia fenotipica monofasico ghiandolare (p40 negativo).
+- **Gate 1:** esclusa solo da un grado nucleare *documentato* basso (alto grado per definizione; criterio
+  non architetturale, quindi vale anche su core/FNAB). AR e HER2 negativi **non** escludono: la
+  co-espressione è "usuale", e l'espressione isolata compare anche in altri carcinomi salivari.
+- **Punteggio:** citologia apocrina +3, AR+ +2, HER2+ +2, co-espressione +2, alto grado nucleare +2,
+  necrosi +1, cribriforme +1, più fenotipo ghiandolare (+2 / −3 con p40). S100 non la sposta
+  (l'articolo non lo assegna all'SDC).
+- **Contro dichiarati non escludenti:** AR e HER2 entrambi negativi; espressione isolata di uno solo
+  (con l'altro negativo); citologia non apocrina (la distinzione apocrino/oncocitario è soggettiva).
+- **Nuovi campi:** `apocrine` (Step 2), `ar` e `her2` (Step 5).
+- **Altre entità:** AR + HER2 co-espressi compaiono come *contro* (testo) per ACC, PA, MEC, AciCC, senza
+  spostarne il punteggio.
+- **Esami successivi:** AR + HER2 (ISH se HER2 2+) quando c'è citologia apocrina, alto grado o necrosi;
+  cita antiandrogeni e anti-HER2 da discutere con l'oncologo.
+- **Orientamento gestionale:** SDC in testa con fiducia almeno MODERATE → *alto grado* (è tale per
+  definizione), anche con un solo segno di grado. Un segno isolato, senza evidenza propria dell'SDC,
+  continua a non bastare.
+- Rimosso dalla pagina l'avviso "il tool non copre l'SDC".
+
+Test: 428 asserzioni (361 → 428).
+
+Ancora non coperte: carcinoma intraduttale (RET), carcinoma mioepiteliale, adenocarcinoma mucinoso.
+
 ## v5.3.0 (Ottobre 2026) — Neoplasia basocellulare (adenoma / adenocarcinoma)
 
 Fonte: Higgins & Cipriani, AIMM 2026. Era la lacuna più pesante del basaloide: senza il basal cell il
