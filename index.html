@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Salivary Gland v5.1.0 — reperto non valutato ≠ reperto assente</title>
+    <title>Salivary Gland v5.2.0 — reperto non valutato ≠ reperto assente</title>
     <style>
         *{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',system-ui,Arial,sans-serif;background:linear-gradient(135deg,#1a365d 0%,#2d3748 100%);min-height:100vh;padding:20px;color:#2d3748}
         .container{max-width:1200px;margin:0 auto;background:#fff;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden}
@@ -67,14 +67,14 @@
 <body>
 <div class="container">
     <div class="header">
-        <h1>🔬 Salivary Gland Tool v5.1.0</h1>
+        <h1>🔬 Salivary Gland Tool v5.2.0</h1>
         <p>+ HRAS Q61 / dual PIK3CA pattern (CaExPA · MioepitelialCA)</p>
         <div class="version-badge" style="display:flex;justify-content:space-between;align-items:center;">
-          <span>v5.1.0 | Pragmatico | Pro/Con/Missing | tri-state | HRAS+PIK3CA</span>
+          <span>v5.2.0 | Pragmatico | Pro/Con/Missing | tri-state | HRAS+PIK3CA</span>
           <button onclick="newCase();" style="background:#c53030;color:white;border:none;padding:6px 10px;border-radius:4px;cursor:pointer;font-size:11px;margin-left:10px;">↻ Nuovo caso</button>
         </div>
     </div>
-    <div class="disclaimer">⚠️ v5.1.0: un reperto non valutato non vale più come reperto assente. I cancelli escludono solo su dati compilati; su core biopsy e agoaspirato i criteri architetturali sono sospesi. MSA, carcinoma polimorfo e HCCC hanno ora criteri di punteggio propri. Pattern HRAS Q61 + dual PIK3CA invariato dalla 5.0.3 (esperienza clinica diretta, caso parotide 2025-26).</div>
+    <div class="disclaimer">⚠️ v5.2.0: aggiunto l'orientamento gestionale (basso grado / alto grado / basaloide con ACC da escludere, da Higgins &amp; Cipriani 2026); l'alto grado nucleare isolato non esclude più il PA; HMGA2 al posto di LEF1. Dalla 5.1.0: un reperto non valutato non vale più come reperto assente. I cancelli escludono solo su dati compilati; su core biopsy e agoaspirato i criteri architetturali sono sospesi. MSA, carcinoma polimorfo e HCCC hanno ora criteri di punteggio propri. Pattern HRAS Q61 + dual PIK3CA invariato dalla 5.0.3 (esperienza clinica diretta, caso parotide 2025-26).</div>
     <div style="background:#f0f0f0;padding:10px;margin:10px 0;border-left:4px solid #276749;font-size:12px;line-height:1.6;">
       <strong>Legenda sigle:</strong>
       PA=Pleomorphic Adenoma · ACC=Acinic Cell Carcinoma · MEC=Mucoepidermoid Carcinoma · SC=Secretory Carcinoma · 
@@ -87,12 +87,12 @@
     <div class="content" id="mainContent"></div>
 </div>
 
-<script src="engine.js?v=5.1.0"></script>
+<script src="engine.js?v=5.2.0"></script>
 <script>
-let currentStep=0,totalSteps=7,formData={};const SESSION_KEY='sgdt_v5_1_0_session';
+let currentStep=0,totalSteps=7,formData={};const SESSION_KEY='sgdt_v5_2_0_session';
 
 function save(){
-  for(let n of ['specimen_type','cribriform','solid_nests','duality','microcystic','mucin_production','serous_acinar','nuclear_grade','necrosis','neural_invasion','stromal_type','oncocytic','papillary','myoepithelial_invasive','priorPA','residualPA','lymphoid_stroma','clear_cell','varied_patterns','dog1','maml2','lef1','myb','etv6','mammaglobin','plag1','mef2c','p63','mitotic_rate','hras','pik3ca','smarca4','nut','ck']){
+  for(let n of ['specimen_type','cribriform','solid_nests','duality','microcystic','mucin_production','serous_acinar','nuclear_grade','necrosis','neural_invasion','stromal_type','oncocytic','papillary','myoepithelial_invasive','priorPA','residualPA','lymphoid_stroma','clear_cell','varied_patterns','dog1','maml2','myb','etv6','mammaglobin','plag1','hmga2','p40','cd117','s100','sox10','mef2c','p63','mitotic_rate','hras','pik3ca','smarca4','nut','ck']){
     const v=document.querySelector(`input[name="${n}"]:checked`)?.value;
     if(v) formData[n]=v;
   }
@@ -185,6 +185,13 @@ function render(){
   else if(currentStep===5){
     h=`<div class="step active"><h3>Step 5/7: IHC (opzionale)</h3>
     <div class="guidance-text">Selezionare "Non eseguito" se il test non è disponibile.</div>
+    <h4>Pannello di primo livello</h4>
+    <div class="guidance-text">p40 smista il caso in bifasico (abluminale), monofasico ghiandolare (negativo) o squamoide (diffuso). È un criterio morbido: sposta il punteggio, non esclude.</div>
+    <div class="form-group"><label>p40</label><div class="radio-group">${mkRad('p40',[['abluminal','Abluminale / basale'],['diffuse','Diffuso'],['neg','Negativo'],['not_done','Non eseguito']])}</div></div>
+    <div class="form-group"><label>CD117</label><div class="radio-group">${mkRad('cd117',[['luminal','Luminale'],['diffuse','Diffuso'],['neg','Negativo'],['not_done','Non eseguito']])}</div></div>
+    <div class="form-group"><label>S100</label><div class="radio-group">${mkRad('s100',[['pos','Diffusamente positivo'],['focal','Focale / patchy'],['neg','Negativo'],['not_done','Non eseguito']])}</div></div>
+    <div class="form-group"><label>SOX10</label><div class="radio-group">${mkRad('sox10',[['pos','Positivo'],['neg','Negativo'],['not_done','Non eseguito']])}</div></div>
+    <h4>Altri marcatori</h4>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 -5px;">
     <div>
       <div class="form-group"><label>DOG1</label><div class="radio-group">${mkRad('dog1',[['pos','Positivo'],['neg','Negativo'],['not_done','Non eseguito']])}</div></div>
@@ -198,8 +205,8 @@ function render(){
     </div>
     </div>
     <div style="margin-top:10px;">
-      <div class="form-group"><label>LEF1</label><div class="radio-group">${mkRad('lef1',[['pos','Positivo'],['neg','Negativo'],['not_done','Non eseguito']])}</div></div>
       <div class="form-group"><label>PLAG1</label><div class="radio-group">${mkRad('plag1',[['pos','Positivo'],['neg','Negativo'],['not_done','Non eseguito']])}</div></div>
+      <div class="form-group"><label>HMGA2</label><div class="radio-group">${mkRad('hmga2',[['pos','Positivo'],['neg','Negativo'],['not_done','Non eseguito']])}</div></div>
       <div class="form-group"><label>NUT (clone C52B1)</label><div class="radio-group">${mkRad('nut',[['pos','Positivo (patologico)'],['neg','Negativo'],['not_done','Non eseguito']])}</div></div>
     </div>
     <div class="buttons"><button class="btn-secondary" onclick="prev()">← Indietro</button><button class="btn-primary" onclick="next()">Avanti →</button><button class="btn-reset" onclick="resetCase()">↻ Reset</button></div></div>`;
@@ -234,6 +241,8 @@ function render(){
     const dqWarnings=checkDataQuality(formData);
     const nextTests=recommendNextTests(g1,g2,formData);
     const outside=checkOutsideModel(g1);
+    const mgmt=managementBucket(g1,g2,formData);
+    const fen=phenotypeOf(formData);
     const ranked=passed.sort((a,b)=>(g2[b]?.score||0)-(g2[a]?.score||0));
     
     // Alert HRAS+dualPIK3CA globale
@@ -247,9 +256,17 @@ function render(){
         <strong>Implicazione terapeutica (nessuna approvazione per salivari):</strong> binimetinib (MEK-inibitore, HRAS-mut, trial) ± everolimus (mTOR, dual PIK3CA). Discussione MDT obbligatoria.
       </div>` : '';
     
-    h=`<div class="step active"><h3>Step 7/7: Risultati (v5.1.0)</h3>
+    h=`<div class="step active"><h3>Step 7/7: Risultati (v5.2.0)</h3>
     ${hrasAlert}
     ${dqWarnings.length>0?dqWarnings.map(w=>`<div class="data-quality-warning">${w}</div>`).join(''):''}
+    <h4>🧭 Orientamento gestionale</h4>
+    <div class="entity-card ${mgmt.id==='alto_grado'?'excluded':mgmt.id==='indeterminato'?'outside':'passed'}"><div class="entity-title">${mgmt.label}</div>
+      <div class="entity-reason">${mgmt.rationale.join('<br/>')}</div>
+      <div class="entity-reason"><strong>${mgmt.implicazione}</strong></div>
+      ${mgmt.tests.length>0?mgmt.tests.map(t=>`<div class="next-test">→ ${t}</div>`).join(''):''}
+      <div style="font-size:.8em;opacity:.75;margin-top:4px;">Schema: Higgins &amp; Cipriani, Appl Immunohistochem Mol Morphol 2026 (Fig. 1). Orienta il referto, non sostituisce la discussione multidisciplinare.</div></div>
+    <h4>🧬 Fenotipo (p40 / CD117 / S100)</h4>
+    <div class="coverage-disclaimer"><strong>${fen.label}</strong>${fen.notes.map(n=>`<br/>${n}`).join('')}</div>
     <h4>🔐 Gate 1: Morphology Validation</h4>
     <div class="gates-summary">
       ${passed.length>0?`<div style="color:#276749;font-weight:600;">✓ SUPERATO (${passed.length}):</div>${passed.map(e=>`<div class="gate-item" style="color:${g1[e].undetermined?'#975a16':'#276749'};">• ${e}${g1[e].undetermined?` <span style="font-size:.85em;opacity:.8">— non verificato: ${g1[e].reason.replace(/^Non (verificato|determinabile)[:,] ?/,'')}</span>`:''}</div>`).join('')}`:

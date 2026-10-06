@@ -30,10 +30,15 @@ const UNSCORED_FIELDS = ['solid_nests','myoepithelial_invasive'];
 function evaluateDealBreaker(entity, fd){
   switch(entity){
     case 'PA':
-      if(fd.nuclear_grade==='high') return {hit:true,msg:'Nuclear grade high. Reconsider.'};
+      // v5.2.0: l'alto grado nucleare ISOLATO non esclude piu' il PA. Higgins & Cipriani
+      // 2026: l'atipia bizzarra senza necrosi/mitosi non basta per la malignita' sui
+      // campioni limitati (PA mioepiteliali con guadagno del cromosoma 12). Esclude solo
+      // se corroborato da un secondo segno di alto grado.
+      if(fd.nuclear_grade==='high' && fd.mitotic_rate==='high') return {hit:true,msg:'Nuclear grade high + mitotic rate high. Reconsider.'};
       if(fd.necrosis==='yes') return {hit:true,msg:'Coagulative necrosis suggests malignancy.'};
       if(fd.neural_invasion==='extensive') return {hit:true,msg:'Extensive PNI: PA is benign. Reconsider.'};
-      return {hit:false,needs:['nuclear_grade','necrosis','neural_invasion']};
+      return {hit:false,needs:['nuclear_grade','necrosis','neural_invasion'],
+              note: fd.nuclear_grade==='high' ? 'Atipia nucleare alta isolata: nel PA non basta per la malignità (atipia bizzarra, guadagno 12q); cercare necrosi, mitosi, invasione.' : null};
       
     case 'ACC':
       if(fd.cribriform==='no' && fd.duality==='absent') 
@@ -45,7 +50,7 @@ function evaluateDealBreaker(entity, fd){
       
     case 'SC':
       if(fd.mammaglobin==='neg' && fd.etv6==='neg') 
-        return {hit:true,msg:'No mammaglobin AND no ETV6 fusion: SC unlikely.'};
+        return {hit:true,msg:'No mammaglobin AND no ETV6-NTRK3: SC unlikely (altri partner ETV6 non esclusi: MUC4, pan-TRK, break-apart ETV6).'};
       return {hit:false,needs:['mammaglobin','etv6']};
       
     case 'MEC':
@@ -91,6 +96,83 @@ function evaluateDealBreaker(entity, fd){
   }
 }
 
+// ── v5.2.0 — livello fenotipico (Higgins & Cipriani, AIMM 2026, Fig. 2) ───────────────
+// Il pannello di primo livello p40 / CD117 / S100 smista in tre famiglie. E' un cancello
+// MORBIDO: p40 e' a mosaico e il campionamento e' limitato, quindi il fenotipo sposta il
+// punteggio (+2 se coerente, -3 se incoerente) ma non esclude nessuna entita'. Un p40 non
+// eseguito non sposta nulla (tre stati).
+const PHENOTYPE_OF_P40 = { abluminal:'biphasic', neg:'glandular', diffuse:'squamoid' };
+const PHENOTYPE_LABEL = {
+  biphasic:'bifasico (p40 abluminale)',
+  glandular:'monofasico ghiandolare (p40 negativo)',
+  squamoid:'monofasico squamoide (p40 diffuso)' };
+// CaExPA non ha famiglia: il fenotipo dipende dalle componenti.
+const ENTITY_FAMILY = { PA:'biphasic', ACC:'biphasic', EMC:'biphasic', Warthin:'biphasic',
+  SC:'glandular', MSA:'glandular', PolymorphousAC:'glandular', AciCC:'glandular',
+  MEC:'squamoid', HCCC:'squamoid' };
+const S100_POS_GLANDULAR = ['SC','MSA','PolymorphousAC'];
+
+function phenotypeOf(fd){
+  fd = fd || {};
+  if(!isSet(fd.p40))
+    return { id:'non_valutato', label:'Fenotipo non valutato (p40 non eseguito)', notes:[] };
+  const id = PHENOTYPE_OF_P40[fd.p40];
+  const notes = [];
+  if(id === 'biphasic'){
+    if(is(fd.cd117,'luminal')) notes.push('CD117 luminale conferma il fenotipo bifasico.');
+    else if(isSet(fd.cd117)) notes.push('CD117 non luminale: bifasico non confermato. Cercare dotti veri (il carcinoma mioepiteliale esprime p40 senza dotti CD117+).');
+  }
+  if(id === 'glandular'){
+    if(is(fd.s100,'pos')) notes.push('S100 diffusamente positivo: secretorio, polimorfo/cribriforme, microsecretorio (canalicolare e dotto striato non coperti).');
+    else if(is(fd.s100,'neg')) notes.push('S100 negativo: acinico (DOG1+, SOX10+) o mucinoso (NKX3.1, non coperto).');
+    else notes.push('S100 non valutato: serve per suddividere il monofasico ghiandolare.');
+    if(is(fd.p63,'pos')) notes.push('p63+ con p40 negativo: p63 è aspecifico nei monofasici ghiandolari, non va letto come strato mioepiteliale.');
+  }
+  if(id === 'squamoid' && (is(fd.s100,'pos') || is(fd.sox10,'pos')))
+    notes.push('S100/SOX10+ in fenotipo squamoide: orienta su carcinoma mioepiteliale (non coperto dal modello); il SCC metastatico e il MEC li negano.');
+  return { id, label:'Fenotipo ' + PHENOTYPE_LABEL[id], notes };
+}
+
+function phenotypeAdjust(e, fd){
+  fd = fd || {};
+  const fam = ENTITY_FAMILY[e];
+  if(!fam || !isSet(fd.p40)) return 0;
+  const obs = PHENOTYPE_OF_P40[fd.p40];
+  let d = 0;
+  if(fam === obs){ d += 2; if(obs === 'biphasic' && is(fd.cd117,'luminal')) d += 1; }
+  else d -= (e === 'MEC' && obs === 'glandular') ? 1 : 3;   // MEC p40-negativo: minoranza descritta
+  // S100 suddivide il solo monofasico ghiandolare
+  if(obs === 'glandular'){
+    if(is(fd.s100,'pos')){
+      if(S100_POS_GLANDULAR.includes(e)) d += 1;
+      if(e === 'AciCC') d -= 2;
+    }else if(is(fd.s100,'neg')){
+      if(e === 'AciCC'){ d += 2; if(is(fd.sox10,'pos')) d += 1; }
+      if(S100_POS_GLANDULAR.includes(e)) d -= 2;
+    }
+  }
+  if(obs === 'squamoid' && (is(fd.s100,'pos') || is(fd.sox10,'pos')) && (e === 'MEC' || e === 'HCCC')) d -= 2;
+  return d;
+}
+
+function phenotypeProCon(e, fd){
+  fd = fd || {};
+  const pro = [], con = [];
+  const fam = ENTITY_FAMILY[e];
+  if(!fam || !isSet(fd.p40)) return { pro, con };
+  const obs = PHENOTYPE_OF_P40[fd.p40];
+  if(fam === obs) pro.push('✓ Fenotipo ' + PHENOTYPE_LABEL[obs] + ' coerente');
+  else con.push('✗ Fenotipo ' + PHENOTYPE_LABEL[obs] + ': ' + e + ' è ' + PHENOTYPE_LABEL[fam] +
+    (e === 'MEC' && obs === 'glandular' ? ' (MEC p40-negativo descritto in una minoranza)' : ''));
+  if(obs === 'glandular' && is(fd.s100,'pos') && e === 'AciCC') con.push('✗ S100+ (AciCC è S100-negativa, SOX10+)');
+  if(obs === 'glandular' && is(fd.s100,'neg') && e === 'AciCC') pro.push('✓ S100 negativo' + (is(fd.sox10,'pos') ? ', SOX10+' : ''));
+  if(obs === 'glandular' && is(fd.s100,'pos') && S100_POS_GLANDULAR.includes(e)) pro.push('✓ S100 diffusamente positivo');
+  if(obs === 'glandular' && is(fd.s100,'neg') && S100_POS_GLANDULAR.includes(e)) con.push('✗ S100 negativo (atteso diffusamente positivo)');
+  if(obs === 'squamoid' && (is(fd.s100,'pos') || is(fd.sox10,'pos')) && (e === 'MEC' || e === 'HCCC'))
+    con.push('✗ S100/SOX10+ (orienta su carcinoma mioepiteliale, non coperto)');
+  return { pro, con };
+}
+
 // PRO/CON/MISSING — v5.0.3: aggiunto HRAS+PIK3CA per CaExPA e EMC
 function getProConMissing(entity, fd){
   const procon={};
@@ -107,13 +189,15 @@ function getProConMissing(entity, fd){
         fd.duality==='clear' ? '✓ Duality' : null,
         fd.neural_invasion==='extensive' ? '✓ Extensive PNI' : null,
         fd.myb==='pos' ? '✓ MYB+' : null,
-        fd.p63==='pos' ? '✓ p63/SMA+ (strato mioepiteliale conservato)' : null
+        fd.p63==='pos' && fd.p40!=='neg' ? '✓ p63/SMA+ (strato mioepiteliale conservato)' : null
       ].filter(Boolean);
       procon.con=[
         fd.mucin_production==='abundant' ? '✗ Abundant mucin' : null,
         fd.serous_acinar==='prominent' ? '✗ Prominent serous' : null,
         hrasPos ? '✗ HRAS Q61+ (non tipico di ACC)' : null,
-        fd.p63==='neg' ? '✗ p63/SMA negativo: senza componente mioepiteliale l ACC è difficile da sostenere' : null
+        fd.p63==='neg' ? '✗ p63/SMA negativo: senza componente mioepiteliale l ACC è difficile da sostenere' : null,
+        (fd.plag1==='pos' || fd.hmga2==='pos') ? '✗ PLAG1/HMGA2+ (orienta su PA; non sensibile né specifico al 100%)' : null,
+        fd.myb==='neg' ? '✗ MYB IHC negativa (non esclude: >80% degli ACC la esprime, ma una quota no; testare la fusione)' : null
       ].filter(Boolean);
       procon.missing=[
         !fd.myb ? '? MYB status' : null,
@@ -148,7 +232,8 @@ function getProConMissing(entity, fd){
       ].filter(Boolean);
       procon.missing=[
         !fd.mammaglobin ? '? Mammaglobin (KEY marker)' : null,
-        !fd.etv6 ? '? ETV6-NTRK3 fusion' : null
+        !fd.etv6 ? '? ETV6-NTRK3 fusion' : null,
+        fd.etv6==='neg' ? '? ETV6-NTRK3 negativo non esclude altri partner ETV6: break-apart ETV6, MUC4, pan-TRK' : null
       ].filter(Boolean);
       break;
       
@@ -157,16 +242,19 @@ function getProConMissing(entity, fd){
         fd.stromal_type==='myxoid' ? '✓ Myxoid stroma' : null,
         fd.nuclear_grade==='low' ? '✓ Low nuclear grade' : null,
         fd.necrosis==='no' ? '✓ No necrosis' : null,
-        fd.p63==='pos' ? '✓ p63/SMA+ (componente mioepiteliale)' : null
+        fd.p63==='pos' && fd.p40!=='neg' ? '✓ p63/SMA+ (componente mioepiteliale)' : null,
+        (fd.plag1==='pos' || fd.hmga2==='pos') ? '✓ PLAG1/HMGA2+' : null
       ].filter(Boolean);
       procon.con=[
         fd.mitotic_rate==='high' ? '✗ High mitotic' : null,
+        fd.nuclear_grade==='high' ? '✗ Alto grado nucleare (isolato non esclude il PA: atipia bizzarra possibile)' : null,
         fd.neural_invasion==='extensive' ? '✗ Extensive PNI' : null,
+        fd.myb==='pos' ? '✗ MYB+ (orienta su ACC; non specifico)' : null,
         hrasPos ? '✗ HRAS Q61+ (suggerisce trasformazione maligna)' : null
       ].filter(Boolean);
+      // v5.2.0: LEF1 tolto (aspecifico, sconsigliato); PLAG1 e HMGA2 insieme (fusioni in ~70% dei PA).
       procon.missing=[
-        !fd.lef1 ? '? LEF1 (supportive)' : null,
-        !fd.plag1 ? '? PLAG1 (supportive)' : null
+        !isSet(fd.plag1) && !isSet(fd.hmga2) ? '? PLAG1 / HMGA2 (IHC o fusione; supportive, non specifici al 100%)' : null
       ].filter(Boolean);
       break;
 
@@ -200,7 +288,7 @@ function getProConMissing(entity, fd){
         fd.clear_cell==='yes' ? '✓ Clear cells' : null,
         fd.duality==='clear' ? '✓ Duality' : null,
         hrasPos && !dualPIK3CA ? '✓ HRAS+ senza dual PIK3CA (compatibile con EMC)' : null,
-        fd.p63==='pos' ? '✓ p63/SMA+ (strato mioepiteliale esterno)' : null
+        fd.p63==='pos' && fd.p40!=='neg' ? '✓ p63/SMA+ (strato mioepiteliale esterno)' : null
       ].filter(Boolean);
       procon.con=[
         hrasDualPIK ? '✗ Dual PIK3CA (più tipico di CaExPA aggressivo che EMC)' : null
@@ -284,12 +372,13 @@ function getProConMissing(entity, fd){
       ].filter(Boolean);
       procon.con=[
         fd.duality==='clear' ? '✗ Dualità mioepiteliale netta (orienta su EMC)' : null,
-        fd.p63==='pos' ? '✗ p63/SMA+ diffuso: nell HCCC il mioepitelio non c è (DD EMC)' : null,
         fd.mucin_production==='abundant' ? '✗ Mucina abbondante (orienta su MEC a cellule chiare)' : null
       ].filter(Boolean);
       procon.missing=[
         !fd.clear_cell ? '? Cellule chiare' : null,
-        !fd.stromal_type ? '? Tipo di stroma' : null
+        !fd.stromal_type ? '? Tipo di stroma' : null,
+        // v5.2.0: p63/p40 diffusi sono ATTESI in HCCC (fenotipo squamoide): non lo distinguono dall'EMC.
+        '? SMA/calponina e S100/SOX10 (devono essere negativi) ed EWSR1::ATF1 — p63/SMA+ non esclude HCCC, la distingue dall EMC solo la negatività dei marcatori mioepiteliali veri'
       ].filter(Boolean);
       break;
 
@@ -298,6 +387,9 @@ function getProConMissing(entity, fd){
       procon.con=[];
       procon.missing=[];
   }
+  const fen = phenotypeProCon(entity, fd);
+  procon.pro.push(...fen.pro);
+  procon.con.push(...fen.con);
   return procon;
 }
 
@@ -324,7 +416,7 @@ function gateOne(fd){
       passed:!db.hit,
       undetermined: !db.hit && mancanti.length>0,
       reason: db.hit ? db.msg
-            : mancanti.length>0 ? `Non verificato: manca ${mancanti.join(', ')}.`
+            : mancanti.length>0 ? `Non verificato: manca ${mancanti.join(', ')}.` + (db.note ? ' ' + db.note : '')
             : (db.note || 'Gate 1 superato')
     };
   }
@@ -350,6 +442,8 @@ function gateTwo(survivors, fd){
     }else if(e==='PA'){
       if(formData.stromal_type==='myxoid') score+=2;
       if(formData.nuclear_grade==='low') score+=2;
+      // v5.2.0: PLAG1 era raccolto e non dava punti. ~70% dei PA ha fusione PLAG1 o HMGA2.
+      if(is(formData.plag1,'pos') || is(formData.hmga2,'pos')) score+=2;
       if(hrasPos) score-=2; // HRAS suggerisce trasformazione
     }else if(e==='SC'){
       if(formData.mammaglobin==='pos') score+=4;
@@ -390,6 +484,7 @@ function gateTwo(survivors, fd){
     }else{
       score=1;
     }
+    score += phenotypeAdjust(e, formData);
     scores[e]={score,conf:score>=8?'HIGH':score>=5?'MODERATE':'LOW'};
   }
   return scores;
@@ -407,6 +502,12 @@ function checkDataQuality(fd){
     warnings.push('⚠️ Tipo di campione non indicato: i criteri architetturali vengono applicati come su pezzo operatorio.');
   else if(LIMITED_SPECIMENS.includes(fd.specimen_type))
     warnings.push(`⚠️ ${fd.specimen_type==='fnab'?'Agoaspirato':'Core biopsy'}: architettura non valutabile. I criteri di esclusione architetturali sono sospesi — nessuna entità viene esclusa su quella base.`);
+  if(fd.p40==='abluminal' && fd.duality==='absent')
+    warnings.push('🔴 CONTRADDIZIONE: p40 abluminale (strato mioepiteliale presente) ma dualità assente. Ricontrollare.');
+  if(fd.p40==='neg' && fd.duality==='clear')
+    warnings.push('⚠️ p40 negativo con dualità netta: p40 può essere a mosaico o il campione non rappresentativo. Verificare.');
+  if(fd.p40==='neg' && fd.p63==='pos')
+    warnings.push('⚠️ p63+ con p40 negativo: p63 è aspecifico nei monofasici ghiandolari (polimorfo/cribriforme, MSA); non leggerlo come mioepitelio.');
   if(missing>3) warnings.push('⚠️ DATI MANCANTI: più di 3 campi non compilati. Risultati poco affidabili.');
   if(fd.cribriform==='yes' && fd.duality==='absent')
     warnings.push('🔴 CONTRADDIZIONE: cribriforme presente ma dualità assente. Ricontrollare.');
@@ -428,6 +529,22 @@ function recommendNextTests(g1,g2,fd){
     recs.push('→ MEF2C::SS18 fusion testing');
   if(survivors.includes('AciCC') && !isSet(fd.dog1))
     recs.push('→ DOG1 IHC (marker di riferimento AciCC)');
+  // v5.2.0: pannello di primo livello dell'articolo (p40, CD117, S100)
+  if(!isSet(fd.p40))
+    recs.push('→ Pannello di primo livello: p40 + CD117 + S100 (smista in bifasico / monofasico ghiandolare / squamoide)');
+  else{
+    const ph = PHENOTYPE_OF_P40[fd.p40];
+    if(ph==='glandular' && !isSet(fd.s100))
+      recs.push('→ S100: nel monofasico ghiandolare separa secretorio/polimorfo/microsecretorio (S100+) da acinico/mucinoso (S100−)');
+    if(ph==='glandular' && is(fd.s100,'neg') && survivors.includes('AciCC') && !isSet(fd.sox10))
+      recs.push('→ SOX10 (positivo in AciCC anche con S100 negativo) + DOG1');
+    if(ph==='squamoid' && survivors.includes('MEC') && !isSet(fd.maml2))
+      recs.push('→ MAML2 (MEC) · EWSR1::ATF1 (HCCC); mucicarminio/PAS-D per la mucina');
+    if(ph==='squamoid' && (is(fd.s100,'pos') || is(fd.sox10,'pos')))
+      recs.push('→ S100/SOX10+ in fenotipo squamoide: considerare carcinoma mioepiteliale (SMA, calponina, EWSR1) — non coperto dal modello');
+    if(ph==='biphasic' && !isSet(fd.cd117))
+      recs.push('→ CD117: conferma la componente luminale del bifasico');
+  }
   // Nuovo: raccomandazioni HRAS+PIK3CA
   if(fd.hras==='pos' && fd.pik3ca==='dual'){
     recs.push('→ SMARCA4/BRG1 IHC: perdita = SMARCA4-deficient carcinoma (DD prioritaria)');
@@ -435,6 +552,76 @@ function recommendNextTests(g1,g2,fd){
     recs.push('→ Discussione MDT per terapia: binimetinib (HRAS-mut, trial) + everolimus (mTOR, trial). Nessuna approvazione specifica per salivari.');
   }
   return recs;
+}
+
+// v5.2.0 — Orientamento gestionale (Higgins & Cipriani, AIMM 2026, Fig. 1). Non e' una
+// diagnosi: dice quale delle tre domande che contano per il chirurgo ha risposta —
+// benigno/basso grado, alto grado, basaloide con ACC da escludere. Anche qui tre stati:
+// un grado non valutato non e' un grado basso, e un solo segno di alto grado non basta.
+function managementBucket(g1, g2, fd){
+  fd = fd || {};
+  const limited = LIMITED_SPECIMENS.includes(fd.specimen_type);
+  const sopravvissute = Object.keys(g1 || {}).filter(k => g1[k].passed);
+  const out = (id, label, rationale, implicazione, tests) =>
+    ({ id, label, rationale, implicazione, tests: tests || [], limited });
+
+  if(sopravvissute.length === 0)
+    return out('indeterminato', 'Non determinabile (fuori modello)',
+      ['Nessuna entità sopravvissuta a Gate 1.'],
+      'Nessun orientamento gestionale dal modello.');
+
+  const segni = [];
+  if(is(fd.necrosis,'yes','focal')) segni.push('necrosi');
+  if(is(fd.nuclear_grade,'high')) segni.push('grado nucleare alto');
+  if(is(fd.mitotic_rate,'high')) segni.push('indice mitotico alto');
+  const hrasDual = fd.hras==='pos' && fd.pik3ca==='dual';
+
+  // ACC da escludere: basta un indizio di basaloide/ACC e che Gate 1 non l'abbia esclusa
+  const punteggi = Object.values(g2 || {}).map(x => x.score);
+  const maxScore = Math.max(0, ...punteggi);
+  const accTop = !!(g2 && g2.ACC && g2.ACC.score > 0 && g2.ACC.score === maxScore);
+  const indiziACC = [];
+  if(is(fd.cribriform,'yes','partial')) indiziACC.push('pattern cribriforme');
+  if(is(fd.duality,'clear')) indiziACC.push('dualità netta');
+  if(is(fd.myb,'pos')) indiziACC.push('MYB+');
+  if(is(fd.p40,'abluminal')) indiziACC.push('p40 abluminale');
+  if(accTop) indiziACC.push('ACC in testa al ranking');
+  // p40 negativo allontana l'ACC (polimorfo/cribriforme): resta in gioco solo con MYB+
+  const accInGioco = g1.ACC && g1.ACC.passed && (!is(fd.p40,'neg') || is(fd.myb,'pos'));
+
+  if(segni.length >= 2 || (segni.length >= 1 && hrasDual))
+    return out('alto_grado', 'ALTO GRADO',
+      ['Segni di alto grado: ' + segni.join(', ') + (hrasDual ? ' + HRAS Q61 / dual PIK3CA' : '') + '.'],
+      'Orientamento (Fig. 1): resezione con margini ampi e dissezione laterocervicale; sacrificio di strutture adiacenti se necessario. Discutere con il clinico eventuali bersagli terapeutici (es. NTRK, AR/HER2).');
+
+  if(accInGioco && indiziACC.length > 0){
+    const rat = ['Morfologia basaloide non apertamente di alto grado: ACC non esclusa (' + indiziACC.join(', ') + ').'];
+    if(segni.length === 1) rat.push('Segno isolato di alto grado: ' + segni[0] + '.');
+    const tests = [];
+    if(is(fd.myb,'neg')) tests.push('MYB IHC negativa non esclude ACC (>80% positivi): testare la fusione MYB/MYBL1::NFIB (FISH/NGS)');
+    else if(is(fd.myb,'pos')) tests.push('MYB IHC non è specifica (~15% dei non-ACC è positivo): confermare la fusione MYB/MYBL1::NFIB se la morfologia non è tipica');
+    else tests.push('MYB IHC e fusione MYB/MYBL1::NFIB (FISH/NGS)');
+    if(limited) tests.push('Campione limitato: diagnosi descrittiva ("neoplasia basaloide, ACC da escludere") e conferma sul pezzo operatorio');
+    return out('basaloide_acc', 'BASALOIDE — ACC DA ESCLUDERE', rat,
+      'Orientamento (Fig. 1): se ACC, resezione con margini ampi ± dissezione laterocervicale; se PA cellulare o neoplasia basocellulare, margini negativi. Il trattamento dipende da questa distinzione.',
+      tests);
+  }
+
+  if(segni.length === 1)
+    return out('indeterminato', 'Segno isolato di alto grado',
+      ['Un solo segno: ' + segni[0] + '. Non basta per assegnare alto grado.'],
+      'Grado non assegnabile: rivalutare sul pezzo operatorio o ricampionare; riportare in forma descrittiva.');
+
+  if(is(fd.nuclear_grade,'low') && is(fd.necrosis,'no'))
+    return out('basso_grado', 'BENIGNO / BASSO GRADO',
+      ['Grado nucleare basso, necrosi assente' + (is(fd.mitotic_rate,'low','moderate') ? ', mitosi non elevate' : '') + '.'],
+      'Orientamento (Fig. 1): resezione con margini negativi, senza dissezione laterocervicale.' +
+      (limited ? ' Su campione limitato il grado non è definitivo: riportare il grado in forma descrittiva.' : ''));
+
+  const mancano = ['nuclear_grade','necrosis'].filter(f => !isSet(fd[f]));
+  return out('indeterminato', 'Non determinabile',
+    [mancano.length ? 'Grado non valutabile: manca ' + mancano.join(', ') + '.' : 'Grado nucleare intermedio: né basso né alto grado.'],
+    'Nessun orientamento gestionale con i dati compilati.');
 }
 
 function checkOutsideModel(g1){
@@ -448,10 +635,12 @@ function checkOutsideModel(g1){
 if (typeof globalThis !== 'undefined') Object.assign(globalThis, {
   ARCHITECTURAL_FIELDS, LIMITED_SPECIMENS, UNSCORED_FIELDS,
   evaluateDealBreaker, getProConMissing, gateOne, gateTwo, checkDataQuality,
-  recommendNextTests, checkOutsideModel });
+  recommendNextTests, checkOutsideModel, managementBucket,
+  phenotypeOf, phenotypeAdjust, phenotypeProCon, PHENOTYPE_OF_P40, ENTITY_FAMILY });
 
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { isSet, is, isNot, ARCHITECTURAL_FIELDS, LIMITED_SPECIMENS, UNSCORED_FIELDS,
     evaluateDealBreaker, getProConMissing, gateOne, gateTwo, checkDataQuality,
-    recommendNextTests, checkOutsideModel };
+    recommendNextTests, checkOutsideModel, managementBucket,
+    phenotypeOf, phenotypeAdjust, phenotypeProCon, PHENOTYPE_OF_P40, ENTITY_FAMILY };
 }

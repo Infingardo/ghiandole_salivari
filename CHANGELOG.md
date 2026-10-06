@@ -1,5 +1,58 @@
 # 📝 Salivary Gland Tool - Changelog
 
+## v5.2.0 (Ottobre 2026) — Correzioni e orientamento gestionale da Higgins & Cipriani 2026
+
+Fonte: Higgins KE, Cipriani NA. *Algorithmic Approach to Diagnosis of Salivary Gland Neoplasms
+Based on Morphology and Select Immunostains.* Appl Immunohistochem Mol Morphol 2026 (review
+narrativa, algoritmo non validato: i pesi nuovi restano euristici).
+
+### Correzioni
+1. **PA — alto grado nucleare isolato.** Non esclude più il PA: l'atipia bizzarra senza necrosi/mitosi
+   non basta per la malignità (PA mioepiteliali con guadagno 12q). Esclude se corroborato da mitosi
+   alte; necrosi e PNI estesa escludono come prima. Resta una nota in Gate 1 e un "contro" nel pro/con.
+2. **PLAG1 / HMGA2.** PLAG1 era raccolto e non dava punti. Ora PLAG1+ o HMGA2+ → PA +2 (non si sommano),
+   e compaiono come contro per l'ACC. Aggiunto il campo HMGA2. MYB+ è un contro per il PA; MYB IHC
+   negativa è un contro *dichiarato non escludente* per l'ACC (>80% la esprime, una quota no).
+3. **LEF1 rimosso** dal form: aspecifico, sconsigliato dall'articolo.
+4. **HCCC.** p63/SMA+ non è più un contro: p40/p63 diffusi sono attesi (fenotipo squamoide). Quello che
+   la distingue dall'EMC sono SMA/calponina/S100/SOX10 negativi ed EWSR1::ATF1: ora è nei "missing".
+5. **SC.** L'esclusione (mammaglobina neg + ETV6-NTRK3 neg) resta, ma il messaggio ricorda che altri
+   partner ETV6 non sono esclusi; con ETV6-NTRK3 negativo si suggeriscono break-apart ETV6, MUC4, pan-TRK.
+
+### Orientamento gestionale (Fig. 1 dell'articolo)
+Nuova `managementBucket()` e blocco in cima ai risultati: **alto grado** (≥2 segni tra necrosi, grado
+nucleare alto, mitosi alte; o 1 segno + HRAS/dual PIK3CA) · **basaloide, ACC da escludere** (ACC non
+esclusa + cribriforme/dualità/MYB+/ACC in testa) · **benigno/basso grado** (grado basso + necrosi
+assente) · **non determinabile** (grado non valutato, grado intermedio, un solo segno, fuori modello).
+Tre stati rispettati: un grado non valutato non è un grado basso, un solo segno non fa alto grado.
+Su core biopsy/FNAB: grado dichiarato non definitivo e suggerita la diagnosi descrittiva.
+
+### Livello fenotipico p40 / CD117 / S100 (Fig. 2 dell'articolo)
+Nuovi campi (Step 5, pannello di primo livello): **p40** (abluminale / diffuso / negativo), **CD117**
+(luminale / diffuso / negativo), **S100** (diffuso / focale / negativo), **SOX10**. p40 smista in
+bifasico (PA, ACC, EMC, Warthin), monofasico ghiandolare (SC, MSA, carcinoma polimorfo, AciCC) e
+monofasico squamoide (MEC, HCCC). **Cancello morbido**, non duro: p40 è a mosaico e il campione può
+essere limitato, quindi il fenotipo coerente dà +2 (+1 se CD117 luminale conferma il bifasico), quello
+incoerente −3 (MEC con p40 negativo solo −1: esiste in minoranza); **nessuna entità viene esclusa**.
+CaExPA non ha famiglia. Con p40 non eseguito non cambia nulla.
+- **S100** suddivide solo il monofasico ghiandolare: S100+ → SC/MSA/polimorfo +1, AciCC −2; S100− → AciCC +2
+  (+1 con SOX10+), SC/MSA/polimorfo −2. S100 focale non sposta. In fenotipo squamoide S100/SOX10+ penalizza
+  MEC e HCCC (−2) e rimanda al carcinoma mioepiteliale, **non coperto dal modello**.
+- **p63 con p40 negativo** non è più letto come strato mioepiteliale (aspecifico nei monofasici
+  ghiandolari) e produce un avviso. Nuove contraddizioni: p40 abluminale + dualità assente.
+- **Esami successivi:** pannello p40+CD117+S100 se p40 manca; S100 dopo p40 negativo; SOX10 se S100−;
+  MAML2/EWSR1::ATF1 nello squamoide; CD117 nel bifasico.
+- **Orientamento gestionale:** p40 abluminale è un indizio di ACC; con p40 negativo l'ACC resta "da
+  escludere" solo con MYB+.
+- Pagina: riga "Fenotipo" nei risultati con le note.
+
+### Test
+320 asserzioni (176 → 320). Aggiornato il test che codificava il vecchio comportamento del PA.
+Il motore espone `managementBucket` alla pagina (verificato dall'invariante esistente).
+
+### Non fatto (proposto)
+Nuove entità (basal cell, SDC, intraduttale, mioepiteliale, mucinoso).
+
 ## v5.1.0 (Settembre 2026) — Un reperto non valutato non è un reperto assente
 
 ### Il difetto di fondo
