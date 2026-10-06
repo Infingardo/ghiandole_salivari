@@ -1,5 +1,37 @@
 # 📝 Salivary Gland Tool - Changelog
 
+## v5.7.0 (Ottobre 2026) — Carcinoma intraduttale
+
+Fonte: Higgins & Cipriani, AIMM 2026. È l'ultima entità proposta dopo la 5.2.0. Il problema pratico:
+l'intraduttale (sottotipi intercalato e oncocitico) ha **gli stessi S100, SOX10 e mammaglobina del
+carcinoma secretorio**; lo distinguono il p40 periferico, MUC4 negativo e RET.
+
+- **Nuova entità `IntraductalCa`** (15 → 16), **senza famiglia fenotipica**: su biopsia la popolazione
+  p40+ periferica può non essere campionata e simulare un secretorio, quindi p40 negativo non la penalizza.
+- **Nessun deal-breaker.** RET è presente solo in una quota (fino al 47%; partner NCOA4, TRIM27, TRIM33) e
+  nessun singolo reperto negativo basta.
+- **Punteggio:** crescita intraluminale in nidi/macrocisti circoscritti +3, p40 abluminale +3, RET +4,
+  MUC4 negativo +2; MUC4+ −3 e ETV6-NTRK3+ −3. S100 e mammaglobina non la spostano (condivise con SC).
+- **Secretorio:** MUC4+ +2, MUC4 negativo −2 (sensibile e specifico per SC); RET, MUC4 negativo e p40
+  abluminale con mammaglobina+ compaiono come *contro* testuali. Il p40 abluminale lo penalizza già il
+  fenotipo (−3): il SC non viene escluso.
+- **Nuovi campi:** `intraductal_growth` (Step 2), `muc4` (Step 5), `ret` (Step 6).
+- **Avviso:** S100+, mammaglobina+ e p40 abluminale insieme → "più un intraduttale che un secretorio:
+  verificare MUC4 e RET".
+- **Esami successivi:** MUC4 e RET quando SC e intraduttale sono entrambi in gioco (mammaglobina+, o p40−
+  con S100+). Su core/FNAB con p40 negativo: avvertenza che la popolazione periferica può sfuggire e
+  suggerimento di diagnosi descrittiva (neoplasia di basso grado, favor secretorio vs intraduttale).
+- **SDC:** crescita intraduttale con p40 abluminale è un contro testuale (intraduttale apocrino).
+- Il sottotipo apocrino (AR+, S100−) compare come pro; i quattro sottotipi sono elencati nei "missing".
+
+L'orientamento gestionale non cambia: l'articolo non assegna un grado all'intraduttale, solo la formula
+descrittiva "neoplasia di basso grado" per le biopsie.
+
+Test: 633 asserzioni (569 → 633).
+
+Con questa il modello copre le entità dell'articolo discusse in dettaglio (restano canalicolare e dotto
+striato, citati come S100+ ma non trattati).
+
 ## v5.6.0 (Ottobre 2026) — Carcinoma mioepiteliale
 
 Fonte: Higgins & Cipriani, AIMM 2026. Dalla 5.2.0 il fenotipo squamoide con S100/SOX10+ rimandava al

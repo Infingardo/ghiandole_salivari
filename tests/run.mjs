@@ -19,7 +19,7 @@ const check = (n, c, d = '') => c ? pass++ : (fail++, failures.push(n + (d ? ` �
 const eq = (n, a, b) => check(n, a === b, `atteso ${JSON.stringify(b)}, ottenuto ${JSON.stringify(a)}`);
 const section = t => console.log(`\n• ${t}`);
 
-const ENTITIES = ['PA','ACC','MEC','AciCC','SC','MSA','CaExPA','Warthin','EMC','PolymorphousAC','HCCC','BasalCell','SDC','MucinousAC','MyoCa'];
+const ENTITIES = ['PA','ACC','MEC','AciCC','SC','MSA','CaExPA','Warthin','EMC','PolymorphousAC','HCCC','BasalCell','SDC','MucinousAC','MyoCa','IntraductalCa'];
 const run = fd => { const g1 = gateOne(fd); return { g1, g2: gateTwo(g1, fd) }; };
 const escluse = g1 => Object.keys(g1).filter(k => !g1[k].passed);
 const classifica = g2 => Object.entries(g2).sort((a,b) => b[1].score - a[1].score);
@@ -447,8 +447,8 @@ section('v5.2.0 — livello fenotipico p40 / CD117 / S100 (Fig. 2)');
     /p40 abluminale/.test(bucket({ nuclear_grade:'low', necrosis:'no', p40:'abluminal', cribriform:'partial' }).rationale.join(' ')));
 
   // coerenza delle tabelle
-  // CaExPA e MyoCa non hanno famiglia: il loro fenotipo e' variabile per definizione
-  ENTITIES.filter(e => !['CaExPA','MyoCa'].includes(e)).forEach(e => check(`${e} ha una famiglia fenotipica`, !!ENTITY_FAMILY[e]));
+  // CaExPA, MyoCa e IntraductalCa non hanno famiglia: il loro fenotipo e' variabile per definizione
+  ENTITIES.filter(e => !['CaExPA','MyoCa','IntraductalCa'].includes(e)).forEach(e => check(`${e} ha una famiglia fenotipica`, !!ENTITY_FAMILY[e]));
   check('CaExPA non ne ha una', !ENTITY_FAMILY.CaExPA);
   eq('le famiglie sono tre', [...new Set(Object.values(ENTITY_FAMILY))].sort().join(','), 'biphasic,glandular,squamoid');
   eq('p40 ha tre valori di fenotipo', Object.keys(PHENOTYPE_OF_P40).sort().join(','), 'abluminal,diffuse,neg');
@@ -803,6 +803,100 @@ section('v5.6.0 — carcinoma mioepiteliale');
 
   // campi: nulla resta inutilizzato
   eq('nessun campo raccolto e non usato', UNSCORED_FIELDS.length, 0);
+}
+
+section('v5.7.0 — carcinoma intraduttale');
+{
+  // Gate 1: nessun deal-breaker
+  eq('form vuoto: zero', score({}, 'IntraductalCa'), 0);
+  check('form vuoto: non esclusa', run({}).g1.IntraductalCa.passed);
+  eq('nessun deal-breaker nemmeno con dati contrari',
+    evaluateDealBreaker('IntraductalCa', { ret:'neg', muc4:'pos', p40:'neg', intraductal_growth:'no', etv6:'pos' }).hit, false);
+  eq('RET negativo non esclude (presente solo in una quota)', run({ ret:'neg' }).g1.IntraductalCa.passed, true);
+  eq('"not_done" non vale come negativo', score({ ret:'not_done', muc4:'not_done' }, 'IntraductalCa'), 0);
+  check('non ha famiglia fenotipica', !ENTITY_FAMILY.IntraductalCa);
+
+  // punteggio
+  eq('crescita intraluminale: +3', score({ intraductal_growth:'yes' }, 'IntraductalCa'), 3);
+  eq('crescita intraluminale assente: 0 (contro testuale)', score({ intraductal_growth:'no' }, 'IntraductalCa'), 0);
+  eq('p40 abluminale: +3', score({ p40:'abluminal' }, 'IntraductalCa'), 3);
+  eq('p40 negativo: nessuna penalità (popolazione periferica sfuggente su biopsia)', score({ p40:'neg' }, 'IntraductalCa'), 0);
+  eq('p40 diffuso: nessuna penalità', score({ p40:'diffuse' }, 'IntraductalCa'), 0);
+  eq('RET: +4', score({ ret:'pos' }, 'IntraductalCa'), 4);
+  eq('MUC4 negativo: +2', score({ muc4:'neg' }, 'IntraductalCa'), 2);
+  eq('MUC4 positivo: −3', score({ muc4:'pos' }, 'IntraductalCa'), -3);
+  eq('ETV6-NTRK3+: −3', score({ etv6:'pos' }, 'IntraductalCa'), -3);
+  eq('S100 e mammaglobina non spostano l intraduttale (condivise con SC)',
+    score({ s100:'pos', mammaglobin:'pos' }, 'IntraductalCa'), 0);
+
+  // il punto dell'articolo: stessi S100/mammaglobina del secretorio, ma p40 periferico, MUC4−, RET
+  const idc = { specimen_type:'resection', intraductal_growth:'yes', p40:'abluminal', s100:'pos', mammaglobin:'pos', muc4:'neg', ret:'pos' };
+  const r = run(idc);
+  eq('intraduttale classico in testa', classifica(r.g2)[0][0], 'IntraductalCa');
+  eq('...con fiducia HIGH', r.g2.IntraductalCa.conf, 'HIGH');
+  check('il secretorio è sotto (p40 abluminale, MUC4−)', r.g2.SC.score < r.g2.IntraductalCa.score);
+  check('...e non è escluso: cancello morbido', r.g1.SC.passed);
+  const sc = { specimen_type:'resection', p40:'neg', s100:'pos', mammaglobin:'pos', etv6:'pos', muc4:'pos' };
+  eq('secretorio classico in testa', classifica(run(sc).g2)[0][0], 'SC');
+  check('...e l intraduttale è sotto', run(sc).g2.IntraductalCa.score < run(sc).g2.SC.score);
+  // SC: MUC4
+  eq('SC: MUC4+ +2', score({ muc4:'pos' }, 'SC'), 2);
+  eq('SC: MUC4 negativo −2', score({ muc4:'neg' }, 'SC'), -2);
+  eq('SC: MUC4 non eseguito 0', score({ muc4:'not_done' }, 'SC'), 0);
+  eq('SC con p40 abluminale: −3 di fenotipo', score({ p40:'abluminal' }, 'SC'), -3);
+
+  // pro/con
+  const pc = getProConMissing('IntraductalCa', idc);
+  check('pro: crescita, p40 periferico, RET, MUC4−, S100+mammaglobina+',
+    ['intraluminale','p40 abluminale','RET','MUC4 negativo','S100+ e mammaglobina+'].every(k => pc.pro.some(x => x.includes(k))));
+  check('contro: MUC4+', getProConMissing('IntraductalCa', { muc4:'pos' }).con.some(x => /secretorio/.test(x)));
+  check('contro: ETV6-NTRK3+', getProConMissing('IntraductalCa', { etv6:'pos' }).con.some(x => /secretorio/.test(x)));
+  check('contro: p40 negativo, dichiarato non escludente', getProConMissing('IntraductalCa', { p40:'neg' }).con.some(x => /non esclude/.test(x)));
+  check('contro: nessuna crescita intraluminale', getProConMissing('IntraductalCa', { intraductal_growth:'no' }).con.some(x => /intraluminale/.test(x)));
+  check('contro: necrosi orienta su SDC', getProConMissing('IntraductalCa', { necrosis:'yes' }).con.some(x => /SDC/.test(x)));
+  check('pro: sottotipo apocrino AR+ S100−', getProConMissing('IntraductalCa', { apocrine:'yes', ar:'pos', s100:'neg' }).pro.some(x => /apocrino/.test(x)));
+  check('chiede MUC4, RET, crescita intraluminale',
+    ['MUC4','RET','intraluminale'].every(k => getProConMissing('IntraductalCa', {}).missing.some(m => m.includes(k))));
+  check('cita i quattro sottotipi', getProConMissing('IntraductalCa', {}).missing.some(m => /intercalato/.test(m) && /oncocitico/.test(m)));
+  check('dichiara la diagnosi descrittiva su biopsia', getProConMissing('IntraductalCa', {}).missing.some(m => /descrittiva/.test(m)));
+  check('con MUC4 fatto non lo richiede', !getProConMissing('IntraductalCa', { muc4:'neg' }).missing.some(m => /MUC4/.test(m)));
+  check('SC: MUC4 neg tra i contro', getProConMissing('SC', { muc4:'neg' }).con.some(c => /intraduttale/.test(c)));
+  check('SC: RET tra i contro', getProConMissing('SC', { ret:'pos' }).con.some(c => /intraduttale/.test(c)));
+  check('SC: p40 abluminale + mammaglobina+ tra i contro',
+    getProConMissing('SC', { p40:'abluminal', mammaglobin:'pos' }).con.some(c => /intraduttale/.test(c)));
+  check('SC: MUC4+ tra i pro', getProConMissing('SC', { muc4:'pos' }).pro.some(c => /MUC4/.test(c)));
+  check('SC: chiede MUC4', getProConMissing('SC', {}).missing.some(m => /MUC4/.test(m)));
+  check('SDC: crescita intraduttale + p40 abluminale orienta su intraduttale apocrino',
+    getProConMissing('SDC', { intraductal_growth:'yes', p40:'abluminal' }).con.some(c => /apocrino/.test(c)));
+  check('SDC: la sola crescita intraduttale non basta',
+    !getProConMissing('SDC', { intraductal_growth:'yes' }).con.some(c => /apocrino/.test(c)));
+
+  // qualità del dato
+  const w = fd => checkDataQuality(fd).join(' | ');
+  check('S100+, mammaglobina+, p40 abluminale: avviso intraduttale vs secretorio',
+    /intraduttale che un secretorio/.test(w({ p40:'abluminal', s100:'pos', mammaglobin:'pos' })));
+  check('senza p40 abluminale nessun avviso', !/intraduttale che un secretorio/.test(w({ p40:'neg', s100:'pos', mammaglobin:'pos' })));
+  check('con solo due dei tre nessun avviso', !/intraduttale che un secretorio/.test(w({ p40:'abluminal', s100:'pos' })));
+
+  // esami successivi
+  const rec = fd => { const { g1, g2 } = run(fd); return recommendNextTests(g1, g2, fd).join(' | '); };
+  check('mammaglobina+: MUC4 e RET', /MUC4 \(SC\+, intraduttale−\) e RET/.test(rec({ mammaglobin:'pos' })));
+  check('p40− con S100+: MUC4 e RET', /MUC4 \(SC\+/.test(rec({ p40:'neg', s100:'pos' })));
+  check('MUC4 e RET già fatti: non li richiede', !/MUC4 \(SC\+/.test(rec({ mammaglobin:'pos', muc4:'neg', ret:'neg' })));
+  check('solo MUC4 fatto: chiede ancora RET', /RET FISH/.test(rec({ mammaglobin:'pos', muc4:'neg' })));
+  check('senza mammaglobina né S100 non li chiede', !/MUC4 \(SC\+/.test(rec({ cribriform:'yes' })));
+  check('core biopsy con p40 negativo: avverte che la popolazione periferica può sfuggire',
+    /popolazione p40\+ periferica/.test(rec({ specimen_type:'trucut', p40:'neg', s100:'pos', mammaglobin:'pos' })));
+  check('...e suggerisce la diagnosi descrittiva', /[Dd]iagnosi descrittiva/.test(rec({ specimen_type:'fnab', p40:'neg', s100:'pos', mammaglobin:'pos' })));
+  check('su pezzo operatorio nessun avviso sul campionamento',
+    !/popolazione p40\+ periferica/.test(rec({ specimen_type:'resection', p40:'neg', s100:'pos', mammaglobin:'pos' })));
+  check('con p40 abluminale non c è l avviso (popolazione campionata)',
+    !/popolazione p40\+ periferica/.test(rec({ specimen_type:'trucut', p40:'abluminal', mammaglobin:'pos' })));
+
+  // il caso limite: biopsia, p40 negativo → il secretorio resta davanti, senza esclusioni
+  const bio = run({ specimen_type:'trucut', p40:'neg', s100:'pos', mammaglobin:'pos' });
+  eq('su biopsia p40− il secretorio è davanti', classifica(bio.g2)[0][0], 'SC');
+  check('...ma l intraduttale è ancora in gioco', bio.g1.IntraductalCa.passed);
 }
 
 section('purezza e invarianti di progetto');
