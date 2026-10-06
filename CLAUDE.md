@@ -10,3 +10,4 @@ Pathology decision-support tool, published on GitHub Pages. Single-page HTML/JS,
 - Keep logic separate from the UI where the code allows it. No fake precision: show uncertainty and equivocal results.
 - Offline-first: no external script, stylesheet or fetch URLs; libraries are kept locally with relative paths. On the Mac a local pre-commit hook enforces this; elsewhere check by hand. Never bypass hooks with `--no-verify`.
 - No patient data in code, tests, fixtures, docs or commit messages.
+- `AGENTS.md` is a copy of this file for Codex: keep the two aligned when you edit either.
