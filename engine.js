@@ -30,10 +30,15 @@ const UNSCORED_FIELDS = ['solid_nests','myoepithelial_invasive'];
 function evaluateDealBreaker(entity, fd){
   switch(entity){
     case 'PA':
-      if(fd.nuclear_grade==='high') return {hit:true,msg:'Nuclear grade high. Reconsider.'};
+      // v5.2.0: l'alto grado nucleare ISOLATO non esclude piu' il PA. Higgins & Cipriani
+      // 2026: l'atipia bizzarra senza necrosi/mitosi non basta per la malignita' sui
+      // campioni limitati (PA mioepiteliali con guadagno del cromosoma 12). Esclude solo
+      // se corroborato da un secondo segno di alto grado.
+      if(fd.nuclear_grade==='high' && fd.mitotic_rate==='high') return {hit:true,msg:'Nuclear grade high + mitotic rate high. Reconsider.'};
       if(fd.necrosis==='yes') return {hit:true,msg:'Coagulative necrosis suggests malignancy.'};
       if(fd.neural_invasion==='extensive') return {hit:true,msg:'Extensive PNI: PA is benign. Reconsider.'};
-      return {hit:false,needs:['nuclear_grade','necrosis','neural_invasion']};
+      return {hit:false,needs:['nuclear_grade','necrosis','neural_invasion'],
+              note: fd.nuclear_grade==='high' ? 'Atipia nucleare alta isolata: nel PA non basta per la malignità (atipia bizzarra, guadagno 12q); cercare necrosi, mitosi, invasione.' : null};
       
     case 'ACC':
       if(fd.cribriform==='no' && fd.duality==='absent') 
@@ -45,7 +50,7 @@ function evaluateDealBreaker(entity, fd){
       
     case 'SC':
       if(fd.mammaglobin==='neg' && fd.etv6==='neg') 
-        return {hit:true,msg:'No mammaglobin AND no ETV6 fusion: SC unlikely.'};
+        return {hit:true,msg:'No mammaglobin AND no ETV6-NTRK3: SC unlikely (altri partner ETV6 non esclusi: MUC4, pan-TRK, break-apart ETV6).'};
       return {hit:false,needs:['mammaglobin','etv6']};
       
     case 'MEC':
@@ -113,7 +118,9 @@ function getProConMissing(entity, fd){
         fd.mucin_production==='abundant' ? '✗ Abundant mucin' : null,
         fd.serous_acinar==='prominent' ? '✗ Prominent serous' : null,
         hrasPos ? '✗ HRAS Q61+ (non tipico di ACC)' : null,
-        fd.p63==='neg' ? '✗ p63/SMA negativo: senza componente mioepiteliale l ACC è difficile da sostenere' : null
+        fd.p63==='neg' ? '✗ p63/SMA negativo: senza componente mioepiteliale l ACC è difficile da sostenere' : null,
+        (fd.plag1==='pos' || fd.hmga2==='pos') ? '✗ PLAG1/HMGA2+ (orienta su PA; non sensibile né specifico al 100%)' : null,
+        fd.myb==='neg' ? '✗ MYB IHC negativa (non esclude: >80% degli ACC la esprime, ma una quota no; testare la fusione)' : null
       ].filter(Boolean);
       procon.missing=[
         !fd.myb ? '? MYB status' : null,
@@ -148,7 +155,8 @@ function getProConMissing(entity, fd){
       ].filter(Boolean);
       procon.missing=[
         !fd.mammaglobin ? '? Mammaglobin (KEY marker)' : null,
-        !fd.etv6 ? '? ETV6-NTRK3 fusion' : null
+        !fd.etv6 ? '? ETV6-NTRK3 fusion' : null,
+        fd.etv6==='neg' ? '? ETV6-NTRK3 negativo non esclude altri partner ETV6: break-apart ETV6, MUC4, pan-TRK' : null
       ].filter(Boolean);
       break;
       
@@ -157,16 +165,19 @@ function getProConMissing(entity, fd){
         fd.stromal_type==='myxoid' ? '✓ Myxoid stroma' : null,
         fd.nuclear_grade==='low' ? '✓ Low nuclear grade' : null,
         fd.necrosis==='no' ? '✓ No necrosis' : null,
-        fd.p63==='pos' ? '✓ p63/SMA+ (componente mioepiteliale)' : null
+        fd.p63==='pos' ? '✓ p63/SMA+ (componente mioepiteliale)' : null,
+        (fd.plag1==='pos' || fd.hmga2==='pos') ? '✓ PLAG1/HMGA2+' : null
       ].filter(Boolean);
       procon.con=[
         fd.mitotic_rate==='high' ? '✗ High mitotic' : null,
+        fd.nuclear_grade==='high' ? '✗ Alto grado nucleare (isolato non esclude il PA: atipia bizzarra possibile)' : null,
         fd.neural_invasion==='extensive' ? '✗ Extensive PNI' : null,
+        fd.myb==='pos' ? '✗ MYB+ (orienta su ACC; non specifico)' : null,
         hrasPos ? '✗ HRAS Q61+ (suggerisce trasformazione maligna)' : null
       ].filter(Boolean);
+      // v5.2.0: LEF1 tolto (aspecifico, sconsigliato); PLAG1 e HMGA2 insieme (fusioni in ~70% dei PA).
       procon.missing=[
-        !fd.lef1 ? '? LEF1 (supportive)' : null,
-        !fd.plag1 ? '? PLAG1 (supportive)' : null
+        !isSet(fd.plag1) && !isSet(fd.hmga2) ? '? PLAG1 / HMGA2 (IHC o fusione; supportive, non specifici al 100%)' : null
       ].filter(Boolean);
       break;
 
@@ -284,12 +295,13 @@ function getProConMissing(entity, fd){
       ].filter(Boolean);
       procon.con=[
         fd.duality==='clear' ? '✗ Dualità mioepiteliale netta (orienta su EMC)' : null,
-        fd.p63==='pos' ? '✗ p63/SMA+ diffuso: nell HCCC il mioepitelio non c è (DD EMC)' : null,
         fd.mucin_production==='abundant' ? '✗ Mucina abbondante (orienta su MEC a cellule chiare)' : null
       ].filter(Boolean);
       procon.missing=[
         !fd.clear_cell ? '? Cellule chiare' : null,
-        !fd.stromal_type ? '? Tipo di stroma' : null
+        !fd.stromal_type ? '? Tipo di stroma' : null,
+        // v5.2.0: p63/p40 diffusi sono ATTESI in HCCC (fenotipo squamoide): non lo distinguono dall'EMC.
+        '? SMA/calponina e S100/SOX10 (devono essere negativi) ed EWSR1::ATF1 — p63/SMA+ non esclude HCCC, la distingue dall EMC solo la negatività dei marcatori mioepiteliali veri'
       ].filter(Boolean);
       break;
 
@@ -324,7 +336,7 @@ function gateOne(fd){
       passed:!db.hit,
       undetermined: !db.hit && mancanti.length>0,
       reason: db.hit ? db.msg
-            : mancanti.length>0 ? `Non verificato: manca ${mancanti.join(', ')}.`
+            : mancanti.length>0 ? `Non verificato: manca ${mancanti.join(', ')}.` + (db.note ? ' ' + db.note : '')
             : (db.note || 'Gate 1 superato')
     };
   }
@@ -350,6 +362,8 @@ function gateTwo(survivors, fd){
     }else if(e==='PA'){
       if(formData.stromal_type==='myxoid') score+=2;
       if(formData.nuclear_grade==='low') score+=2;
+      // v5.2.0: PLAG1 era raccolto e non dava punti. ~70% dei PA ha fusione PLAG1 o HMGA2.
+      if(is(formData.plag1,'pos') || is(formData.hmga2,'pos')) score+=2;
       if(hrasPos) score-=2; // HRAS suggerisce trasformazione
     }else if(e==='SC'){
       if(formData.mammaglobin==='pos') score+=4;
@@ -437,6 +451,74 @@ function recommendNextTests(g1,g2,fd){
   return recs;
 }
 
+// v5.2.0 — Orientamento gestionale (Higgins & Cipriani, AIMM 2026, Fig. 1). Non e' una
+// diagnosi: dice quale delle tre domande che contano per il chirurgo ha risposta —
+// benigno/basso grado, alto grado, basaloide con ACC da escludere. Anche qui tre stati:
+// un grado non valutato non e' un grado basso, e un solo segno di alto grado non basta.
+function managementBucket(g1, g2, fd){
+  fd = fd || {};
+  const limited = LIMITED_SPECIMENS.includes(fd.specimen_type);
+  const sopravvissute = Object.keys(g1 || {}).filter(k => g1[k].passed);
+  const out = (id, label, rationale, implicazione, tests) =>
+    ({ id, label, rationale, implicazione, tests: tests || [], limited });
+
+  if(sopravvissute.length === 0)
+    return out('indeterminato', 'Non determinabile (fuori modello)',
+      ['Nessuna entità sopravvissuta a Gate 1.'],
+      'Nessun orientamento gestionale dal modello.');
+
+  const segni = [];
+  if(is(fd.necrosis,'yes','focal')) segni.push('necrosi');
+  if(is(fd.nuclear_grade,'high')) segni.push('grado nucleare alto');
+  if(is(fd.mitotic_rate,'high')) segni.push('indice mitotico alto');
+  const hrasDual = fd.hras==='pos' && fd.pik3ca==='dual';
+
+  // ACC da escludere: basta un indizio di basaloide/ACC e che Gate 1 non l'abbia esclusa
+  const punteggi = Object.values(g2 || {}).map(x => x.score);
+  const maxScore = Math.max(0, ...punteggi);
+  const accTop = !!(g2 && g2.ACC && g2.ACC.score > 0 && g2.ACC.score === maxScore);
+  const indiziACC = [];
+  if(is(fd.cribriform,'yes','partial')) indiziACC.push('pattern cribriforme');
+  if(is(fd.duality,'clear')) indiziACC.push('dualità netta');
+  if(is(fd.myb,'pos')) indiziACC.push('MYB+');
+  if(accTop) indiziACC.push('ACC in testa al ranking');
+  const accInGioco = g1.ACC && g1.ACC.passed;
+
+  if(segni.length >= 2 || (segni.length >= 1 && hrasDual))
+    return out('alto_grado', 'ALTO GRADO',
+      ['Segni di alto grado: ' + segni.join(', ') + (hrasDual ? ' + HRAS Q61 / dual PIK3CA' : '') + '.'],
+      'Orientamento (Fig. 1): resezione con margini ampi e dissezione laterocervicale; sacrificio di strutture adiacenti se necessario. Discutere con il clinico eventuali bersagli terapeutici (es. NTRK, AR/HER2).');
+
+  if(accInGioco && indiziACC.length > 0){
+    const rat = ['Morfologia basaloide non apertamente di alto grado: ACC non esclusa (' + indiziACC.join(', ') + ').'];
+    if(segni.length === 1) rat.push('Segno isolato di alto grado: ' + segni[0] + '.');
+    const tests = [];
+    if(is(fd.myb,'neg')) tests.push('MYB IHC negativa non esclude ACC (>80% positivi): testare la fusione MYB/MYBL1::NFIB (FISH/NGS)');
+    else if(is(fd.myb,'pos')) tests.push('MYB IHC non è specifica (~15% dei non-ACC è positivo): confermare la fusione MYB/MYBL1::NFIB se la morfologia non è tipica');
+    else tests.push('MYB IHC e fusione MYB/MYBL1::NFIB (FISH/NGS)');
+    if(limited) tests.push('Campione limitato: diagnosi descrittiva ("neoplasia basaloide, ACC da escludere") e conferma sul pezzo operatorio');
+    return out('basaloide_acc', 'BASALOIDE — ACC DA ESCLUDERE', rat,
+      'Orientamento (Fig. 1): se ACC, resezione con margini ampi ± dissezione laterocervicale; se PA cellulare o neoplasia basocellulare, margini negativi. Il trattamento dipende da questa distinzione.',
+      tests);
+  }
+
+  if(segni.length === 1)
+    return out('indeterminato', 'Segno isolato di alto grado',
+      ['Un solo segno: ' + segni[0] + '. Non basta per assegnare alto grado.'],
+      'Grado non assegnabile: rivalutare sul pezzo operatorio o ricampionare; riportare in forma descrittiva.');
+
+  if(is(fd.nuclear_grade,'low') && is(fd.necrosis,'no'))
+    return out('basso_grado', 'BENIGNO / BASSO GRADO',
+      ['Grado nucleare basso, necrosi assente' + (is(fd.mitotic_rate,'low','moderate') ? ', mitosi non elevate' : '') + '.'],
+      'Orientamento (Fig. 1): resezione con margini negativi, senza dissezione laterocervicale.' +
+      (limited ? ' Su campione limitato il grado non è definitivo: riportare il grado in forma descrittiva.' : ''));
+
+  const mancano = ['nuclear_grade','necrosis'].filter(f => !isSet(fd[f]));
+  return out('indeterminato', 'Non determinabile',
+    [mancano.length ? 'Grado non valutabile: manca ' + mancano.join(', ') + '.' : 'Grado nucleare intermedio: né basso né alto grado.'],
+    'Nessun orientamento gestionale con i dati compilati.');
+}
+
 function checkOutsideModel(g1){
   return Object.values(g1).filter(v=>v.passed).length===0;
 }
@@ -448,10 +530,10 @@ function checkOutsideModel(g1){
 if (typeof globalThis !== 'undefined') Object.assign(globalThis, {
   ARCHITECTURAL_FIELDS, LIMITED_SPECIMENS, UNSCORED_FIELDS,
   evaluateDealBreaker, getProConMissing, gateOne, gateTwo, checkDataQuality,
-  recommendNextTests, checkOutsideModel });
+  recommendNextTests, checkOutsideModel, managementBucket });
 
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { isSet, is, isNot, ARCHITECTURAL_FIELDS, LIMITED_SPECIMENS, UNSCORED_FIELDS,
     evaluateDealBreaker, getProConMissing, gateOne, gateTwo, checkDataQuality,
-    recommendNextTests, checkOutsideModel };
+    recommendNextTests, checkOutsideModel, managementBucket };
 }

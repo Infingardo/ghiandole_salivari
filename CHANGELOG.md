@@ -1,5 +1,39 @@
 # 📝 Salivary Gland Tool - Changelog
 
+## v5.2.0 (Ottobre 2026) — Correzioni e orientamento gestionale da Higgins & Cipriani 2026
+
+Fonte: Higgins KE, Cipriani NA. *Algorithmic Approach to Diagnosis of Salivary Gland Neoplasms
+Based on Morphology and Select Immunostains.* Appl Immunohistochem Mol Morphol 2026 (review
+narrativa, algoritmo non validato: i pesi nuovi restano euristici).
+
+### Correzioni
+1. **PA — alto grado nucleare isolato.** Non esclude più il PA: l'atipia bizzarra senza necrosi/mitosi
+   non basta per la malignità (PA mioepiteliali con guadagno 12q). Esclude se corroborato da mitosi
+   alte; necrosi e PNI estesa escludono come prima. Resta una nota in Gate 1 e un "contro" nel pro/con.
+2. **PLAG1 / HMGA2.** PLAG1 era raccolto e non dava punti. Ora PLAG1+ o HMGA2+ → PA +2 (non si sommano),
+   e compaiono come contro per l'ACC. Aggiunto il campo HMGA2. MYB+ è un contro per il PA; MYB IHC
+   negativa è un contro *dichiarato non escludente* per l'ACC (>80% la esprime, una quota no).
+3. **LEF1 rimosso** dal form: aspecifico, sconsigliato dall'articolo.
+4. **HCCC.** p63/SMA+ non è più un contro: p40/p63 diffusi sono attesi (fenotipo squamoide). Quello che
+   la distingue dall'EMC sono SMA/calponina/S100/SOX10 negativi ed EWSR1::ATF1: ora è nei "missing".
+5. **SC.** L'esclusione (mammaglobina neg + ETV6-NTRK3 neg) resta, ma il messaggio ricorda che altri
+   partner ETV6 non sono esclusi; con ETV6-NTRK3 negativo si suggeriscono break-apart ETV6, MUC4, pan-TRK.
+
+### Orientamento gestionale (Fig. 1 dell'articolo)
+Nuova `managementBucket()` e blocco in cima ai risultati: **alto grado** (≥2 segni tra necrosi, grado
+nucleare alto, mitosi alte; o 1 segno + HRAS/dual PIK3CA) · **basaloide, ACC da escludere** (ACC non
+esclusa + cribriforme/dualità/MYB+/ACC in testa) · **benigno/basso grado** (grado basso + necrosi
+assente) · **non determinabile** (grado non valutato, grado intermedio, un solo segno, fuori modello).
+Tre stati rispettati: un grado non valutato non è un grado basso, un solo segno non fa alto grado.
+Su core biopsy/FNAB: grado dichiarato non definitivo e suggerita la diagnosi descrittiva.
+
+### Test
+230 asserzioni (176 → 230). Aggiornato il test che codificava il vecchio comportamento del PA.
+Il motore espone `managementBucket` alla pagina (verificato dall'invariante esistente).
+
+### Non fatto (proposto)
+Livello fenotipico p40/CD117/S100/SOX10 e nuove entità (basal cell, SDC, intraduttale, mioepiteliale, mucinoso).
+
 ## v5.1.0 (Settembre 2026) — Un reperto non valutato non è un reperto assente
 
 ### Il difetto di fondo

@@ -11,7 +11,7 @@ const require = createRequire(import.meta.url);
 const E = require('../engine.js');
 const { isSet, is, isNot, ARCHITECTURAL_FIELDS, LIMITED_SPECIMENS, UNSCORED_FIELDS,
         evaluateDealBreaker, getProConMissing, gateOne, gateTwo, checkDataQuality,
-        recommendNextTests, checkOutsideModel } = E;
+        recommendNextTests, checkOutsideModel, managementBucket } = E;
 
 let pass = 0, fail = 0; const failures = [];
 const check = (n, c, d = '') => c ? pass++ : (fail++, failures.push(n + (d ? ` — ${d}` : '')));
@@ -105,8 +105,9 @@ section('campioni limitati: architettura non valutabile');
   eq('MEC resta escluso su core biopsy (la mucina si vede)', run(nonArch).g1.MEC.passed, false);
   eq('SC resta escluso su core biopsy (i marcatori si fanno)',
     run({ specimen_type:'fnab', mammaglobin:'neg', etv6:'neg' }).g1.SC.passed, false);
-  eq('PA resta esclusa su core biopsy per alto grado nucleare',
-    run({ specimen_type:'trucut', nuclear_grade:'high' }).g1.PA.passed, false);
+  // v5.2.0: l'alto grado nucleare isolato non esclude piu' il PA; serve un secondo segno
+  eq('PA resta esclusa su core biopsy per alto grado nucleare + mitosi alte',
+    run({ specimen_type:'trucut', nuclear_grade:'high', mitotic_rate:'high' }).g1.PA.passed, false);
 
   // la sospensione e' mirata anche nell'altro verso: un reperto architetturale
   // VISTO su core biopsy resta un dato, e l'esclusione che ne nasce vale
@@ -226,6 +227,115 @@ section('esami successivi e fuori modello');
   eq('senza sopravvissute e fuori modello', checkOutsideModel({ A:{passed:false} }), true);
 }
 
+// ══════════════════════════════════════════════════════════════════════════
+section('v5.2.0 — correzioni da Higgins & Cipriani 2026');
+{
+  // PA: atipia isolata non basta
+  const iso = { specimen_type:'resection', nuclear_grade:'high', necrosis:'no', mitotic_rate:'low', neural_invasion:'none' };
+  const g = run(iso).g1.PA;
+  check('PA con alto grado nucleare isolato non e esclusa', g.passed, g.reason);
+  check('la ragione spiega che l atipia isolata non basta', /isolata/.test(g.reason), g.reason);
+  check('anche con dati mancanti la nota non si perde',
+    /isolata/.test(run({ nuclear_grade:'high' }).g1.PA.reason));
+  check('il pro/con lo segnala come contro', getProConMissing('PA', iso).con.some(c => /isolato/.test(c)));
+  eq('PA esclusa se alto grado + mitosi alte', run({ nuclear_grade:'high', mitotic_rate:'high' }).g1.PA.passed, false);
+  eq('PA esclusa per necrosi', run({ necrosis:'yes' }).g1.PA.passed, false);
+
+  // PLAG1 / HMGA2
+  eq('PA: PLAG1+ da punti', score({ plag1:'pos' }, 'PA'), 2);
+  eq('PA: HMGA2+ da punti', score({ hmga2:'pos' }, 'PA'), 2);
+  eq('PA: PLAG1 e HMGA2 insieme non si sommano', score({ plag1:'pos', hmga2:'pos' }, 'PA'), 2);
+  eq('PA: PLAG1 negativo non toglie punti', score({ plag1:'neg' }, 'PA'), 0);
+  eq('PLAG1+ non cambia il punteggio dell ACC', score({ plag1:'pos' }, 'ACC'), 0);
+  check('ACC: PLAG1+ compare tra i contro', getProConMissing('ACC', { plag1:'pos' }).con.some(c => /PLAG1/.test(c)));
+  check('ACC: MYB IHC neg non la esclude ma lo dice',
+    run({ myb:'neg' }).g1.ACC.passed && getProConMissing('ACC', { myb:'neg' }).con.some(c => /testare la fusione/.test(c)));
+  check('PA: MYB+ compare tra i contro', getProConMissing('PA', { myb:'pos' }).con.some(c => /MYB/.test(c)));
+  check('PA chiede PLAG1/HMGA2 se nessuno dei due e fatto',
+    getProConMissing('PA', {}).missing.some(m => /PLAG1 \/ HMGA2/.test(m)));
+  check('PA non chiede piu nulla se HMGA2 e fatto',
+    !getProConMissing('PA', { hmga2:'neg' }).missing.some(m => /PLAG1/.test(m)));
+  check('LEF1 non e piu chiesto', !JSON.stringify(getProConMissing('PA', {})).includes('LEF1'));
+
+  // HCCC: p63 diffuso e atteso, non un contro
+  const h = getProConMissing('HCCC', { p63:'pos', clear_cell:'yes' });
+  check('HCCC: p63/SMA+ non e piu un contro', !h.con.some(c => /p63/.test(c)), JSON.stringify(h.con));
+  check('HCCC: la distinzione da EMC passa per i marcatori mioepiteliali veri',
+    h.missing.some(m => /SMA\/calponina/.test(m) && /EWSR1::ATF1/.test(m)));
+  eq('p63+ non cambia il punteggio dell HCCC', score({ p63:'pos' }, 'HCCC'), 0);
+
+  // SC: ETV6-NTRK3 negativo non copre gli altri partner
+  check('SC: ETV6-NTRK3 neg ricorda altri partner, MUC4 e pan-TRK',
+    getProConMissing('SC', { etv6:'neg' }).missing.some(m => /MUC4/.test(m) && /pan-TRK/.test(m)));
+  check('SC: con ETV6 non testato non compare quel promemoria',
+    !getProConMissing('SC', {}).missing.some(m => /non esclude altri partner/.test(m)));
+  eq('SC resta esclusa se mammaglobina e ETV6-NTRK3 sono entrambe negative',
+    run({ mammaglobin:'neg', etv6:'neg' }).g1.SC.passed, false);
+  check('e il messaggio dice cosa non e stato escluso', /altri partner ETV6/.test(run({ mammaglobin:'neg', etv6:'neg' }).g1.SC.reason));
+}
+
+section('v5.2.0 — orientamento gestionale (Fig. 1)');
+{
+  const bucket = fd => { const { g1, g2 } = run(fd); return managementBucket(g1, g2, fd); };
+
+  eq('form vuoto: non determinabile', bucket({}).id, 'indeterminato');
+  check('form vuoto: dice che manca il grado', /manca/.test(bucket({}).rationale.join(' ')), bucket({}).rationale.join(' '));
+  eq('form vuoto: nessun test inventato', bucket({}).tests.length, 0);
+  eq('"not_done" vale come non valutato',
+    bucket({ nuclear_grade:'not_done', necrosis:'not_done' }).id, 'indeterminato');
+
+  eq('necrosi + grado nucleare alto → alto grado',
+    bucket({ necrosis:'yes', nuclear_grade:'high' }).id, 'alto_grado');
+  eq('grado nucleare alto + mitosi alte → alto grado',
+    bucket({ nuclear_grade:'high', mitotic_rate:'high', necrosis:'no' }).id, 'alto_grado');
+  check('alto grado: margini ampi e dissezione', /dissezione laterocervicale/.test(bucket({ necrosis:'yes', nuclear_grade:'high' }).implicazione));
+  eq('un solo segno + HRAS/dual PIK3CA → alto grado',
+    bucket({ nuclear_grade:'high', hras:'pos', pik3ca:'dual' }).id, 'alto_grado');
+  eq('HRAS/dual PIK3CA senza segni di grado non basta', bucket({ hras:'pos', pik3ca:'dual' }).id, 'indeterminato');
+
+  const uno = bucket({ nuclear_grade:'high', necrosis:'no', mitotic_rate:'low' });
+  eq('un solo segno → indeterminato', uno.id, 'indeterminato');
+  check('lo dice', /Non basta/.test(uno.rationale.join(' ')), uno.rationale.join(' '));
+
+  eq('grado basso e necrosi assente → benigno/basso grado',
+    bucket({ nuclear_grade:'low', necrosis:'no' }).id, 'basso_grado');
+  check('basso grado: niente dissezione', /senza dissezione/.test(bucket({ nuclear_grade:'low', necrosis:'no' }).implicazione));
+  eq('grado basso senza dato sulla necrosi → non determinabile',
+    bucket({ nuclear_grade:'low' }).id, 'indeterminato');
+  eq('grado nucleare intermedio → non determinabile',
+    bucket({ nuclear_grade:'intermediate', necrosis:'no' }).id, 'indeterminato');
+  check('su core biopsy il grado e dichiarato non definitivo',
+    /non è definitivo/.test(bucket({ specimen_type:'trucut', nuclear_grade:'low', necrosis:'no' }).implicazione));
+  check('su pezzo operatorio nessun avviso',
+    !/non è definitivo/.test(bucket({ specimen_type:'resection', nuclear_grade:'low', necrosis:'no' }).implicazione));
+
+  const acc = bucket({ specimen_type:'resection', nuclear_grade:'low', necrosis:'no', cribriform:'yes' });
+  eq('basaloide cribriforme a basso grado → ACC da escludere', acc.id, 'basaloide_acc');
+  check('chiede MYB IHC e fusione', acc.tests.some(t => /fusione MYB\/MYBL1::NFIB/.test(t)), acc.tests.join(' | '));
+  check('MYB IHC negativa: non esclude, testare la fusione',
+    bucket({ cribriform:'yes', nuclear_grade:'low', necrosis:'no', myb:'neg' }).tests.some(t => /non esclude ACC/.test(t)));
+  check('MYB IHC positiva: non e specifica',
+    bucket({ cribriform:'yes', nuclear_grade:'low', necrosis:'no', myb:'pos' }).tests.some(t => /non è specifica/.test(t)));
+  check('su core biopsy: diagnosi descrittiva',
+    bucket({ specimen_type:'trucut', cribriform:'yes', nuclear_grade:'low', necrosis:'no' }).tests.some(t => /descrittiva/.test(t)));
+  check('su pezzo operatorio nessun suggerimento di diagnosi descrittiva',
+    !acc.tests.some(t => /descrittiva/.test(t)));
+  eq('un segno isolato non toglie lo status di ACC da escludere',
+    bucket({ cribriform:'yes', nuclear_grade:'high', necrosis:'no' }).id, 'basaloide_acc');
+  check('ma il segno e riportato', /Segno isolato/.test(bucket({ cribriform:'yes', nuclear_grade:'high', necrosis:'no' }).rationale.join(' ')));
+  eq('con due segni prevale l alto grado anche su un ACC cribriforme',
+    bucket({ cribriform:'yes', necrosis:'yes', nuclear_grade:'high' }).id, 'alto_grado');
+  eq('MEC con mucina e MAML2+ → basso grado, non basaloide',
+    bucket({ mucin_production:'abundant', maml2:'pos', nuclear_grade:'low', necrosis:'no' }).id, 'basso_grado');
+
+  eq('nessuna sopravvissuta → non determinabile', managementBucket({ A:{passed:false} }, {}, {}).id, 'indeterminato');
+
+  const fd = { cribriform:'yes', nuclear_grade:'low', necrosis:'no' };
+  const snap = JSON.stringify(fd);
+  bucket(fd);
+  eq('managementBucket non muta il form', JSON.stringify(fd), snap);
+}
+
 section('purezza e invarianti di progetto');
 {
   const fd = { specimen_type:'resection', cribriform:'yes', duality:'clear', myb:'pos' };
@@ -308,7 +418,7 @@ section('purezza e invarianti di progetto');
   const espostiAllaPagina = (eng.match(/Object\.assign\(globalThis, \{([\s\S]*?)\}\)/) || [,''])[1]
       .split(',').map(x => x.trim()).filter(Boolean);
   ['gateOne','gateTwo','checkDataQuality','recommendNextTests','checkOutsideModel',
-   'getProConMissing','UNSCORED_FIELDS'].forEach(n => {
+   'getProConMissing','UNSCORED_FIELDS','managementBucket'].forEach(n => {
     if (new RegExp(`\\b${n}\\b`).test(codice))
       check(`il motore espone ${n} alla pagina`, espostiAllaPagina.includes(n));
   });
