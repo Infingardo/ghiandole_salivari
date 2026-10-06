@@ -1,56 +1,73 @@
-# Salivary Gland Tool — v5.1.0
+# Salivary Gland Tool — v5.7.0
 
-> **Nota:** questo readme documentava il ramo sperimentale v5.1-beta (aprile 2026), poi abbandonato. La linea stabile è proseguita con la 5.0.x ed è ora alla **5.1.0** (logica a tre stati nei cancelli, criteri architetturali sospesi su campioni limitati, punteggio proprio per MSA/carcinoma polimorfo/HCCC; pattern HRAS Q61 + dual PIK3CA invariato dalla 5.0.3). Le sezioni che seguono possono descrivere funzionalità mai entrate nella linea stabile: fa fede il CHANGELOG.
-
-**Tool di orientamento diagnostico per patologia delle ghiandole salivari.**
+**Tool di orientamento diagnostico per le neoplasie delle ghiandole salivari.**
 
 *This tool orients diagnostic reasoning — it does not replace diagnostic judgment.*
+
+Il dettaglio di ogni versione è nel [CHANGELOG](CHANGELOG.md): in caso di dubbio fa fede quello.
 
 ---
 
 ## Cos'è
 
-Uno strumento di triage morfologico che prende in input le caratteristiche istologiche di una lesione salivare e restituisce:
+Uno strumento di triage morfologico. Prende in input i reperti istologici, IHC e molecolari di una lesione salivare e restituisce:
 
-- Ipotesi diagnostiche compatibili, ordinate per pattern fit
-- Elementi a favore, contro, mancanti per ciascuna ipotesi
-- Soglia di abbandono ("Would abandon if...") esplicita
-- Alternative diagnostiche più insidiose ("Closest dangerous alternatives")
-- Suggerimenti di esami successivi mirati
+- **Orientamento gestionale**: basso grado / alto grado / basaloide con ACC da escludere / non determinabile
+- **Fenotipo** (p40 / CD117 / S100): bifasico, monofasico ghiandolare, monofasico squamoide
+- Entità compatibili, ordinate per punteggio, con **a favore / contro / mancante** per ciascuna
+- Entità escluse, con la ragione
+- Esami successivi mirati e avvisi di qualità del dato
 
-Non è un oracolo. È un framework di pensiero esplicito, calibrato secondo WHO 2022 con sensibilità clinica italiana e scuola Rosai.
+Non è un oracolo: è un framework di ragionamento esplicito. Un reperto non compilato non conta mai come reperto assente.
 
 ---
 
 ## Filosofia
 
-**Morphology-first.** La morfologia guida la diagnosi. Marker e molecolari sono conferme, non sostituti.
+**Morphology-first.** La morfologia guida, i marcatori confermano.
 
-**Pragmatico, non dogmatico.** I gate di esclusione sono morbidi quando la biologia lo richiede (EMC, PolymorphousAC, HCCC, CaExPA). Il peso interpretativo si sposta sui box esplicativi.
+**Un reperto ha tre stati:** presente, assente, *non valutato*. I cancelli escludono solo su un dato compilato che contraddice; il silenzio non è una negazione. "Non eseguito" vale come non compilato.
 
-**Onesto sui propri limiti.** Il tool dichiara cosa copre bene, cosa copre male, e quando è fuori dal proprio modello.
+**Cancelli duri solo dove la biologia li giustifica.** Dove un reperto è variabile o il campione può non rappresentarlo (p40, β-catenina, RET, AR/HER2, …) il tool sposta il punteggio ma non esclude.
 
-**Il vetrino non mente. Il reagente sì.** Quando IHC e morfologia divergono, la morfologia ha l'ultima parola.
+**Il campione conta.** Su core biopsy e FNAB i criteri che si appoggiano all'*assenza* di un reperto architetturale sono sospesi ("non determinabile"): nessuno può affermare che un pattern non ci sia.
+
+**Onesto sui propri limiti.** Dichiara cosa non copre, e che i pesi sono euristici.
+
+*"Automating prudence, not diagnosis."*
 
 ---
 
-## Entità coperte (11)
+## Entità coperte (16)
 
-| Sigla | Entità | Gate 1 | Densità dati |
-|-------|--------|--------|--------------|
-| PA | Pleomorphic Adenoma | Duro | Alta |
-| ACC | Adenoid Cystic Carcinoma | Duro | Alta |
-| MEC | Mucoepidermoid Carcinoma | Duro | Alta |
-| AciCC | Acinic Cell Carcinoma | Duro | Alta |
-| SC | Secretory Carcinoma | Morbido | Media |
-| MSA | Microsecretory Adenocarcinoma | Morbido | Media |
-| CaExPA | Carcinoma ex Pleomorphic Adenoma | Soft warning | Alta |
-| Warthin | Warthin Tumor | Duro | Alta |
-| EMC | Epithelial-Myoepithelial Carcinoma | Soft warning | Media |
-| PolymorphousAC | Polymorphous Adenocarcinoma | Soft warning | Media |
-| HCCC | Hyalinizing Clear Cell Carcinoma | Soft warning | Media |
+| Sigla | Entità | Gate 1 esclude se… |
+|-------|--------|--------------------|
+| PA | Adenoma pleomorfo | necrosi; grado nucleare alto **e** mitosi alte; PNI estesa |
+| ACC | Carcinoma adenoido-cistico | cribriforme assente **e** dualità assente; mucina abbondante |
+| MEC | Carcinoma mucoepidermoide | mucina assente |
+| AciCC | Carcinoma a cellule acinari | acini sierosi assenti; cribriforme **con** dualità netta |
+| SC | Carcinoma secretorio | mammaglobina **e** ETV6-NTRK3 negativi |
+| MSA | Adenocarcinoma microsecretorio | né pattern microcistico né dualità presenti |
+| CaExPA | Carcinoma ex adenoma pleomorfo | mai (solo una nota) |
+| Warthin | Tumore di Warthin | oncociti o stroma linfoide documentati assenti |
+| EMC | Carcinoma epiteliale-mioepiteliale | mai |
+| PolymorphousAC | Adenocarcinoma polimorfo / cribriforme | mai |
+| HCCC | Carcinoma a cellule chiare ialinizzante | mai |
+| BasalCell | Neoplasia basocellulare (adenoma + adenocarcinoma) | mai |
+| SDC | Carcinoma duttale salivare | grado nucleare **basso** documentato |
+| MucinousAC | Adenocarcinoma mucinoso | mucina assente |
+| MyoCa | Carcinoma mioepiteliale | p40, SMA/calponina, S100 e SOX10 tutti negativi |
+| IntraductalCa | Carcinoma intraduttale | mai |
 
-**Non copre:** lesioni cistiche benigne, entità duttali (intercalated duct carcinoma), varianti rare di salivary duct carcinoma, mimici non salivari (melanoma, linfoma, metastasi).
+Basal cell: adenoma e adenocarcinoma sono una sola entità perché li separa solo l'invasione, non valutabile su biopsia.
+
+**Non copre bene:**
+- lesioni cistiche benigne (cisti di ritenzione, mucoceli)
+- adenoma canalicolare, adenoma del dotto striato, oncocitoma (citati come S100+ o oncocitici, non trattati)
+- carcinoma squamocellulare metastatico e keratocistoma
+- mimici non salivari (melanoma, linfoma, metastasi)
+- NUT carcinoma e carcinoma SMARCA4-deficient: il tool segnala di considerarli se HRAS + dual PIK3CA + CK negativo
+- lesioni fuori da parotide e sottomandibolare
 
 ---
 
@@ -59,119 +76,125 @@ Non è un oracolo. È un framework di pensiero esplicito, calibrato secondo WHO 
 ### Flusso
 
 ```
-Step 1: Tipo ghiandola + architettura
-Step 2: Citologia
-Step 3: Invasione & comportamento
-Step 4: Contesto clinico (anamnesi PA, stroma linfoide)
-Step 5: IHC & molecolare (opzionale)
-Step 6: Risultati
+Step 0  Tipo di campione (core biopsy / pezzo operatorio / FNAB)
+Step 1  Architettura
+Step 2  Citologia
+Step 3  Invasione e comportamento
+Step 4  Contesto clinico (anamnesi PA, PA residuo, stroma linfoide)
+Step 5  IHC (opzionale)
+Step 6  Molecolare (opzionale)
+Step 7  Risultati
 ```
 
-### Architettura a due gate
+### Gate 1 — validazione morfologica
 
-**Gate 1 — Validazione morfologica**
-Esclude entità biologicamente incompatibili (es. Warthin senza oncocitosi + linfoide; AciCC senza acinari sierosi).
-I gate morbidi producono "Soft gate notes" visibili nell'output senza escludere l'entità.
+Esclude le entità incompatibili con un reperto *documentato* (tabella sopra). Chi passa per mancanza di dati è mostrata in ambra come **non verificata**, con l'elenco dei campi mancanti, non in verde come superata.
 
-**Gate 2 — Ranking pattern fit**
-Assegna score euristico alle entità sopravvissute. Gland-aware:
-- PolymorphousAC, HCCC: +3 minor, −2 parotid
-- Warthin: +2 parotid, −3 minor
-- MEC: +1 parotid, −1 minor
+### Gate 2 — punteggio
 
-Output: `Pattern fit: STRONG/INTERMEDIATE/WEAK · Score: N`
+Ogni sopravvissuta riceve un punteggio euristico, senza percentuali: **LOW** (< 5), **MODERATE** (≥ 5), **HIGH** (≥ 8). Un form vuoto dà zero a tutte.
 
-### Per ogni entità in ranking
+**Livello fenotipico (cancello morbido).** p40 smista le entità in tre famiglie; il fenotipo coerente dà +2, quello incoerente −3, nessuna esclusione:
+
+| p40 | Famiglia | Entità |
+|-----|----------|--------|
+| abluminale | bifasico | PA, ACC, EMC, Warthin, BasalCell |
+| negativo | monofasico ghiandolare | SC, MSA, PolymorphousAC, AciCC, SDC, MucinousAC |
+| diffuso | monofasico squamoide | MEC, HCCC |
+
+CaExPA, MyoCa e IntraductalCa non hanno famiglia: il loro fenotipo è variabile o dipende dal campionamento. S100 suddivide il solo monofasico ghiandolare (secretorio / polimorfo / microsecretorio contro acinico / mucinoso); in fenotipo squamoide S100/SOX10+ rimanda al mioepiteliale.
+
+### Orientamento gestionale
+
+Dalla Fig. 1 di Higgins & Cipriani. Non è una diagnosi:
+
+- **Alto grado:** almeno due segni (necrosi, grado nucleare alto, mitosi alte), oppure un segno più HRAS/dual PIK3CA, oppure SDC in testa con fiducia almeno MODERATE
+- **Basaloide, ACC da escludere:** ACC non esclusa con un indizio (cribriforme, dualità netta, MYB+, p40 abluminale, ACC in testa)
+- **Benigno / basso grado:** grado nucleare basso e necrosi assente
+- **Non determinabile:** grado non valutato o intermedio, un solo segno di alto grado, fuori modello, oppure mioepiteliale in testa (un aspetto blando non rassicura)
+
+### Per ogni entità in classifica
 
 | Box | Contenuto |
 |-----|-----------|
-| ✓ A favore | Feature presenti che supportano la diagnosi |
-| ✗ Contro | Feature che la indeboliscono |
-| ? Mancante | Test utili non ancora eseguiti, con razionale |
-| 🚫 Abbandonerei se | Soglia esplicita di abbandono |
-| ⚠️ Alternative insidiose | Mimici clinico-diagnostici più vicini |
+| ✓ A favore | Reperti presenti che la sostengono |
+| ✗ Contro | Reperti che la indeboliscono (anche quando non bastano a escluderla) |
+| ? Mancante | Test utili non ancora eseguiti, con il motivo |
+
+Vengono mostrate le prime cinque.
+
+### Controlli di qualità
+
+- Contraddizioni: cribriforme senza dualità; p40 abluminale senza dualità; p40 negativo con dualità netta o con p63+
+- Più di tre campi core vuoti: risultati poco affidabili
+- S100+, mammaglobina+ e p40 abluminale insieme: più un intraduttale che un secretorio, verificare MUC4 e RET
+- HRAS + dual PIK3CA: SMARCA4/BRG1 e NUT prima di concludere
 
 ---
 
-## Campi raccolti (28)
+## Campi raccolti (51)
 
-**Morfologia (19):** tipo ghiandola, cribriforme, dualità, microcistico, produzione di mucina, acinare sierosa, grado nucleare, necrosi, invasione perineurale, tipo stromale, oncocitaria, papillare, anamnesi PA, PA residuo, stroma linfoide, cellule chiare, pattern variati, indice mitotico, ihc_status.
+**Campione (1):** tipo di campione.
 
-**IHC (7):** DOG1, MAML2, LEF1, MYB, p63/SMA, mammaglobina, PLAG1.
+**Morfologia e clinica (22):** cribriforme, nidi solidi, dualità, microcistico, mucina, acinare sierosa, grado nucleare, necrosi, PNI, tipo stromale, oncocitaria, papillare, componente mioepiteliale invasiva, anamnesi PA, PA residuo, stroma linfoide, cellule chiare, pattern variati, indice mitotico, stroma fusato interposto, citologia apocrina, crescita intraluminale.
 
-**Molecolare (2):** MEF2C::SS18, ETV6-NTRK3.
+**IHC (19):** DOG1, MAML2, CK, AR, HER2, mammaglobina, p63/SMA, SMARCA4, p40, CD117, S100, SOX10, PLAG1, HMGA2, β-catenina, NKX3.1, SMA/calponina, MUC4, NUT.
 
-Tutti i marker sono a tre stati: `Positivo / Negativo / Non eseguito`.
+**Molecolare (9):** MYB, MEF2C::SS18, ETV6-NTRK3, HRAS Q61, PIK3CA, CTNNB1/CYLD, EWSR1, AKT1 p.E17K, RET.
 
----
-
-## Controlli di qualità
-
-**Contraddizioni semantiche:**
-- Cribriforme + no dualità → "Reverificare"
-- Microcistico + no dualità → "MSA improbabile"
-- Cellule chiare senza ialino né dualità → "Considerare RCC metastatico"
-- Oncocitosi senza linfoide in parotide → "Warthin meno probabile"
-
-**IHC ghost cleanup:** se `ihc_status` torna a "pending", i valori IHC precedenti vengono cancellati dal motore. Il motore ragiona solo sui dati effettivamente dichiarati.
-
-**Dati mancanti:** warning esplicito se >3 campi core sono vuoti.
+I marcatori sono a tre stati: `Positivo / Negativo / Non eseguito` (con qualche valore specifico, es. p40 abluminale/diffuso/negativo). Ogni campo raccolto entra in almeno una regola; un test lo verifica.
 
 ---
 
 ## Limiti noti
 
-**Strutturali (accettati):**
-- `p63/SMA` come campo unico è un proxy pragmatico, non equivalente a interpretazione di marker singoli
-- `submandibular/sublingual` accorpati per semplicità
-- Ranking basato su euristiche a priori, non calibrato su casistica reale
-- Gate morbidi per EMC/PolymorphousAC/HCCC/CaExPA: il peso è nei box interpretativi, non nell'esclusione
-
-**Tecnici (monitorati):**
-- CaExPA è un soft warning travestito da passaggio di gate (commentato nel codice)
-- Pesi gland-aware sono correzione grossolana pre-test
+- **I pesi sono euristici**, non calibrati su casistica. Nascono da una lettura della letteratura (WHO 2022 e la review di Higgins & Cipriani, AIMM 2026), che è narrativa e non validata.
+- `p63/SMA` come campo unico è un proxy; SMA/calponina e p40 sono campi a parte, ma il campo p63 resta aspecifico nei monofasici ghiandolari.
+- Sottomandibolare e sottolinguale non sono distinti, e il tipo di ghiandola non è un campo: il tool non applica correzioni per sede.
+- Il modello non vede l'invasione: adenoma e adenocarcinoma basocellulare, e il comportamento del mioepiteliale, restano al patologo.
+- Il pattern HRAS Q61 + dual PIK3CA (CaExPA / mioepiteliale, avviso NUT e SMARCA4) viene dall'esperienza clinica diretta dell'autore (caso parotide 2025-26), non da una fonte di letteratura.
 
 ---
 
 ## Persistenza
 
-Il tool salva automaticamente in `sessionStorage` con chiave `sgdt_v5_1_beta_session`. La sessione si riapre allo stesso punto al refresh. Il pulsante **↻ Ricomincia** (o ↻ Nuovo caso a fine flusso) cancella tutto.
+Salva in `sessionStorage` con chiave `sgdt_v5_7_0_session`: la sessione si riapre allo stesso punto al refresh. **↻ Ricomincia** cancella solo la chiave del tool, non l'intera origine.
 
 ---
 
-## Deploy
-
-File singolo HTML autosufficiente. Nessuna dipendenza esterna.
+## Struttura e deploy
 
 ```
-salivary_gland_tool_v5_1_ALPHA.html
+index.html     interfaccia (wizard a 8 passi)
+engine.js      logica pura, senza DOM: cancelli, punteggio, orientamento
+tests/run.mjs  test del motore, senza framework
+CHANGELOG.md   storia delle versioni
 ```
 
-Aprire in qualsiasi browser moderno (Chrome, Firefox, Safari, Edge). Funziona offline. 39 KB, 635 righe.
+L'applicazione è **`index.html` più `engine.js`**, da servire dalla stessa cartella (la pagina carica `engine.js?v=…`). Nessuna dipendenza esterna, funziona offline in un browser moderno.
+
+```
+npm test        # node tests/run.mjs — 633 asserzioni, exit code 0 = tutto verde
+```
+
+I test non controllano solo il comportamento: verificano che il motore non sia duplicato nella pagina, che ogni campo del form venga salvato e letto da una regola, che ogni valore con cui il motore confronta un campo sia un valore che il form può produrre, e che versione, titolo e chiave di sessione siano allineati a `package.json`.
 
 ---
 
 ## Roadmap
 
-**v5.2 (quando ci saranno 20-30 casi reali testati):**
-- Ricalibrazione pesi gateTwo su dati reali
-- Separazione p63 / SMA / calponina
-- Separazione submandibular / sublingual
-- Tre stati espliciti: `excluded / passed / caution`
-- Possibile espansione a entità duttali
+- Ricalibrazione dei pesi su 20-30 casi reali testati
+- Separazione p63 / SMA / calponina, e sottomandibolare / sottolinguale
+- Possibile estensione: canalicolare, dotto striato, carcinoma squamocellulare metastatico (oggi fuori modello)
 
 ---
 
 ## Crediti e attribuzioni
 
-Sviluppato da Dr. Filippo Bianchi (SC Anatomia Patologica, FBF-Melloni, Milano) con supporto AI Claude per implementazione. Scuola morfologica di riferimento: Rosai & Ackerman. Framework nosologico: WHO Classification of Head and Neck Tumours 2022.
+Sviluppato da Dr. Filippo Bianchi (SC Anatomia Patologica, FBF-Melloni, Milano) con supporto AI Claude per implementazione. Scuola morfologica di riferimento: Rosai & Ackerman. Framework nosologico: WHO Classification of Head and Neck Tumours 2022. Livello fenotipico, orientamento gestionale e le entità basocellulare, SDC, mucinoso, mioepiteliale e intraduttale: Higgins KE, Cipriani NA. *Algorithmic Approach to Diagnosis of Salivary Gland Neoplasms Based on Morphology and Select Immunostains.* Appl Immunohistochem Mol Morphol 2026.
 
 ---
 
 ## Licenza d'uso
 
 Strumento di supporto al ragionamento diagnostico per uso interno. Non è un dispositivo medico certificato. La responsabilità diagnostica resta del patologo refertante.
-
----
-
-*"Automating prudence, not diagnosis."*
