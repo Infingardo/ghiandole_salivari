@@ -92,6 +92,12 @@ function evaluateDealBreaker(entity, fd){
     case 'HCCC':
       return {hit:false};
 
+    case 'MucinousAC':
+      // v5.5.0: la mucina e' il carattere definitorio: esclude solo se documentata assente.
+      // NKX3.1 e AKT1 negativi non escludono (NKX3.1 "comune", AKT1 p.E17K conferma ma non in tutti).
+      if(fd.mucin_production==='absent') return {hit:true,msg:'No mucin: mucinous adenocarcinoma unlikely.'};
+      return {hit:false,needs:['mucin_production']};
+
     case 'SDC':
       // v5.4.0: carcinoma di alto grado per definizione. Esclude solo un grado nucleare
       // DOCUMENTATO basso. AR/HER2 negativi non escludono: la co-espressione e' "usuale",
@@ -121,7 +127,7 @@ const PHENOTYPE_LABEL = {
   glandular:'monofasico ghiandolare (p40 negativo)',
   squamoid:'monofasico squamoide (p40 diffuso)' };
 // CaExPA non ha famiglia: il fenotipo dipende dalle componenti.
-const ENTITY_FAMILY = { PA:'biphasic', ACC:'biphasic', EMC:'biphasic', Warthin:'biphasic', BasalCell:'biphasic', SDC:'glandular',
+const ENTITY_FAMILY = { PA:'biphasic', ACC:'biphasic', EMC:'biphasic', Warthin:'biphasic', BasalCell:'biphasic', SDC:'glandular', MucinousAC:'glandular',
   SC:'glandular', MSA:'glandular', PolymorphousAC:'glandular', AciCC:'glandular',
   MEC:'squamoid', HCCC:'squamoid' };
 const S100_POS_GLANDULAR = ['SC','MSA','PolymorphousAC'];
@@ -138,7 +144,7 @@ function phenotypeOf(fd){
   }
   if(id === 'glandular'){
     if(is(fd.s100,'pos')) notes.push('S100 diffusamente positivo: secretorio, polimorfo/cribriforme, microsecretorio (canalicolare e dotto striato non coperti).');
-    else if(is(fd.s100,'neg')) notes.push('S100 negativo: acinico (DOG1+, SOX10+) o mucinoso (NKX3.1, non coperto).');
+    else if(is(fd.s100,'neg')) notes.push('S100 negativo: acinico (DOG1+, SOX10+) o mucinoso (NKX3.1, AKT1).');
     else notes.push('S100 non valutato: serve per suddividere il monofasico ghiandolare.');
     if(is(fd.p63,'pos')) notes.push('p63+ con p40 negativo: p63 è aspecifico nei monofasici ghiandolari, non va letto come strato mioepiteliale.');
   }
@@ -159,10 +165,11 @@ function phenotypeAdjust(e, fd){
   if(obs === 'glandular'){
     if(is(fd.s100,'pos')){
       if(S100_POS_GLANDULAR.includes(e)) d += 1;
-      if(e === 'AciCC') d -= 2;
+      if(e === 'AciCC' || e === 'MucinousAC') d -= 2;
     }else if(is(fd.s100,'neg')){
       if(e === 'AciCC'){ d += 2; if(is(fd.sox10,'pos')) d += 1; }
       if(S100_POS_GLANDULAR.includes(e)) d -= 2;
+      if(e === 'MucinousAC') d += 1;   // l'altro monofasico ghiandolare S100-negativo
     }
   }
   if(obs === 'squamoid' && (is(fd.s100,'pos') || is(fd.sox10,'pos')) && (e === 'MEC' || e === 'HCCC')) d -= 2;
@@ -179,6 +186,8 @@ function phenotypeProCon(e, fd){
   else con.push('✗ Fenotipo ' + PHENOTYPE_LABEL[obs] + ': ' + e + ' è ' + PHENOTYPE_LABEL[fam] +
     (e === 'MEC' && obs === 'glandular' ? ' (MEC p40-negativo descritto in una minoranza)' : ''));
   if(obs === 'glandular' && is(fd.s100,'pos') && e === 'AciCC') con.push('✗ S100+ (AciCC è S100-negativa, SOX10+)');
+  if(obs === 'glandular' && is(fd.s100,'pos') && e === 'MucinousAC') con.push('✗ S100+ (l\'adenocarcinoma mucinoso è S100-negativo)');
+  if(obs === 'glandular' && is(fd.s100,'neg') && e === 'MucinousAC') pro.push('✓ S100 negativo');
   if(obs === 'glandular' && is(fd.s100,'neg') && e === 'AciCC') pro.push('✓ S100 negativo' + (is(fd.sox10,'pos') ? ', SOX10+' : ''));
   if(obs === 'glandular' && is(fd.s100,'pos') && S100_POS_GLANDULAR.includes(e)) pro.push('✓ S100 diffusamente positivo');
   if(obs === 'glandular' && is(fd.s100,'neg') && S100_POS_GLANDULAR.includes(e)) con.push('✗ S100 negativo (atteso diffusamente positivo)');
@@ -230,6 +239,8 @@ function getProConMissing(entity, fd){
       ].filter(Boolean);
       procon.con=[
         fd.cribriform==='yes' ? '✗ Cribriform pattern' : null,
+        fd.nkx31==='pos' ? '✗ NKX3.1+ (orienta su adenocarcinoma mucinoso)' : null,
+        fd.akt1==='pos' ? '✗ AKT1 p.E17K (orienta su adenocarcinoma mucinoso)' : null,
         fd.ar==='pos' && fd.her2==='pos' ? '✗ AR + HER2 co-espressi (orienta su SDC)' : null,
         hrasPos ? '✗ HRAS Q61+ (inusuale in MEC convenzionale)' : null
       ].filter(Boolean);
@@ -404,6 +415,27 @@ function getProConMissing(entity, fd){
       ].filter(Boolean);
       break;
 
+    case 'MucinousAC':
+      procon.pro=[
+        fd.mucin_production==='abundant' ? '✓ Mucina abbondante (pozze mucinose)' : null,
+        fd.papillary==='yes' ? '✓ Architettura papillare / cistica' : null,
+        fd.nkx31==='pos' ? '✓ NKX3.1+' : null,
+        fd.akt1==='pos' ? '✓ AKT1 p.E17K (conferma)' : null
+      ].filter(Boolean);
+      procon.con=[
+        fd.mucin_production==='scant' ? '✗ Mucina scarsa (nel mucinoso le pozze sono il reperto principale)' : null,
+        fd.maml2==='pos' ? '✗ MAML2+ (orienta su MEC)' : null,
+        fd.duality==='clear' ? '✗ Dualità netta (non descritti marcatori mioepiteliali nel mucinoso, salvo coinvolgimento intraduttale)' : null,
+        fd.p40==='diffuse' ? '✗ p40 diffuso (il mucinoso non esprime p63/p40)' : null,
+        fd.myb==='pos' ? '✗ MYB+ (orienta su ACC; non specifico)' : null
+      ].filter(Boolean);
+      procon.missing=[
+        !isSet(fd.nkx31) ? '? NKX3.1 IHC (comune, ma mima il carcinoma prostatico: correlare con la clinica)' : null,
+        !isSet(fd.akt1) ? '? AKT1 p.E17K (conferma di origine salivare)' : null,
+        !isSet(fd.s100) ? '? S100 (atteso negativo; con p63/p40/SMA/calponina negativi)' : null
+      ].filter(Boolean);
+      break;
+
     case 'SDC':
       procon.pro=[
         fd.apocrine==='yes' ? '✓ Citologia apocrina (cellule grandi, nucleoli prominenti, citoplasma eosinofilo, snouts)' : null,
@@ -461,7 +493,7 @@ function getProConMissing(entity, fd){
 
 function gateOne(fd){
   fd = fd || formData;
-  const entities=['PA','ACC','MEC','AciCC','SC','MSA','CaExPA','Warthin','EMC','PolymorphousAC','HCCC','BasalCell','SDC'];
+  const entities=['PA','ACC','MEC','AciCC','SC','MSA','CaExPA','Warthin','EMC','PolymorphousAC','HCCC','BasalCell','SDC','MucinousAC'];
   const limited = LIMITED_SPECIMENS.includes(fd.specimen_type);
   const result={};
   for(let e of entities){
@@ -544,6 +576,12 @@ function gateTwo(survivors, fd){
       if(formData.microcystic==='yes') score+=2;
     }else if(e==='PolymorphousAC'){
       if(formData.varied_patterns==='yes') score+=3;   // pattern architetturali multipli: il carattere eponimo
+    }else if(e==='MucinousAC'){
+      if(formData.mucin_production==='abundant') score+=3;
+      else if(formData.mucin_production==='moderate') score+=1;
+      if(formData.nkx31==='pos') score+=3;
+      if(formData.akt1==='pos') score+=3;               // p.E17K: conferma
+      if(formData.papillary==='yes') score+=1;
     }else if(e==='SDC'){
       if(formData.apocrine==='yes') score+=3;          // il carattere eponimo
       if(formData.ar==='pos') score+=2;
@@ -608,6 +646,10 @@ function recommendNextTests(g1,g2,fd){
     recs.push('→ MEF2C::SS18 fusion testing');
   if(survivors.includes('AciCC') && !isSet(fd.dog1))
     recs.push('→ DOG1 IHC (marker di riferimento AciCC)');
+  // v5.5.0: adenocarcinoma mucinoso — NKX3.1 (con la cautela prostatica) e AKT1 p.E17K
+  if(survivors.includes('MucinousAC') && !isSet(fd.nkx31) &&
+     (fd.mucin_production==='abundant' || (is(fd.p40,'neg') && is(fd.s100,'neg'))))
+    recs.push('→ NKX3.1 IHC (nel mucinoso è comune ma mima il carcinoma prostatico: correlare con la clinica); AKT1 p.E17K per conferma');
   // v5.4.0: SDC — AR e HER2 sono diagnostici e terapeutici insieme
   if(survivors.includes('SDC') && (!isSet(fd.ar) || !isSet(fd.her2)) &&
      (fd.apocrine==='yes' || fd.nuclear_grade==='high' || fd.necrosis==='yes'))

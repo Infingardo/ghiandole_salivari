@@ -1,5 +1,30 @@
 # 📝 Salivary Gland Tool - Changelog
 
+## v5.5.0 (Ottobre 2026) — Adenocarcinoma mucinoso
+
+Fonte: Higgins & Cipriani, AIMM 2026. Con S100 negativo il monofasico ghiandolare aveva una sola
+risposta (AciCC); l'articolo ne indica due: acinico e mucinoso.
+
+- **Nuova entità `MucinousAC`** (13 → 14), famiglia monofasico ghiandolare (p40 negativo).
+- **Gate 1:** esclusa solo da mucina *documentata* assente (carattere definitorio; non architetturale,
+  vale anche su core/FNAB). NKX3.1 e AKT1 negativi non escludono.
+- **Punteggio:** mucina abbondante +3 (moderata +1), NKX3.1+ +3, AKT1 p.E17K +3 (conferma), papillare +1,
+  più fenotipo ghiandolare (+2 / −3 con p40). **S100:** negativo +1, positivo −2 (insieme all'AciCC è
+  l'altro monofasico ghiandolare S100-negativo).
+- **Contro dichiarati:** mucina scarsa, MAML2+ (orienta su MEC), dualità netta, p40 diffuso (il mucinoso non
+  esprime p63/p40 né marcatori mioepiteliali, salvo coinvolgimento intraduttale), MYB+, S100+.
+- **Nuovi campi:** `nkx31` (Step 5), `akt1` p.E17K (Step 6).
+- **MEC:** NKX3.1+ e AKT1+ compaiono come *contro* (testo), senza spostarne il punteggio.
+- **Cautela prostatica:** NKX3.1 è "comune" nel mucinoso ma mima il carcinoma prostatico; il tool lo scrive
+  dove lo chiede (missing ed esami successivi). La nota sul fenotipo S100-negativo ora cita NKX3.1 e AKT1.
+- **Esami successivi:** NKX3.1 (± AKT1 per conferma) con mucina abbondante, o p40− e S100−.
+
+L'articolo non assegna un grado al mucinoso: l'orientamento gestionale non cambia per questa entità.
+
+Test: 487 asserzioni (428 → 487).
+
+Ancora non coperte: carcinoma intraduttale (RET), carcinoma mioepiteliale.
+
 ## v5.4.0 (Ottobre 2026) — Carcinoma duttale salivare (SDC)
 
 Fonte: Higgins & Cipriani, AIMM 2026. L'SDC è un carcinoma di alto grado per cui AR e HER2 sono
