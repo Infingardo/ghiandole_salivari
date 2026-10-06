@@ -1,5 +1,66 @@
 # 📝 Salivary Gland Tool - Changelog
 
+## v5.7.0 (Ottobre 2026) — Carcinoma intraduttale
+
+Fonte: Higgins & Cipriani, AIMM 2026. È l'ultima entità proposta dopo la 5.2.0. Il problema pratico:
+l'intraduttale (sottotipi intercalato e oncocitico) ha **gli stessi S100, SOX10 e mammaglobina del
+carcinoma secretorio**; lo distinguono il p40 periferico, MUC4 negativo e RET.
+
+- **Nuova entità `IntraductalCa`** (15 → 16), **senza famiglia fenotipica**: su biopsia la popolazione
+  p40+ periferica può non essere campionata e simulare un secretorio, quindi p40 negativo non la penalizza.
+- **Nessun deal-breaker.** RET è presente solo in una quota (fino al 47%; partner NCOA4, TRIM27, TRIM33) e
+  nessun singolo reperto negativo basta.
+- **Punteggio:** crescita intraluminale in nidi/macrocisti circoscritti +3, p40 abluminale +3, RET +4,
+  MUC4 negativo +2; MUC4+ −3 e ETV6-NTRK3+ −3. S100 e mammaglobina non la spostano (condivise con SC).
+- **Secretorio:** MUC4+ +2, MUC4 negativo −2 (sensibile e specifico per SC); RET, MUC4 negativo e p40
+  abluminale con mammaglobina+ compaiono come *contro* testuali. Il p40 abluminale lo penalizza già il
+  fenotipo (−3): il SC non viene escluso.
+- **Nuovi campi:** `intraductal_growth` (Step 2), `muc4` (Step 5), `ret` (Step 6).
+- **Avviso:** S100+, mammaglobina+ e p40 abluminale insieme → "più un intraduttale che un secretorio:
+  verificare MUC4 e RET".
+- **Esami successivi:** MUC4 e RET quando SC e intraduttale sono entrambi in gioco (mammaglobina+, o p40−
+  con S100+). Su core/FNAB con p40 negativo: avvertenza che la popolazione periferica può sfuggire e
+  suggerimento di diagnosi descrittiva (neoplasia di basso grado, favor secretorio vs intraduttale).
+- **SDC:** crescita intraduttale con p40 abluminale è un contro testuale (intraduttale apocrino).
+- Il sottotipo apocrino (AR+, S100−) compare come pro; i quattro sottotipi sono elencati nei "missing".
+
+L'orientamento gestionale non cambia: l'articolo non assegna un grado all'intraduttale, solo la formula
+descrittiva "neoplasia di basso grado" per le biopsie.
+
+Test: 633 asserzioni (569 → 633).
+
+Con questa il modello copre le entità dell'articolo discusse in dettaglio (restano canalicolare e dotto
+striato, citati come S100+ ma non trattati).
+
+## v5.6.0 (Ottobre 2026) — Carcinoma mioepiteliale
+
+Fonte: Higgins & Cipriani, AIMM 2026. Dalla 5.2.0 il fenotipo squamoide con S100/SOX10+ rimandava al
+carcinoma mioepiteliale dicendo "non coperto dal modello": ora lo è.
+
+- **Nuova entità `MyoCa`** (14 → 15). **Nessuna famiglia fenotipica**, come il CaExPA: l'articolo
+  descrive un fenotipo "molto variabile", quindi p40 negativo non la penalizza.
+- **Gate 1:** esclusa solo se p40, SMA/calponina, S100 e SOX10 sono **tutti** documentati negativi (la
+  definizione richiede almeno un marcatore mioepiteliale). Un negativo isolato, un S100 focale o un
+  valore non eseguito non escludono. Vale anche su core/FNAB.
+- **Punteggio:** SMA/calponina+ +2, S100 o SOX10+ +2, p40 diffuso +1, componente mioepiteliale invasiva
+  +2, nidi solidi prominenti +1, nessuna dualità +1, EWSR1 altro partner +2, stroma mixoide +1, cellule
+  chiare +1, necrosi/degenerazione centrale +1; **CD117 luminale −2** (dotti veri: orienta su EMC/PA).
+- **HCCC integrata:** SMA/calponina negative +1 e positive −2, EWSR1::ATF1/CREM +3 (EWSR1 altro partner:
+  solo contro testuale). La riga generica "SMA/calponina ed EWSR1::ATF1" sparisce quando entrambi i
+  campi sono compilati.
+- **Nuovi campi:** `myogenic` SMA/calponina (Step 5), `ewsr1` (Step 6: ATF1/CREM, altro partner, negativo).
+- **`solid_nests` e `myoepithelial_invasive` ora sono usati** (erano raccolti e dichiarati non usati dalla
+  5.1.0): `UNSCORED_FIELDS` è vuoto e il riquadro "campi non utilizzati" non compare più. Ho letto
+  "mioepiteliale invasivo" come componente mioepiteliale invasiva: se intendeva altro, è il campo da correggere.
+- **Orientamento gestionale:** con mioepiteliale in testa (almeno MODERATE) un grado nucleare basso non
+  porta più a "basso grado" ma a *non determinabile*: l'articolo descrive invasione ampia e comportamento
+  metastatico "nonostante l'aspetto ingannevolmente blando".
+- **Testi:** rimossi i "non coperto" nei rimandi dello squamoide.
+
+Test: 569 asserzioni (487 → 569).
+
+Ancora non coperto: carcinoma intraduttale (RET).
+
 ## v5.5.0 (Ottobre 2026) — Adenocarcinoma mucinoso
 
 Fonte: Higgins & Cipriani, AIMM 2026. Con S100 negativo il monofasico ghiandolare aveva una sola

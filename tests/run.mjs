@@ -19,7 +19,7 @@ const check = (n, c, d = '') => c ? pass++ : (fail++, failures.push(n + (d ? ` �
 const eq = (n, a, b) => check(n, a === b, `atteso ${JSON.stringify(b)}, ottenuto ${JSON.stringify(a)}`);
 const section = t => console.log(`\n• ${t}`);
 
-const ENTITIES = ['PA','ACC','MEC','AciCC','SC','MSA','CaExPA','Warthin','EMC','PolymorphousAC','HCCC','BasalCell','SDC','MucinousAC'];
+const ENTITIES = ['PA','ACC','MEC','AciCC','SC','MSA','CaExPA','Warthin','EMC','PolymorphousAC','HCCC','BasalCell','SDC','MucinousAC','MyoCa','IntraductalCa'];
 const run = fd => { const g1 = gateOne(fd); return { g1, g2: gateTwo(g1, fd) }; };
 const escluse = g1 => Object.keys(g1).filter(k => !g1[k].passed);
 const classifica = g2 => Object.entries(g2).sort((a,b) => b[1].score - a[1].score);
@@ -447,7 +447,8 @@ section('v5.2.0 — livello fenotipico p40 / CD117 / S100 (Fig. 2)');
     /p40 abluminale/.test(bucket({ nuclear_grade:'low', necrosis:'no', p40:'abluminal', cribriform:'partial' }).rationale.join(' ')));
 
   // coerenza delle tabelle
-  ENTITIES.filter(e => e !== 'CaExPA').forEach(e => check(`${e} ha una famiglia fenotipica`, !!ENTITY_FAMILY[e]));
+  // CaExPA, MyoCa e IntraductalCa non hanno famiglia: il loro fenotipo e' variabile per definizione
+  ENTITIES.filter(e => !['CaExPA','MyoCa','IntraductalCa'].includes(e)).forEach(e => check(`${e} ha una famiglia fenotipica`, !!ENTITY_FAMILY[e]));
   check('CaExPA non ne ha una', !ENTITY_FAMILY.CaExPA);
   eq('le famiglie sono tre', [...new Set(Object.values(ENTITY_FAMILY))].sort().join(','), 'biphasic,glandular,squamoid');
   eq('p40 ha tre valori di fenotipo', Object.keys(PHENOTYPE_OF_P40).sort().join(','), 'abluminal,diffuse,neg');
@@ -684,6 +685,218 @@ section('v5.5.0 — adenocarcinoma mucinoso');
   check('senza indizi di mucinoso non lo chiede', !/NKX3\.1 IHC/.test(rec({ cribriform:'yes' })));
   check('NKX3.1 già fatto: non lo richiede', !/NKX3\.1 IHC/.test(rec({ mucin_production:'abundant', nkx31:'pos' })));
   check('mucinoso escluso (mucina assente): nessuna raccomandazione', !/NKX3\.1 IHC/.test(rec({ mucin_production:'absent', p40:'neg', s100:'neg' })));
+}
+
+section('v5.6.0 — carcinoma mioepiteliale');
+{
+  // Gate 1: esclusa solo se TUTTI i marcatori mioepiteliali sono documentati negativi
+  const neg4 = { p40:'neg', myogenic:'neg', s100:'neg', sox10:'neg' };
+  eq('quattro marcatori negativi → esclusa', run(neg4).g1.MyoCa.passed, false);
+  check('la ragione dice che manca un marcatore mioepiteliale', /nessun marcatore mioepiteliale/.test(run(neg4).g1.MyoCa.reason));
+  ['p40','myogenic','s100','sox10'].forEach(f =>
+    eq(`${f} non compilato → non esclusa`, run({ ...neg4, [f]:undefined }).g1.MyoCa.passed, true));
+  ['p40','myogenic','s100','sox10'].forEach(f =>
+    eq(`${f} "not_done" → non esclusa`, run({ ...neg4, [f]:'not_done' }).g1.MyoCa.passed, true));
+  eq('S100 focale non è negativo → non esclusa', run({ ...neg4, s100:'focal' }).g1.MyoCa.passed, true);
+  eq('p40 abluminale non è negativo → non esclusa', run({ ...neg4, p40:'abluminal' }).g1.MyoCa.passed, true);
+  eq('un solo marcatore negativo non esclude', run({ myogenic:'neg' }).g1.MyoCa.passed, true);
+  check('form vuoto: non esclusa, non verificata', run({}).g1.MyoCa.passed && run({}).g1.MyoCa.undetermined === true);
+  check('...e dice cosa manca', /myogenic/.test(run({}).g1.MyoCa.reason));
+  eq('esclusione vale anche su core biopsy (marcatori, non architettura)',
+    run({ specimen_type:'trucut', ...neg4 }).g1.MyoCa.passed, false);
+
+  // punteggio
+  eq('form vuoto: zero', score({}, 'MyoCa'), 0);
+  eq('SMA/calponina+: +2', score({ myogenic:'pos' }, 'MyoCa'), 2);
+  eq('S100+: +2', score({ s100:'pos' }, 'MyoCa'), 2);
+  eq('SOX10+: +2', score({ sox10:'pos' }, 'MyoCa'), 2);
+  eq('S100 e SOX10 insieme: +2 (non si sommano)', score({ s100:'pos', sox10:'pos' }, 'MyoCa'), 2);
+  eq('S100 focale non conta', score({ s100:'focal' }, 'MyoCa'), 0);
+  eq('p40 diffuso: +1', score({ p40:'diffuse' }, 'MyoCa'), 1);
+  eq('p40 negativo: nessuna penalità (fenotipo variabile)', score({ p40:'neg' }, 'MyoCa'), 0);
+  eq('p40 abluminale: nessuna penalità', score({ p40:'abluminal' }, 'MyoCa'), 0);
+  eq('componente mioepiteliale invasiva: +2', score({ myoepithelial_invasive:'yes' }, 'MyoCa'), 2);
+  eq('nidi solidi prominenti: +1', score({ solid_nests:'prominent' }, 'MyoCa'), 1);
+  eq('nidi solidi focali: 0', score({ solid_nests:'focal' }, 'MyoCa'), 0);
+  eq('nessuna dualità: +1', score({ duality:'absent' }, 'MyoCa'), 1);
+  eq('dualità netta: 0 (contro testuale)', score({ duality:'clear' }, 'MyoCa'), 0);
+  eq('CD117 luminale: −2', score({ cd117:'luminal' }, 'MyoCa'), -2);
+  eq('EWSR1 altro partner: +2', score({ ewsr1:'other' }, 'MyoCa'), 2);
+  eq('EWSR1::ATF1 non conta per il mioepiteliale', score({ ewsr1:'atf1' }, 'MyoCa'), 0);
+  eq('stroma mixoide: +1', score({ stromal_type:'myxoid' }, 'MyoCa'), 1);
+  eq('cellule chiare: +1', score({ clear_cell:'yes' }, 'MyoCa'), 1);
+  eq('necrosi focale: +1', score({ necrosis:'focal' }, 'MyoCa'), 1);
+  check('PLAG1+ è solo testo, non punteggio', score({ plag1:'pos' }, 'MyoCa') === 0 &&
+    getProConMissing('MyoCa', { plag1:'pos' }).pro.some(x => /PLAG1/.test(x)));
+  check('MyoCa non ha famiglia fenotipica', !ENTITY_FAMILY.MyoCa);
+
+  // caso di scuola: grandi isole solide, S100+, SMA+, p40 diffuso, nessuna dualità
+  const myo = { specimen_type:'resection', solid_nests:'prominent', duality:'absent', p40:'diffuse', s100:'pos',
+                myogenic:'pos', stromal_type:'myxoid', myoepithelial_invasive:'yes' };
+  const r = run(myo);
+  eq('mioepiteliale classico in testa', classifica(r.g2)[0][0], 'MyoCa');
+  eq('...con fiducia HIGH', r.g2.MyoCa.conf, 'HIGH');
+  // l'EMC con dotti CD117+ non è un mioepiteliale
+  const emc = { specimen_type:'resection', duality:'clear', clear_cell:'yes', p40:'abluminal', cd117:'luminal', myogenic:'pos' };
+  eq('EMC con dualità e dotti CD117+ resta in testa', classifica(run(emc).g2)[0][0], 'EMC');
+  check('...e il mioepiteliale è sotto', run(emc).g2.MyoCa.score < run(emc).g2.EMC.score);
+
+  // pro/con
+  const pc = getProConMissing('MyoCa', myo);
+  check('pro: SMA/calponina, S100, nidi solidi, nessuna dualità, stroma, componente invasiva',
+    ['SMA/calponina','S100/SOX10','Nidi solidi','Nessuna dualità','mixoide','invasiva'].every(k => pc.pro.some(x => x.includes(k))));
+  check('contro: dotti CD117+', getProConMissing('MyoCa', { cd117:'luminal' }).con.some(x => /dotti veri/.test(x)));
+  check('contro: dualità netta orienta su EMC', getProConMissing('MyoCa', { duality:'clear' }).con.some(x => /EMC/.test(x)));
+  check('contro: EWSR1::ATF1 orienta su HCCC', getProConMissing('MyoCa', { ewsr1:'atf1' }).con.some(x => /HCCC/.test(x)));
+  check('contro: cellule chiare con stroma ialino orienta su HCCC',
+    getProConMissing('MyoCa', { clear_cell:'yes', stromal_type:'hyaline' }).con.some(x => /HCCC/.test(x)));
+  check('chiede pannello, CD117, EWSR1',
+    ['SMA / calponina','CD117','EWSR1'].every(k => getProConMissing('MyoCa', {}).missing.some(m => m.includes(k))));
+  check('dichiara che l aspetto blando non rassicura', getProConMissing('MyoCa', {}).missing.some(m => /blando/.test(m)));
+  check('con SMA fatta non la richiede', !getProConMissing('MyoCa', { myogenic:'neg' }).missing.some(m => /SMA/.test(m)));
+
+  // integrazione con l'HCCC: i marcatori mioepiteliali veri
+  eq('HCCC: SMA/calponina negative +1', score({ myogenic:'neg' }, 'HCCC'), 1);
+  eq('HCCC: SMA/calponina positive −2', score({ myogenic:'pos' }, 'HCCC'), -2);
+  eq('HCCC: EWSR1::ATF1 +3', score({ ewsr1:'atf1' }, 'HCCC'), 3);
+  eq('HCCC: EWSR1 altro partner non dà punti', score({ ewsr1:'other' }, 'HCCC'), 0);
+  eq('HCCC: EWSR1 negativo non toglie punti', score({ ewsr1:'neg' }, 'HCCC'), 0);
+  check('HCCC: SMA+ è un contro', getProConMissing('HCCC', { myogenic:'pos' }).con.some(c => /orienta su mioepiteliale/.test(c)));
+  check('HCCC: EWSR1 altro partner è un contro', getProConMissing('HCCC', { ewsr1:'other' }).con.some(c => /mioepiteliale/.test(c)));
+  check('HCCC: SMA negativa e EWSR1::ATF1 sono pro',
+    getProConMissing('HCCC', { myogenic:'neg', ewsr1:'atf1' }).pro.filter(x => /SMA|EWSR1/.test(x)).length === 2);
+  check('HCCC: con entrambi i campi compilati la riga generica sparisce',
+    !getProConMissing('HCCC', { myogenic:'neg', ewsr1:'neg' }).missing.some(m => /EWSR1::ATF1/.test(m)));
+  check('HCCC: con uno solo compilato la riga resta',
+    getProConMissing('HCCC', { myogenic:'neg' }).missing.some(m => /EWSR1::ATF1/.test(m)));
+  eq('HCCC classica in testa con ATF1 e SMA negativa',
+    classifica(run({ specimen_type:'resection', clear_cell:'yes', stromal_type:'hyaline', p40:'diffuse',
+                     myogenic:'neg', ewsr1:'atf1' }).g2)[0][0], 'HCCC');
+
+  // il testo non dice più "non coperto"
+  check('il rimando dello squamoide non dice più "non coperto"',
+    !phenotypeOf({ p40:'diffuse', s100:'pos' }).notes.join(' ').includes('non coperto'));
+  check('i contro del MEC non dicono più "non coperto"',
+    !getProConMissing('MEC', { p40:'diffuse', s100:'pos' }).con.join(' ').includes('non coperto'));
+
+  // esami successivi
+  const rec = fd => { const { g1, g2 } = run(fd); return recommendNextTests(g1, g2, fd).join(' | '); };
+  check('p40 diffuso senza SMA: pannello ampio', /SMA \+ calponina/.test(rec({ p40:'diffuse' })));
+  check('S100+ senza SMA: pannello ampio', /SMA \+ calponina/.test(rec({ s100:'pos' })));
+  check('nessuna dualità senza SMA: pannello ampio', /SMA \+ calponina/.test(rec({ duality:'absent' })));
+  check('cita CD117 ed EWSR1', /CD117/.test(rec({ p40:'diffuse' })) && /EWSR1/.test(rec({ p40:'diffuse' })));
+  check('SMA già fatta: non la richiede', !/SMA \+ calponina/.test(rec({ p40:'diffuse', myogenic:'pos' })));
+  check('senza indizi non la chiede', !/SMA \+ calponina/.test(rec({ cribriform:'yes' })));
+  check('mioepiteliale escluso: nessuna raccomandazione',
+    !/SMA \+ calponina/.test(rec({ p40:'neg', myogenic:'neg', s100:'neg', sox10:'neg', duality:'absent' })));
+
+  // orientamento gestionale: il grado basso non rassicura
+  const bucket = fd => { const { g1, g2 } = run(fd); return managementBucket(g1, g2, fd); };
+  const b = bucket({ ...myo, nuclear_grade:'low', necrosis:'no' });
+  eq('mioepiteliale in testa con grado basso → non rassicura', b.id, 'indeterminato');
+  check('...e lo spiega', /non rassicura/.test(b.label) && /metastatico/.test(b.rationale.join(' ')));
+  eq('senza mioepiteliale in testa lo stesso quadro è basso grado',
+    bucket({ nuclear_grade:'low', necrosis:'no' }).id, 'basso_grado');
+  eq('mioepiteliale con evidenza debole non cambia il bucket',
+    bucket({ nuclear_grade:'low', necrosis:'no', duality:'absent' }).id, 'basso_grado');
+  eq('con due segni di alto grado prevale l alto grado', bucket({ ...myo, necrosis:'yes', nuclear_grade:'high' }).id, 'alto_grado');
+
+  // campi: nulla resta inutilizzato
+  eq('nessun campo raccolto e non usato', UNSCORED_FIELDS.length, 0);
+}
+
+section('v5.7.0 — carcinoma intraduttale');
+{
+  // Gate 1: nessun deal-breaker
+  eq('form vuoto: zero', score({}, 'IntraductalCa'), 0);
+  check('form vuoto: non esclusa', run({}).g1.IntraductalCa.passed);
+  eq('nessun deal-breaker nemmeno con dati contrari',
+    evaluateDealBreaker('IntraductalCa', { ret:'neg', muc4:'pos', p40:'neg', intraductal_growth:'no', etv6:'pos' }).hit, false);
+  eq('RET negativo non esclude (presente solo in una quota)', run({ ret:'neg' }).g1.IntraductalCa.passed, true);
+  eq('"not_done" non vale come negativo', score({ ret:'not_done', muc4:'not_done' }, 'IntraductalCa'), 0);
+  check('non ha famiglia fenotipica', !ENTITY_FAMILY.IntraductalCa);
+
+  // punteggio
+  eq('crescita intraluminale: +3', score({ intraductal_growth:'yes' }, 'IntraductalCa'), 3);
+  eq('crescita intraluminale assente: 0 (contro testuale)', score({ intraductal_growth:'no' }, 'IntraductalCa'), 0);
+  eq('p40 abluminale: +3', score({ p40:'abluminal' }, 'IntraductalCa'), 3);
+  eq('p40 negativo: nessuna penalità (popolazione periferica sfuggente su biopsia)', score({ p40:'neg' }, 'IntraductalCa'), 0);
+  eq('p40 diffuso: nessuna penalità', score({ p40:'diffuse' }, 'IntraductalCa'), 0);
+  eq('RET: +4', score({ ret:'pos' }, 'IntraductalCa'), 4);
+  eq('MUC4 negativo: +2', score({ muc4:'neg' }, 'IntraductalCa'), 2);
+  eq('MUC4 positivo: −3', score({ muc4:'pos' }, 'IntraductalCa'), -3);
+  eq('ETV6-NTRK3+: −3', score({ etv6:'pos' }, 'IntraductalCa'), -3);
+  eq('S100 e mammaglobina non spostano l intraduttale (condivise con SC)',
+    score({ s100:'pos', mammaglobin:'pos' }, 'IntraductalCa'), 0);
+
+  // il punto dell'articolo: stessi S100/mammaglobina del secretorio, ma p40 periferico, MUC4−, RET
+  const idc = { specimen_type:'resection', intraductal_growth:'yes', p40:'abluminal', s100:'pos', mammaglobin:'pos', muc4:'neg', ret:'pos' };
+  const r = run(idc);
+  eq('intraduttale classico in testa', classifica(r.g2)[0][0], 'IntraductalCa');
+  eq('...con fiducia HIGH', r.g2.IntraductalCa.conf, 'HIGH');
+  check('il secretorio è sotto (p40 abluminale, MUC4−)', r.g2.SC.score < r.g2.IntraductalCa.score);
+  check('...e non è escluso: cancello morbido', r.g1.SC.passed);
+  const sc = { specimen_type:'resection', p40:'neg', s100:'pos', mammaglobin:'pos', etv6:'pos', muc4:'pos' };
+  eq('secretorio classico in testa', classifica(run(sc).g2)[0][0], 'SC');
+  check('...e l intraduttale è sotto', run(sc).g2.IntraductalCa.score < run(sc).g2.SC.score);
+  // SC: MUC4
+  eq('SC: MUC4+ +2', score({ muc4:'pos' }, 'SC'), 2);
+  eq('SC: MUC4 negativo −2', score({ muc4:'neg' }, 'SC'), -2);
+  eq('SC: MUC4 non eseguito 0', score({ muc4:'not_done' }, 'SC'), 0);
+  eq('SC con p40 abluminale: −3 di fenotipo', score({ p40:'abluminal' }, 'SC'), -3);
+
+  // pro/con
+  const pc = getProConMissing('IntraductalCa', idc);
+  check('pro: crescita, p40 periferico, RET, MUC4−, S100+mammaglobina+',
+    ['intraluminale','p40 abluminale','RET','MUC4 negativo','S100+ e mammaglobina+'].every(k => pc.pro.some(x => x.includes(k))));
+  check('contro: MUC4+', getProConMissing('IntraductalCa', { muc4:'pos' }).con.some(x => /secretorio/.test(x)));
+  check('contro: ETV6-NTRK3+', getProConMissing('IntraductalCa', { etv6:'pos' }).con.some(x => /secretorio/.test(x)));
+  check('contro: p40 negativo, dichiarato non escludente', getProConMissing('IntraductalCa', { p40:'neg' }).con.some(x => /non esclude/.test(x)));
+  check('contro: nessuna crescita intraluminale', getProConMissing('IntraductalCa', { intraductal_growth:'no' }).con.some(x => /intraluminale/.test(x)));
+  check('contro: necrosi orienta su SDC', getProConMissing('IntraductalCa', { necrosis:'yes' }).con.some(x => /SDC/.test(x)));
+  check('pro: sottotipo apocrino AR+ S100−', getProConMissing('IntraductalCa', { apocrine:'yes', ar:'pos', s100:'neg' }).pro.some(x => /apocrino/.test(x)));
+  check('chiede MUC4, RET, crescita intraluminale',
+    ['MUC4','RET','intraluminale'].every(k => getProConMissing('IntraductalCa', {}).missing.some(m => m.includes(k))));
+  check('cita i quattro sottotipi', getProConMissing('IntraductalCa', {}).missing.some(m => /intercalato/.test(m) && /oncocitico/.test(m)));
+  check('dichiara la diagnosi descrittiva su biopsia', getProConMissing('IntraductalCa', {}).missing.some(m => /descrittiva/.test(m)));
+  check('con MUC4 fatto non lo richiede', !getProConMissing('IntraductalCa', { muc4:'neg' }).missing.some(m => /MUC4/.test(m)));
+  check('SC: MUC4 neg tra i contro', getProConMissing('SC', { muc4:'neg' }).con.some(c => /intraduttale/.test(c)));
+  check('SC: RET tra i contro', getProConMissing('SC', { ret:'pos' }).con.some(c => /intraduttale/.test(c)));
+  check('SC: p40 abluminale + mammaglobina+ tra i contro',
+    getProConMissing('SC', { p40:'abluminal', mammaglobin:'pos' }).con.some(c => /intraduttale/.test(c)));
+  check('SC: MUC4+ tra i pro', getProConMissing('SC', { muc4:'pos' }).pro.some(c => /MUC4/.test(c)));
+  check('SC: chiede MUC4', getProConMissing('SC', {}).missing.some(m => /MUC4/.test(m)));
+  check('SDC: crescita intraduttale + p40 abluminale orienta su intraduttale apocrino',
+    getProConMissing('SDC', { intraductal_growth:'yes', p40:'abluminal' }).con.some(c => /apocrino/.test(c)));
+  check('SDC: la sola crescita intraduttale non basta',
+    !getProConMissing('SDC', { intraductal_growth:'yes' }).con.some(c => /apocrino/.test(c)));
+
+  // qualità del dato
+  const w = fd => checkDataQuality(fd).join(' | ');
+  check('S100+, mammaglobina+, p40 abluminale: avviso intraduttale vs secretorio',
+    /intraduttale che un secretorio/.test(w({ p40:'abluminal', s100:'pos', mammaglobin:'pos' })));
+  check('senza p40 abluminale nessun avviso', !/intraduttale che un secretorio/.test(w({ p40:'neg', s100:'pos', mammaglobin:'pos' })));
+  check('con solo due dei tre nessun avviso', !/intraduttale che un secretorio/.test(w({ p40:'abluminal', s100:'pos' })));
+
+  // esami successivi
+  const rec = fd => { const { g1, g2 } = run(fd); return recommendNextTests(g1, g2, fd).join(' | '); };
+  check('mammaglobina+: MUC4 e RET', /MUC4 \(SC\+, intraduttale−\) e RET/.test(rec({ mammaglobin:'pos' })));
+  check('p40− con S100+: MUC4 e RET', /MUC4 \(SC\+/.test(rec({ p40:'neg', s100:'pos' })));
+  check('MUC4 e RET già fatti: non li richiede', !/MUC4 \(SC\+/.test(rec({ mammaglobin:'pos', muc4:'neg', ret:'neg' })));
+  check('solo MUC4 fatto: chiede ancora RET', /RET FISH/.test(rec({ mammaglobin:'pos', muc4:'neg' })));
+  check('senza mammaglobina né S100 non li chiede', !/MUC4 \(SC\+/.test(rec({ cribriform:'yes' })));
+  check('core biopsy con p40 negativo: avverte che la popolazione periferica può sfuggire',
+    /popolazione p40\+ periferica/.test(rec({ specimen_type:'trucut', p40:'neg', s100:'pos', mammaglobin:'pos' })));
+  check('...e suggerisce la diagnosi descrittiva', /[Dd]iagnosi descrittiva/.test(rec({ specimen_type:'fnab', p40:'neg', s100:'pos', mammaglobin:'pos' })));
+  check('su pezzo operatorio nessun avviso sul campionamento',
+    !/popolazione p40\+ periferica/.test(rec({ specimen_type:'resection', p40:'neg', s100:'pos', mammaglobin:'pos' })));
+  check('con p40 abluminale non c è l avviso (popolazione campionata)',
+    !/popolazione p40\+ periferica/.test(rec({ specimen_type:'trucut', p40:'abluminal', mammaglobin:'pos' })));
+
+  // il caso limite: biopsia, p40 negativo → il secretorio resta davanti, senza esclusioni
+  const bio = run({ specimen_type:'trucut', p40:'neg', s100:'pos', mammaglobin:'pos' });
+  eq('su biopsia p40− il secretorio è davanti', classifica(bio.g2)[0][0], 'SC');
+  check('...ma l intraduttale è ancora in gioco', bio.g1.IntraductalCa.passed);
 }
 
 section('purezza e invarianti di progetto');
