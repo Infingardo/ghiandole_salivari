@@ -19,7 +19,7 @@ const check = (n, c, d = '') => c ? pass++ : (fail++, failures.push(n + (d ? ` �
 const eq = (n, a, b) => check(n, a === b, `atteso ${JSON.stringify(b)}, ottenuto ${JSON.stringify(a)}`);
 const section = t => console.log(`\n• ${t}`);
 
-const ENTITIES = ['PA','ACC','MEC','AciCC','SC','MSA','CaExPA','Warthin','EMC','PolymorphousAC','HCCC','BasalCell','SDC'];
+const ENTITIES = ['PA','ACC','MEC','AciCC','SC','MSA','CaExPA','Warthin','EMC','PolymorphousAC','HCCC','BasalCell','SDC','MucinousAC'];
 const run = fd => { const g1 = gateOne(fd); return { g1, g2: gateTwo(g1, fd) }; };
 const escluse = g1 => Object.keys(g1).filter(k => !g1[k].passed);
 const classifica = g2 => Object.entries(g2).sort((a,b) => b[1].score - a[1].score);
@@ -181,7 +181,7 @@ section('pro/con: nessuna entita rimane un segnaposto');
     serous_acinar:'prominent', nuclear_grade:'low', necrosis:'no', neural_invasion:'focal',
     stromal_type:'hyaline', oncocytic:'prominent', lymphoid_stroma:'abundant',
     clear_cell:'yes', varied_patterns:'yes', microcystic:'yes', papillary:'yes',
-    dog1:'pos', maml2:'pos', myb:'pos', etv6:'pos', mammaglobin:'pos', mef2c:'pos', spindle_stroma:'yes', bcatenin:'nuclear', basal_driver:'pos', apocrine:'yes', ar:'pos', her2:'pos',
+    dog1:'pos', maml2:'pos', myb:'pos', etv6:'pos', mammaglobin:'pos', mef2c:'pos', spindle_stroma:'yes', bcatenin:'nuclear', basal_driver:'pos', apocrine:'yes', ar:'pos', her2:'pos', nkx31:'pos', akt1:'pos',
     priorPA:'yes', residualPA:'yes', hras:'pos', pik3ca:'dual' };
   ENTITIES.forEach(e => {
     const pc = getProConMissing(e, ricco);
@@ -609,6 +609,81 @@ section('v5.4.0 — carcinoma duttale salivare (SDC)');
   eq('un solo segno di grado senza altra evidenza resta indeterminato',
     bucket({ nuclear_grade:'high', necrosis:'no', mitotic_rate:'low' }).id, 'indeterminato');
   check('alto grado: la raccomandazione cita AR/HER2', /AR\/HER2/.test(b.implicazione));
+}
+
+section('v5.5.0 — adenocarcinoma mucinoso');
+{
+  // Gate 1: la mucina è definitoria, ma solo dato compilato
+  eq('mucina documentata assente → esclusa', run({ mucin_production:'absent' }).g1.MucinousAC.passed, false);
+  check('la ragione nomina la mucina', /mucin/.test(run({ mucin_production:'absent' }).g1.MucinousAC.reason));
+  eq('mucina scarsa → non esclusa', run({ mucin_production:'scant' }).g1.MucinousAC.passed, true);
+  check('form vuoto: non esclusa, non verificata', run({}).g1.MucinousAC.passed && run({}).g1.MucinousAC.undetermined === true);
+  check('...e dice cosa manca', /mucin_production/.test(run({}).g1.MucinousAC.reason));
+  eq('"not_done" non vale come mucina assente', run({ mucin_production:'not_done' }).g1.MucinousAC.passed, true);
+  eq('NKX3.1 e AKT1 negativi non escludono',
+    run({ mucin_production:'abundant', nkx31:'neg', akt1:'neg' }).g1.MucinousAC.passed, true);
+  eq('su core biopsy la mucina resta un criterio valido (non architetturale)',
+    run({ specimen_type:'trucut', mucin_production:'absent' }).g1.MucinousAC.passed, false);
+
+  // punteggio
+  eq('form vuoto: zero', score({}, 'MucinousAC'), 0);
+  eq('mucina abbondante: +3', score({ mucin_production:'abundant' }, 'MucinousAC'), 3);
+  eq('mucina moderata: +1', score({ mucin_production:'moderate' }, 'MucinousAC'), 1);
+  eq('mucina scarsa: 0', score({ mucin_production:'scant' }, 'MucinousAC'), 0);
+  eq('NKX3.1+: +3', score({ nkx31:'pos' }, 'MucinousAC'), 3);
+  eq('NKX3.1 negativo: 0, non negativo', score({ nkx31:'neg' }, 'MucinousAC'), 0);
+  eq('AKT1 p.E17K: +3', score({ akt1:'pos' }, 'MucinousAC'), 3);
+  eq('architettura papillare: +1', score({ papillary:'yes' }, 'MucinousAC'), 1);
+  eq('p40 negativo: +2', score({ p40:'neg' }, 'MucinousAC'), 2);
+  eq('p40 abluminale: −3', score({ p40:'abluminal' }, 'MucinousAC'), -3);
+  eq('p40 diffuso: −3', score({ p40:'diffuse' }, 'MucinousAC'), -3);
+  eq('famiglia: monofasico ghiandolare', ENTITY_FAMILY.MucinousAC, 'glandular');
+  eq('ghiandolare S100−: +1 oltre il fenotipo', score({ p40:'neg', s100:'neg' }, 'MucinousAC'), 3);
+  eq('ghiandolare S100+: −2 oltre il fenotipo', score({ p40:'neg', s100:'pos' }, 'MucinousAC'), 0);
+  eq('S100 focale non sposta', score({ p40:'neg', s100:'focal' }, 'MucinousAC'), 2);
+  eq('S100 in un bifasico non sposta nulla', score({ p40:'abluminal', s100:'neg' }, 'MucinousAC'), -3);
+
+  // casi interi
+  const muc = { specimen_type:'resection', mucin_production:'abundant', papillary:'yes', p40:'neg', s100:'neg', nkx31:'pos' };
+  const r = run(muc);
+  eq('mucinoso classico in testa', classifica(r.g2)[0][0], 'MucinousAC');
+  eq('...con fiducia HIGH', r.g2.MucinousAC.conf, 'HIGH');
+  check('MEC sotto', r.g2.MEC.score < r.g2.MucinousAC.score);
+  check('ACC esclusa dalla mucina abbondante', !r.g1.ACC.passed);
+  // il MEC classico non diventa un mucinoso
+  const mec = { specimen_type:'resection', mucin_production:'abundant', maml2:'pos', p40:'diffuse' };
+  eq('MEC con MAML2+ e p40 diffuso resta in testa', classifica(run(mec).g2)[0][0], 'MEC');
+  check('...e il mucinoso è sotto', run(mec).g2.MucinousAC.score < run(mec).g2.MEC.score);
+
+  // pro/con
+  const pc = getProConMissing('MucinousAC', muc);
+  check('pro: mucina, papillare, NKX3.1', ['Mucina abbondante','papillare','NKX3.1'].every(k => pc.pro.some(x => x.includes(k))));
+  check('pro: fenotipo coerente', pc.pro.some(x => /Fenotipo/.test(x)));
+  check('pro: S100 negativo', pc.pro.some(x => /S100 negativo/.test(x)));
+  check('AKT1 positivo: conferma', getProConMissing('MucinousAC', { akt1:'pos' }).pro.some(x => /conferma/.test(x)));
+  check('mucina scarsa: contro', getProConMissing('MucinousAC', { mucin_production:'scant' }).con.some(x => /scarsa/.test(x)));
+  check('MAML2+: contro (orienta su MEC)', getProConMissing('MucinousAC', { maml2:'pos' }).con.some(x => /MEC/.test(x)));
+  check('p40 diffuso: contro', getProConMissing('MucinousAC', { p40:'diffuse' }).con.some(x => /p63\/p40/.test(x)));
+  check('dualità netta: contro', getProConMissing('MucinousAC', { duality:'clear' }).con.some(x => /Dualità/.test(x)));
+  check('S100+ in ghiandolare: contro', getProConMissing('MucinousAC', { p40:'neg', s100:'pos' }).con.some(x => /S100-negativo/.test(x)));
+  check('chiede NKX3.1 con la cautela prostatica',
+    getProConMissing('MucinousAC', {}).missing.some(m => /NKX3\.1/.test(m) && /prostatico/.test(m)));
+  check('chiede AKT1', getProConMissing('MucinousAC', {}).missing.some(m => /AKT1/.test(m)));
+  check('con NKX3.1 fatto non lo richiede', !getProConMissing('MucinousAC', { nkx31:'neg' }).missing.some(m => /NKX3/.test(m)));
+  check('MEC: NKX3.1+ tra i contro', getProConMissing('MEC', { nkx31:'pos' }).con.some(c => /mucinoso/.test(c)));
+  check('MEC: AKT1+ tra i contro', getProConMissing('MEC', { akt1:'pos' }).con.some(c => /mucinoso/.test(c)));
+  eq('NKX3.1 non sposta il punteggio del MEC', score({ nkx31:'pos' }, 'MEC'), 0);
+  check('la nota di fenotipo ora cita AKT1',
+    phenotypeOf({ p40:'neg', s100:'neg' }).notes.some(n => /NKX3\.1, AKT1/.test(n)));
+
+  // esami successivi
+  const rec = fd => { const { g1, g2 } = run(fd); return recommendNextTests(g1, g2, fd).join(' | '); };
+  check('mucina abbondante: NKX3.1 con la cautela', /NKX3\.1 IHC/.test(rec({ mucin_production:'abundant' })) && /prostatico/.test(rec({ mucin_production:'abundant' })));
+  check('p40− e S100−: NKX3.1', /NKX3\.1 IHC/.test(rec({ p40:'neg', s100:'neg' })));
+  check('...cita AKT1 per la conferma', /AKT1/.test(rec({ mucin_production:'abundant' })));
+  check('senza indizi di mucinoso non lo chiede', !/NKX3\.1 IHC/.test(rec({ cribriform:'yes' })));
+  check('NKX3.1 già fatto: non lo richiede', !/NKX3\.1 IHC/.test(rec({ mucin_production:'abundant', nkx31:'pos' })));
+  check('mucinoso escluso (mucina assente): nessuna raccomandazione', !/NKX3\.1 IHC/.test(rec({ mucin_production:'absent', p40:'neg', s100:'neg' })));
 }
 
 section('purezza e invarianti di progetto');
