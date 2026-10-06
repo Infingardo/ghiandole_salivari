@@ -91,7 +91,21 @@ function evaluateDealBreaker(entity, fd){
       
     case 'HCCC':
       return {hit:false};
-      
+
+    case 'SDC':
+      // v5.4.0: carcinoma di alto grado per definizione. Esclude solo un grado nucleare
+      // DOCUMENTATO basso. AR/HER2 negativi non escludono: la co-espressione e' "usuale",
+      // non obbligatoria, e l'espressione isolata compare anche in altri carcinomi salivari.
+      if(fd.nuclear_grade==='low') return {hit:true,msg:'Grado nucleare basso: il carcinoma duttale salivare è di alto grado per definizione.'};
+      return {hit:false,needs:['nuclear_grade']};
+
+    case 'BasalCell':
+      // v5.3.0: nessun deal-breaker. La β-catenina nucleare e' presente solo in una quota
+      // (CTNNB1 ~60% dei BCA) e va cercata a chiazze nelle cellule abluminali/stromali:
+      // un reperto negativo non esclude. Adenoma e adenocarcinoma si distinguono solo per
+      // l'invasione, non valutabile su biopsia: qui sono una sola entita'.
+      return {hit:false};
+
     default: return {hit:false};
   }
 }
@@ -107,7 +121,7 @@ const PHENOTYPE_LABEL = {
   glandular:'monofasico ghiandolare (p40 negativo)',
   squamoid:'monofasico squamoide (p40 diffuso)' };
 // CaExPA non ha famiglia: il fenotipo dipende dalle componenti.
-const ENTITY_FAMILY = { PA:'biphasic', ACC:'biphasic', EMC:'biphasic', Warthin:'biphasic',
+const ENTITY_FAMILY = { PA:'biphasic', ACC:'biphasic', EMC:'biphasic', Warthin:'biphasic', BasalCell:'biphasic', SDC:'glandular',
   SC:'glandular', MSA:'glandular', PolymorphousAC:'glandular', AciCC:'glandular',
   MEC:'squamoid', HCCC:'squamoid' };
 const S100_POS_GLANDULAR = ['SC','MSA','PolymorphousAC'];
@@ -197,6 +211,9 @@ function getProConMissing(entity, fd){
         hrasPos ? '✗ HRAS Q61+ (non tipico di ACC)' : null,
         fd.p63==='neg' ? '✗ p63/SMA negativo: senza componente mioepiteliale l ACC è difficile da sostenere' : null,
         (fd.plag1==='pos' || fd.hmga2==='pos') ? '✗ PLAG1/HMGA2+ (orienta su PA; non sensibile né specifico al 100%)' : null,
+        fd.ar==='pos' && fd.her2==='pos' ? '✗ AR + HER2 co-espressi (orienta su SDC)' : null,
+        fd.bcatenin==='nuclear' ? '✗ β-catenina nucleare (orienta su basal cell)' : null,
+        fd.spindle_stroma==='yes' ? '✗ Stroma fusato interposto (orienta su basal cell)' : null,
         fd.myb==='neg' ? '✗ MYB IHC negativa (non esclude: >80% degli ACC la esprime, ma una quota no; testare la fusione)' : null
       ].filter(Boolean);
       procon.missing=[
@@ -213,6 +230,7 @@ function getProConMissing(entity, fd){
       ].filter(Boolean);
       procon.con=[
         fd.cribriform==='yes' ? '✗ Cribriform pattern' : null,
+        fd.ar==='pos' && fd.her2==='pos' ? '✗ AR + HER2 co-espressi (orienta su SDC)' : null,
         hrasPos ? '✗ HRAS Q61+ (inusuale in MEC convenzionale)' : null
       ].filter(Boolean);
       procon.missing=[
@@ -250,6 +268,9 @@ function getProConMissing(entity, fd){
         fd.nuclear_grade==='high' ? '✗ Alto grado nucleare (isolato non esclude il PA: atipia bizzarra possibile)' : null,
         fd.neural_invasion==='extensive' ? '✗ Extensive PNI' : null,
         fd.myb==='pos' ? '✗ MYB+ (orienta su ACC; non specifico)' : null,
+        fd.ar==='pos' && fd.her2==='pos' ? '✗ AR + HER2 co-espressi (orienta su SDC)' : null,
+        fd.bcatenin==='nuclear' ? '✗ β-catenina nucleare (orienta su basal cell)' : null,
+        fd.spindle_stroma==='yes' ? '✗ Stroma fusato interposto (orienta su basal cell, specie se PA cellulare)' : null,
         hrasPos ? '✗ HRAS Q61+ (suggerisce trasformazione maligna)' : null
       ].filter(Boolean);
       // v5.2.0: LEF1 tolto (aspecifico, sconsigliato); PLAG1 e HMGA2 insieme (fusioni in ~70% dei PA).
@@ -324,7 +345,8 @@ function getProConMissing(entity, fd){
       procon.con=[
         fd.cribriform==='yes' ? '✗ Cribriforme (orienta su ACC)' : null,
         fd.mucin_production==='abundant' ? '✗ Mucina abbondante (orienta su MEC)' : null,
-        fd.mammaglobin==='pos' ? '✗ Mammaglobina+ (orienta su carcinoma secretorio)' : null
+        fd.mammaglobin==='pos' ? '✗ Mammaglobina+ (orienta su carcinoma secretorio)' : null,
+        fd.ar==='pos' && fd.her2==='pos' ? '✗ AR + HER2 co-espressi (orienta su SDC)' : null
       ].filter(Boolean);
       procon.missing=[
         !fd.dog1 ? '? DOG1 IHC (marker di riferimento)' : null,
@@ -382,6 +404,50 @@ function getProConMissing(entity, fd){
       ].filter(Boolean);
       break;
 
+    case 'SDC':
+      procon.pro=[
+        fd.apocrine==='yes' ? '✓ Citologia apocrina (cellule grandi, nucleoli prominenti, citoplasma eosinofilo, snouts)' : null,
+        fd.ar==='pos' && fd.her2==='pos' ? '✓ AR + HER2 co-espressi (usuale nell SDC; bersagli terapeutici)' : null,
+        fd.ar==='pos' && fd.her2!=='pos' ? '✓ AR+' : null,
+        fd.her2==='pos' && fd.ar!=='pos' ? '✓ HER2+' : null,
+        fd.nuclear_grade==='high' ? '✓ Alto grado nucleare' : null,
+        fd.necrosis==='yes' ? '✓ Necrosi (centrale nei nidi cribriformi)' : null,
+        fd.cribriform==='yes' ? '✓ Crescita cribriforme' : null
+      ].filter(Boolean);
+      procon.con=[
+        fd.ar==='neg' && fd.her2==='neg' ? '✗ AR e HER2 negativi (co-espressione attesa; non esclude)' : null,
+        (fd.ar==='pos') !== (fd.her2==='pos') && (fd.ar==='pos' || fd.her2==='pos') && (fd.ar==='neg' || fd.her2==='neg')
+          ? '✗ Espressione isolata di AR o HER2: compare anche in altri carcinomi salivari, non basta per SDC' : null,
+        fd.apocrine==='no' ? '✗ Citologia non apocrina (la distinzione apocrino/oncocitario è soggettiva: non esclude)' : null,
+        fd.mucin_production==='abundant' ? '✗ Mucina abbondante (orienta su MEC)' : null
+      ].filter(Boolean);
+      procon.missing=[
+        !isSet(fd.ar) ? '? AR IHC (marker terapeutico: antiandrogeni)' : null,
+        !isSet(fd.her2) ? '? HER2 IHC (± ISH se 2+): bersaglio terapeutico' : null,
+        !isSet(fd.apocrine) ? '? Citologia apocrina' : null
+      ].filter(Boolean);
+      break;
+
+    case 'BasalCell':
+      procon.pro=[
+        fd.spindle_stroma==='yes' ? '✓ Stroma fusato tra le isole (quasi patognomonico)' : null,
+        fd.bcatenin==='nuclear' ? '✓ β-catenina nucleare (cellule abluminali / stroma fusato)' : null,
+        fd.basal_driver==='pos' ? '✓ CTNNB1 / CYLD mutato' : null,
+        fd.duality==='clear' ? '✓ Dualità' : null
+      ].filter(Boolean);
+      procon.con=[
+        fd.necrosis==='yes' ? '✗ Necrosi (inusuale: considerare BCAC ad alto grado o altra neoplasia)' : null,
+        fd.nuclear_grade==='high' ? '✗ Alto grado nucleare (inusuale nei basal cell)' : null,
+        fd.mucin_production==='abundant' ? '✗ Mucina abbondante (orienta su MEC)' : null
+      ].filter(Boolean);
+      procon.missing=[
+        !isSet(fd.bcatenin) ? '? β-catenina IHC (nucleare, anche a chiazze, nelle cellule abluminali/stromali; negativa non esclude)' : null,
+        !isSet(fd.spindle_stroma) ? '? Stroma fusato interposto tra le isole' : null,
+        !isSet(fd.basal_driver) ? '? CTNNB1 (~60% dei BCA) / CYLD (fino al 30% dei BCAC)' : null,
+        '? Invasione: è l\'unico criterio tra adenoma e adenocarcinoma, non valutabile su biopsia (descrivere, non forzare)'
+      ].filter(Boolean);
+      break;
+
     default:
       procon.pro=['(entity not detailed yet)'];
       procon.con=[];
@@ -395,7 +461,7 @@ function getProConMissing(entity, fd){
 
 function gateOne(fd){
   fd = fd || formData;
-  const entities=['PA','ACC','MEC','AciCC','SC','MSA','CaExPA','Warthin','EMC','PolymorphousAC','HCCC'];
+  const entities=['PA','ACC','MEC','AciCC','SC','MSA','CaExPA','Warthin','EMC','PolymorphousAC','HCCC','BasalCell','SDC'];
   const limited = LIMITED_SPECIMENS.includes(fd.specimen_type);
   const result={};
   for(let e of entities){
@@ -478,6 +544,19 @@ function gateTwo(survivors, fd){
       if(formData.microcystic==='yes') score+=2;
     }else if(e==='PolymorphousAC'){
       if(formData.varied_patterns==='yes') score+=3;   // pattern architetturali multipli: il carattere eponimo
+    }else if(e==='SDC'){
+      if(formData.apocrine==='yes') score+=3;          // il carattere eponimo
+      if(formData.ar==='pos') score+=2;
+      if(formData.her2==='pos') score+=2;
+      if(formData.ar==='pos' && formData.her2==='pos') score+=2;   // co-espressione
+      if(formData.nuclear_grade==='high') score+=2;
+      if(formData.necrosis==='yes') score+=1;
+      if(formData.cribriform==='yes') score+=1;
+    }else if(e==='BasalCell'){
+      if(formData.spindle_stroma==='yes') score+=3;   // stroma fusato tra le isole: quasi patognomonico
+      if(formData.bcatenin==='nuclear') score+=3;     // anche a chiazze
+      if(formData.basal_driver==='pos') score+=3;     // CTNNB1 / CYLD
+      if(formData.duality==='clear') score+=1;
     }else if(e==='HCCC'){
       if(formData.clear_cell==='yes') score+=3;
       if(formData.stromal_type==='hyaline') score+=2;  // stroma ialino: il carattere eponimo
@@ -529,6 +608,14 @@ function recommendNextTests(g1,g2,fd){
     recs.push('→ MEF2C::SS18 fusion testing');
   if(survivors.includes('AciCC') && !isSet(fd.dog1))
     recs.push('→ DOG1 IHC (marker di riferimento AciCC)');
+  // v5.4.0: SDC — AR e HER2 sono diagnostici e terapeutici insieme
+  if(survivors.includes('SDC') && (!isSet(fd.ar) || !isSet(fd.her2)) &&
+     (fd.apocrine==='yes' || fd.nuclear_grade==='high' || fd.necrosis==='yes'))
+    recs.push('→ AR + HER2 (IHC; ISH se HER2 2+): la co-espressione sostiene SDC e apre a terapie mirate (antiandrogeni, anti-HER2) da discutere con l\'oncologo');
+  // v5.3.0: basal cell vs ACC / PA cellulare nel basaloide bifasico
+  if(survivors.includes('BasalCell') && !isSet(fd.bcatenin) &&
+     (is(fd.p40,'abluminal') || is(fd.duality,'clear','borderline') || is(fd.cribriform,'yes','partial')))
+    recs.push('→ β-catenina IHC (nucleare, anche a chiazze, in cellule abluminali/stroma fusato): sostiene basal cell contro ACC e PA cellulare; LEF1 non raccomandato');
   // v5.2.0: pannello di primo livello dell'articolo (p40, CD117, S100)
   if(!isSet(fd.p40))
     recs.push('→ Pannello di primo livello: p40 + CD117 + S100 (smista in bifasico / monofasico ghiandolare / squamoide)');
@@ -589,14 +676,20 @@ function managementBucket(g1, g2, fd){
   // p40 negativo allontana l'ACC (polimorfo/cribriforme): resta in gioco solo con MYB+
   const accInGioco = g1.ACC && g1.ACC.passed && (!is(fd.p40,'neg') || is(fd.myb,'pos'));
 
-  if(segni.length >= 2 || (segni.length >= 1 && hrasDual))
+  const sdcTop = !!(g2 && g2.SDC && g2.SDC.score > 0 && g2.SDC.score === maxScore);
+  // un solo segno di grado non basta a far "vincere" l'SDC: serve evidenza propria (MODERATE o più)
+  const sdcAlto = sdcTop && g2.SDC.conf !== 'LOW';
+  if(segni.length >= 2 || (segni.length >= 1 && hrasDual) || sdcAlto)
     return out('alto_grado', 'ALTO GRADO',
-      ['Segni di alto grado: ' + segni.join(', ') + (hrasDual ? ' + HRAS Q61 / dual PIK3CA' : '') + '.'],
+      [(segni.length ? 'Segni di alto grado: ' + segni.join(', ') + (hrasDual ? ' + HRAS Q61 / dual PIK3CA' : '') + '.' : '') +
+       (sdcAlto && !(segni.length >= 2 || (segni.length >= 1 && hrasDual)) ? ' Carcinoma duttale salivare in testa al ranking: alto grado per definizione.' : '')].map(x => x.trim()),
       'Orientamento (Fig. 1): resezione con margini ampi e dissezione laterocervicale; sacrificio di strutture adiacenti se necessario. Discutere con il clinico eventuali bersagli terapeutici (es. NTRK, AR/HER2).');
 
   if(accInGioco && indiziACC.length > 0){
     const rat = ['Morfologia basaloide non apertamente di alto grado: ACC non esclusa (' + indiziACC.join(', ') + ').'];
     if(segni.length === 1) rat.push('Segno isolato di alto grado: ' + segni[0] + '.');
+    const basalTop = !!(g2 && g2.BasalCell && g2.BasalCell.score > 0 && g2.BasalCell.score === maxScore);
+    if(basalTop) rat.push('Neoplasia basocellulare in testa al ranking (stroma fusato / β-catenina / CTNNB1-CYLD): ACC meno probabile, ma non esclusa senza MYB/MYBL1::NFIB.');
     const tests = [];
     if(is(fd.myb,'neg')) tests.push('MYB IHC negativa non esclude ACC (>80% positivi): testare la fusione MYB/MYBL1::NFIB (FISH/NGS)');
     else if(is(fd.myb,'pos')) tests.push('MYB IHC non è specifica (~15% dei non-ACC è positivo): confermare la fusione MYB/MYBL1::NFIB se la morfologia non è tipica');

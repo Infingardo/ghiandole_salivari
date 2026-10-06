@@ -1,5 +1,56 @@
 # 📝 Salivary Gland Tool - Changelog
 
+## v5.4.0 (Ottobre 2026) — Carcinoma duttale salivare (SDC)
+
+Fonte: Higgins & Cipriani, AIMM 2026. L'SDC è un carcinoma di alto grado per cui AR e HER2 sono
+insieme marcatori e bersagli terapeutici; il modello non lo intercettava (era elencato tra i limiti).
+
+- **Nuova entità `SDC`** (12 → 13), famiglia fenotipica monofasico ghiandolare (p40 negativo).
+- **Gate 1:** esclusa solo da un grado nucleare *documentato* basso (alto grado per definizione; criterio
+  non architetturale, quindi vale anche su core/FNAB). AR e HER2 negativi **non** escludono: la
+  co-espressione è "usuale", e l'espressione isolata compare anche in altri carcinomi salivari.
+- **Punteggio:** citologia apocrina +3, AR+ +2, HER2+ +2, co-espressione +2, alto grado nucleare +2,
+  necrosi +1, cribriforme +1, più fenotipo ghiandolare (+2 / −3 con p40). S100 non la sposta
+  (l'articolo non lo assegna all'SDC).
+- **Contro dichiarati non escludenti:** AR e HER2 entrambi negativi; espressione isolata di uno solo
+  (con l'altro negativo); citologia non apocrina (la distinzione apocrino/oncocitario è soggettiva).
+- **Nuovi campi:** `apocrine` (Step 2), `ar` e `her2` (Step 5).
+- **Altre entità:** AR + HER2 co-espressi compaiono come *contro* (testo) per ACC, PA, MEC, AciCC, senza
+  spostarne il punteggio.
+- **Esami successivi:** AR + HER2 (ISH se HER2 2+) quando c'è citologia apocrina, alto grado o necrosi;
+  cita antiandrogeni e anti-HER2 da discutere con l'oncologo.
+- **Orientamento gestionale:** SDC in testa con fiducia almeno MODERATE → *alto grado* (è tale per
+  definizione), anche con un solo segno di grado. Un segno isolato, senza evidenza propria dell'SDC,
+  continua a non bastare.
+- Rimosso dalla pagina l'avviso "il tool non copre l'SDC".
+
+Test: 428 asserzioni (361 → 428).
+
+Ancora non coperte: carcinoma intraduttale (RET), carcinoma mioepiteliale, adenocarcinoma mucinoso.
+
+## v5.3.0 (Ottobre 2026) — Neoplasia basocellulare (adenoma / adenocarcinoma)
+
+Fonte: Higgins & Cipriani, AIMM 2026. Era la lacuna più pesante del basaloide: senza il basal cell il
+modello forzava la scelta tra ACC e PA anche quando il quadro era un'altra cosa.
+
+- **Nuova entità `BasalCell`** (11 → 12). Adenoma e adenocarcinoma sono una sola entità: li separa
+  solo l'invasione, non valutabile su biopsia (è scritto nei "missing", non forzato).
+- **Nessun deal-breaker.** β-catenina nucleare e CTNNB1 sono presenti solo in una quota (~60% dei BCA;
+  CYLD fino al 30% dei BCAC) e la β-catenina va cercata anche a chiazze: un reperto negativo non esclude.
+- **Punteggio:** stroma fusato interposto tra le isole +3 (quasi patognomonico), β-catenina nucleare +3,
+  CTNNB1/CYLD mutato +3, dualità netta +1, più il fenotipo bifasico (famiglia `biphasic`, +2 / −3 con p40).
+- **Nuovi campi:** `spindle_stroma` (Step 1), `bcatenin` (Step 5), `basal_driver` CTNNB1/CYLD (Step 6).
+- **ACC e PA:** β-catenina nucleare e stroma fusato compaiono come *contro* (testo), senza spostare il
+  punteggio: l'articolo li usa per distinguere il basal cell da ACC e PA cellulare.
+- **Esami successivi:** β-catenina IHC nel basaloide bifasico (p40 abluminale, dualità o cribriforme);
+  LEF1 esplicitamente non raccomandato.
+- **Orientamento gestionale:** se il basal cell è in testa lo dice, ma l'ACC resta "da escludere" senza
+  MYB/MYBL1::NFIB.
+
+Test: 361 asserzioni (320 → 361).
+
+Ancora non coperte: SDC, carcinoma intraduttale (RET), carcinoma mioepiteliale, adenocarcinoma mucinoso.
+
 ## v5.2.0 (Ottobre 2026) — Correzioni e orientamento gestionale da Higgins & Cipriani 2026
 
 Fonte: Higgins KE, Cipriani NA. *Algorithmic Approach to Diagnosis of Salivary Gland Neoplasms
