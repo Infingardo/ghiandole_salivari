@@ -11,7 +11,8 @@ const require = createRequire(import.meta.url);
 const E = require('../engine.js');
 const { isSet, is, isNot, ARCHITECTURAL_FIELDS, LIMITED_SPECIMENS, UNSCORED_FIELDS,
         evaluateDealBreaker, getProConMissing, gateOne, gateTwo, checkDataQuality,
-        recommendNextTests, checkOutsideModel, managementBucket } = E;
+        recommendNextTests, checkOutsideModel, managementBucket,
+        phenotypeOf, phenotypeAdjust, phenotypeProCon, PHENOTYPE_OF_P40, ENTITY_FAMILY } = E;
 
 let pass = 0, fail = 0; const failures = [];
 const check = (n, c, d = '') => c ? pass++ : (fail++, failures.push(n + (d ? ` — ${d}` : '')));
@@ -336,6 +337,125 @@ section('v5.2.0 — orientamento gestionale (Fig. 1)');
   eq('managementBucket non muta il form', JSON.stringify(fd), snap);
 }
 
+section('v5.2.0 — livello fenotipico p40 / CD117 / S100 (Fig. 2)');
+{
+  // tre stati: p40 non eseguito non sposta nulla
+  eq('p40 non eseguito: fenotipo non valutato', phenotypeOf({}).id, 'non_valutato');
+  eq('p40 "not_done": idem', phenotypeOf({ p40:'not_done' }).id, 'non_valutato');
+  ENTITIES.forEach(e => eq(`${e}: senza p40 nessuno spostamento`, phenotypeAdjust(e, { s100:'pos', cd117:'luminal' }), 0));
+  eq('form vuoto invariato: tutto a zero', classifica(run({}).g2)[0][1].score, 0);
+
+  eq('p40 abluminale → bifasico', phenotypeOf({ p40:'abluminal' }).id, 'biphasic');
+  eq('p40 negativo → monofasico ghiandolare', phenotypeOf({ p40:'neg' }).id, 'glandular');
+  eq('p40 diffuso → monofasico squamoide', phenotypeOf({ p40:'diffuse' }).id, 'squamoid');
+
+  // cancello morbido: nessuna esclusione da p40
+  ['abluminal','neg','diffuse'].forEach(v =>
+    eq(`p40 ${v}: nessuna entità esclusa da Gate 1`, escluse(run({ p40:v }).g1).length, 0));
+
+  // punteggi
+  eq('PA con p40 abluminale: +2', score({ p40:'abluminal' }, 'PA'), 2);
+  eq('PA con p40 abluminale e CD117 luminale: +3', score({ p40:'abluminal', cd117:'luminal' }, 'PA'), 3);
+  eq('PA con p40 negativo: -3', score({ p40:'neg' }, 'PA'), -3);
+  eq('ACC con p40 negativo: -3', score({ p40:'neg' }, 'ACC'), -3);
+  eq('carcinoma polimorfo con p40 negativo: +2', score({ p40:'neg' }, 'PolymorphousAC'), 2);
+  eq('HCCC con p40 diffuso: +2', score({ p40:'diffuse' }, 'HCCC'), 2);
+  eq('MEC con p40 negativo: solo -1 (minoranza descritta)', score({ p40:'neg' }, 'MEC'), -1);
+  eq('MEC con p40 abluminale: -3', score({ p40:'abluminal' }, 'MEC'), -3);
+  eq('CaExPA non ha famiglia: invariata', score({ p40:'neg' }, 'CaExPA'), 0);
+  eq('Warthin è bifasica: p40 negativo la penalizza', score({ p40:'neg' }, 'Warthin'), -3);
+  check('CD117 luminale senza p40 non fa nulla', phenotypeAdjust('PA', { cd117:'luminal' }) === 0);
+
+  // il caso che l'articolo mette al centro: cribriforme p40-negativo = polimorfo, non ACC
+  const cribr = { specimen_type:'resection', cribriform:'yes', duality:'borderline', nuclear_grade:'low', necrosis:'no',
+                  neural_invasion:'focal', varied_patterns:'yes', p40:'neg', s100:'pos' };
+  const r = run(cribr);
+  eq('cribriforme p40− S100+ con pattern vari: in testa il polimorfo', classifica(r.g2)[0][0], 'PolymorphousAC');
+  check('ACC non è esclusa (cancello morbido) ma sotto il polimorfo',
+    r.g1.ACC.passed && r.g2.ACC.score < r.g2.PolymorphousAC.score);
+  // lo stesso quadro con p40 abluminale è un ACC
+  const acc = run({ ...cribr, p40:'abluminal', s100:undefined, varied_patterns:undefined, duality:'clear' });
+  eq('cribriforme p40 abluminale con dualità: in testa l ACC', classifica(acc.g2)[0][0], 'ACC');
+
+  // S100 suddivide il solo monofasico ghiandolare
+  eq('glandulare S100+: SC +1 oltre il fenotipo', score({ p40:'neg', s100:'pos' }, 'SC'), 3);
+  eq('glandulare S100−: AciCC +2 oltre il fenotipo', score({ p40:'neg', s100:'neg' }, 'AciCC'), 4);
+  eq('glandulare S100−, SOX10+: AciCC un punto in più', score({ p40:'neg', s100:'neg', sox10:'pos' }, 'AciCC'), 5);
+  eq('glandulare S100+: AciCC penalizzata', score({ p40:'neg', s100:'pos' }, 'AciCC'), 0);
+  eq('glandulare S100−: SC penalizzata', score({ p40:'neg', s100:'neg' }, 'SC'), 0);
+  eq('S100 focale non sposta nulla', score({ p40:'neg', s100:'focal' }, 'SC'), 2);
+  eq('S100 in un bifasico non sposta nulla (variabile)', score({ p40:'abluminal', s100:'pos' }, 'PA'), 2);
+  eq('squamoide con S100+: MEC penalizzato', score({ p40:'diffuse', s100:'pos' }, 'MEC'), 0);
+  eq('squamoide con SOX10+: HCCC penalizzato', score({ p40:'diffuse', sox10:'pos' }, 'HCCC'), 0);
+  eq('squamoide con S100 negativo: nessuna penalità', score({ p40:'diffuse', s100:'neg' }, 'MEC'), 2);
+
+  // pro/con
+  check('PA p40 negativo: contro esplicito', getProConMissing('PA', { p40:'neg' }).con.some(c => /p40 negativo/.test(c)));
+  check('PA p40 abluminale: pro esplicito', getProConMissing('PA', { p40:'abluminal' }).pro.some(c => /coerente/.test(c)));
+  check('MEC p40 negativo: avverte che esiste in minoranza',
+    getProConMissing('MEC', { p40:'neg' }).con.some(c => /minoranza/.test(c)));
+  check('AciCC S100+: contro', getProConMissing('AciCC', { p40:'neg', s100:'pos' }).con.some(c => /S100\+/.test(c)));
+  check('AciCC S100−/SOX10+: pro', getProConMissing('AciCC', { p40:'neg', s100:'neg', sox10:'pos' }).pro.some(c => /SOX10/.test(c)));
+  check('MEC con S100+ in squamoide: rimanda al mioepiteliale',
+    getProConMissing('MEC', { p40:'diffuse', s100:'pos' }).con.some(c => /mioepiteliale/.test(c)));
+  check('senza p40 nessuna riga di fenotipo',
+    !JSON.stringify(getProConMissing('PA', { s100:'pos' })).includes('Fenotipo'));
+  // p63: con p40 negativo non è un pro
+  check('p63+ con p40 negativo non è letto come mioepitelio',
+    !getProConMissing('PA', { p63:'pos', p40:'neg' }).pro.some(c => /p63/.test(c)));
+  check('p63+ senza p40 resta un pro (invariato)',
+    getProConMissing('PA', { p63:'pos' }).pro.some(c => /p63/.test(c)));
+
+  // note di fenotipo
+  check('bifasico con CD117 non luminale: non confermato',
+    phenotypeOf({ p40:'abluminal', cd117:'neg' }).notes.some(n => /non confermato/.test(n)));
+  check('bifasico con CD117 luminale: confermato',
+    phenotypeOf({ p40:'abluminal', cd117:'luminal' }).notes.some(n => /conferma/.test(n)));
+  check('bifasico con CD117 non eseguito: nessun giudizio',
+    phenotypeOf({ p40:'abluminal', cd117:'not_done' }).notes.length === 0);
+  check('ghiandolare senza S100: dice che serve', phenotypeOf({ p40:'neg' }).notes.some(n => /S100 non valutato/.test(n)));
+  check('ghiandolare con p63+: avverte', phenotypeOf({ p40:'neg', p63:'pos' }).notes.some(n => /aspecifico/.test(n)));
+  check('squamoide con S100+: rimanda al carcinoma mioepiteliale',
+    phenotypeOf({ p40:'diffuse', s100:'pos' }).notes.some(n => /mioepiteliale/.test(n)));
+
+  // qualità del dato
+  const w = fd => checkDataQuality(fd).join(' | ');
+  check('p40 abluminale + dualità assente: contraddizione', /CONTRADDIZIONE.*p40/.test(w({ p40:'abluminal', duality:'absent' })));
+  check('p40 negativo + dualità netta: avviso', /p40 negativo con dualità/.test(w({ p40:'neg', duality:'clear' })));
+  check('p63+ con p40 negativo: avviso', /p63\+ con p40 negativo/.test(w({ p40:'neg', p63:'pos' })));
+  check('senza p40 nessuno di questi avvisi', !/p40/.test(w({ duality:'absent', p63:'pos' })));
+
+  // raccomandazioni
+  const rec = fd => { const { g1, g2 } = run(fd); return recommendNextTests(g1, g2, fd).join(' | '); };
+  check('p40 mancante: pannello di primo livello', /p40 \+ CD117 \+ S100/.test(rec({})));
+  check('p40 fatto: il pannello non viene più chiesto', !/Pannello di primo livello/.test(rec({ p40:'neg' })));
+  check('p40 negativo senza S100: chiede S100', /→ S100:/.test(rec({ p40:'neg' })));
+  check('p40 negativo con S100 fatto: non lo richiede', !/→ S100:/.test(rec({ p40:'neg', s100:'pos' })));
+  check('glandulare S100−: chiede SOX10', /SOX10/.test(rec({ p40:'neg', s100:'neg' })));
+  check('squamoide: MAML2 per il MEC', /MAML2 \(MEC\)/.test(rec({ p40:'diffuse' })));
+  check('bifasico senza CD117: lo chiede', /→ CD117/.test(rec({ p40:'abluminal' })));
+  check('squamoide con S100+: carcinoma mioepiteliale', /carcinoma mioepiteliale/.test(rec({ p40:'diffuse', s100:'pos' })));
+
+  // orientamento gestionale: p40 e ACC
+  const bucket = fd => { const { g1, g2 } = run(fd); return managementBucket(g1, g2, fd); };
+  eq('cribriforme con p40 negativo: ACC non è più da escludere',
+    bucket({ cribriform:'yes', nuclear_grade:'low', necrosis:'no', p40:'neg' }).id, 'basso_grado');
+  eq('...salvo MYB+', bucket({ cribriform:'yes', nuclear_grade:'low', necrosis:'no', p40:'neg', myb:'pos' }).id, 'basaloide_acc');
+  eq('p40 abluminale è un indizio di basaloide/ACC',
+    bucket({ nuclear_grade:'low', necrosis:'no', p40:'abluminal', cribriform:'partial' }).id, 'basaloide_acc');
+  check('l indizio p40 abluminale è riportato',
+    /p40 abluminale/.test(bucket({ nuclear_grade:'low', necrosis:'no', p40:'abluminal', cribriform:'partial' }).rationale.join(' ')));
+
+  // coerenza delle tabelle
+  ENTITIES.filter(e => e !== 'CaExPA').forEach(e => check(`${e} ha una famiglia fenotipica`, !!ENTITY_FAMILY[e]));
+  check('CaExPA non ne ha una', !ENTITY_FAMILY.CaExPA);
+  eq('le famiglie sono tre', [...new Set(Object.values(ENTITY_FAMILY))].sort().join(','), 'biphasic,glandular,squamoid');
+  eq('p40 ha tre valori di fenotipo', Object.keys(PHENOTYPE_OF_P40).sort().join(','), 'abluminal,diffuse,neg');
+  const fd = { p40:'neg', s100:'pos' }; const snap = JSON.stringify(fd);
+  phenotypeOf(fd); phenotypeAdjust('SC', fd); phenotypeProCon('SC', fd);
+  eq('le funzioni di fenotipo non mutano il form', JSON.stringify(fd), snap);
+}
+
 section('purezza e invarianti di progetto');
 {
   const fd = { specimen_type:'resection', cribriform:'yes', duality:'clear', myb:'pos' };
@@ -418,7 +538,7 @@ section('purezza e invarianti di progetto');
   const espostiAllaPagina = (eng.match(/Object\.assign\(globalThis, \{([\s\S]*?)\}\)/) || [,''])[1]
       .split(',').map(x => x.trim()).filter(Boolean);
   ['gateOne','gateTwo','checkDataQuality','recommendNextTests','checkOutsideModel',
-   'getProConMissing','UNSCORED_FIELDS','managementBucket'].forEach(n => {
+   'getProConMissing','UNSCORED_FIELDS','managementBucket','phenotypeOf'].forEach(n => {
     if (new RegExp(`\\b${n}\\b`).test(codice))
       check(`il motore espone ${n} alla pagina`, espostiAllaPagina.includes(n));
   });

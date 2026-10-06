@@ -96,6 +96,83 @@ function evaluateDealBreaker(entity, fd){
   }
 }
 
+// ── v5.2.0 — livello fenotipico (Higgins & Cipriani, AIMM 2026, Fig. 2) ───────────────
+// Il pannello di primo livello p40 / CD117 / S100 smista in tre famiglie. E' un cancello
+// MORBIDO: p40 e' a mosaico e il campionamento e' limitato, quindi il fenotipo sposta il
+// punteggio (+2 se coerente, -3 se incoerente) ma non esclude nessuna entita'. Un p40 non
+// eseguito non sposta nulla (tre stati).
+const PHENOTYPE_OF_P40 = { abluminal:'biphasic', neg:'glandular', diffuse:'squamoid' };
+const PHENOTYPE_LABEL = {
+  biphasic:'bifasico (p40 abluminale)',
+  glandular:'monofasico ghiandolare (p40 negativo)',
+  squamoid:'monofasico squamoide (p40 diffuso)' };
+// CaExPA non ha famiglia: il fenotipo dipende dalle componenti.
+const ENTITY_FAMILY = { PA:'biphasic', ACC:'biphasic', EMC:'biphasic', Warthin:'biphasic',
+  SC:'glandular', MSA:'glandular', PolymorphousAC:'glandular', AciCC:'glandular',
+  MEC:'squamoid', HCCC:'squamoid' };
+const S100_POS_GLANDULAR = ['SC','MSA','PolymorphousAC'];
+
+function phenotypeOf(fd){
+  fd = fd || {};
+  if(!isSet(fd.p40))
+    return { id:'non_valutato', label:'Fenotipo non valutato (p40 non eseguito)', notes:[] };
+  const id = PHENOTYPE_OF_P40[fd.p40];
+  const notes = [];
+  if(id === 'biphasic'){
+    if(is(fd.cd117,'luminal')) notes.push('CD117 luminale conferma il fenotipo bifasico.');
+    else if(isSet(fd.cd117)) notes.push('CD117 non luminale: bifasico non confermato. Cercare dotti veri (il carcinoma mioepiteliale esprime p40 senza dotti CD117+).');
+  }
+  if(id === 'glandular'){
+    if(is(fd.s100,'pos')) notes.push('S100 diffusamente positivo: secretorio, polimorfo/cribriforme, microsecretorio (canalicolare e dotto striato non coperti).');
+    else if(is(fd.s100,'neg')) notes.push('S100 negativo: acinico (DOG1+, SOX10+) o mucinoso (NKX3.1, non coperto).');
+    else notes.push('S100 non valutato: serve per suddividere il monofasico ghiandolare.');
+    if(is(fd.p63,'pos')) notes.push('p63+ con p40 negativo: p63 è aspecifico nei monofasici ghiandolari, non va letto come strato mioepiteliale.');
+  }
+  if(id === 'squamoid' && (is(fd.s100,'pos') || is(fd.sox10,'pos')))
+    notes.push('S100/SOX10+ in fenotipo squamoide: orienta su carcinoma mioepiteliale (non coperto dal modello); il SCC metastatico e il MEC li negano.');
+  return { id, label:'Fenotipo ' + PHENOTYPE_LABEL[id], notes };
+}
+
+function phenotypeAdjust(e, fd){
+  fd = fd || {};
+  const fam = ENTITY_FAMILY[e];
+  if(!fam || !isSet(fd.p40)) return 0;
+  const obs = PHENOTYPE_OF_P40[fd.p40];
+  let d = 0;
+  if(fam === obs){ d += 2; if(obs === 'biphasic' && is(fd.cd117,'luminal')) d += 1; }
+  else d -= (e === 'MEC' && obs === 'glandular') ? 1 : 3;   // MEC p40-negativo: minoranza descritta
+  // S100 suddivide il solo monofasico ghiandolare
+  if(obs === 'glandular'){
+    if(is(fd.s100,'pos')){
+      if(S100_POS_GLANDULAR.includes(e)) d += 1;
+      if(e === 'AciCC') d -= 2;
+    }else if(is(fd.s100,'neg')){
+      if(e === 'AciCC'){ d += 2; if(is(fd.sox10,'pos')) d += 1; }
+      if(S100_POS_GLANDULAR.includes(e)) d -= 2;
+    }
+  }
+  if(obs === 'squamoid' && (is(fd.s100,'pos') || is(fd.sox10,'pos')) && (e === 'MEC' || e === 'HCCC')) d -= 2;
+  return d;
+}
+
+function phenotypeProCon(e, fd){
+  fd = fd || {};
+  const pro = [], con = [];
+  const fam = ENTITY_FAMILY[e];
+  if(!fam || !isSet(fd.p40)) return { pro, con };
+  const obs = PHENOTYPE_OF_P40[fd.p40];
+  if(fam === obs) pro.push('✓ Fenotipo ' + PHENOTYPE_LABEL[obs] + ' coerente');
+  else con.push('✗ Fenotipo ' + PHENOTYPE_LABEL[obs] + ': ' + e + ' è ' + PHENOTYPE_LABEL[fam] +
+    (e === 'MEC' && obs === 'glandular' ? ' (MEC p40-negativo descritto in una minoranza)' : ''));
+  if(obs === 'glandular' && is(fd.s100,'pos') && e === 'AciCC') con.push('✗ S100+ (AciCC è S100-negativa, SOX10+)');
+  if(obs === 'glandular' && is(fd.s100,'neg') && e === 'AciCC') pro.push('✓ S100 negativo' + (is(fd.sox10,'pos') ? ', SOX10+' : ''));
+  if(obs === 'glandular' && is(fd.s100,'pos') && S100_POS_GLANDULAR.includes(e)) pro.push('✓ S100 diffusamente positivo');
+  if(obs === 'glandular' && is(fd.s100,'neg') && S100_POS_GLANDULAR.includes(e)) con.push('✗ S100 negativo (atteso diffusamente positivo)');
+  if(obs === 'squamoid' && (is(fd.s100,'pos') || is(fd.sox10,'pos')) && (e === 'MEC' || e === 'HCCC'))
+    con.push('✗ S100/SOX10+ (orienta su carcinoma mioepiteliale, non coperto)');
+  return { pro, con };
+}
+
 // PRO/CON/MISSING — v5.0.3: aggiunto HRAS+PIK3CA per CaExPA e EMC
 function getProConMissing(entity, fd){
   const procon={};
@@ -112,7 +189,7 @@ function getProConMissing(entity, fd){
         fd.duality==='clear' ? '✓ Duality' : null,
         fd.neural_invasion==='extensive' ? '✓ Extensive PNI' : null,
         fd.myb==='pos' ? '✓ MYB+' : null,
-        fd.p63==='pos' ? '✓ p63/SMA+ (strato mioepiteliale conservato)' : null
+        fd.p63==='pos' && fd.p40!=='neg' ? '✓ p63/SMA+ (strato mioepiteliale conservato)' : null
       ].filter(Boolean);
       procon.con=[
         fd.mucin_production==='abundant' ? '✗ Abundant mucin' : null,
@@ -165,7 +242,7 @@ function getProConMissing(entity, fd){
         fd.stromal_type==='myxoid' ? '✓ Myxoid stroma' : null,
         fd.nuclear_grade==='low' ? '✓ Low nuclear grade' : null,
         fd.necrosis==='no' ? '✓ No necrosis' : null,
-        fd.p63==='pos' ? '✓ p63/SMA+ (componente mioepiteliale)' : null,
+        fd.p63==='pos' && fd.p40!=='neg' ? '✓ p63/SMA+ (componente mioepiteliale)' : null,
         (fd.plag1==='pos' || fd.hmga2==='pos') ? '✓ PLAG1/HMGA2+' : null
       ].filter(Boolean);
       procon.con=[
@@ -211,7 +288,7 @@ function getProConMissing(entity, fd){
         fd.clear_cell==='yes' ? '✓ Clear cells' : null,
         fd.duality==='clear' ? '✓ Duality' : null,
         hrasPos && !dualPIK3CA ? '✓ HRAS+ senza dual PIK3CA (compatibile con EMC)' : null,
-        fd.p63==='pos' ? '✓ p63/SMA+ (strato mioepiteliale esterno)' : null
+        fd.p63==='pos' && fd.p40!=='neg' ? '✓ p63/SMA+ (strato mioepiteliale esterno)' : null
       ].filter(Boolean);
       procon.con=[
         hrasDualPIK ? '✗ Dual PIK3CA (più tipico di CaExPA aggressivo che EMC)' : null
@@ -310,6 +387,9 @@ function getProConMissing(entity, fd){
       procon.con=[];
       procon.missing=[];
   }
+  const fen = phenotypeProCon(entity, fd);
+  procon.pro.push(...fen.pro);
+  procon.con.push(...fen.con);
   return procon;
 }
 
@@ -404,6 +484,7 @@ function gateTwo(survivors, fd){
     }else{
       score=1;
     }
+    score += phenotypeAdjust(e, formData);
     scores[e]={score,conf:score>=8?'HIGH':score>=5?'MODERATE':'LOW'};
   }
   return scores;
@@ -421,6 +502,12 @@ function checkDataQuality(fd){
     warnings.push('⚠️ Tipo di campione non indicato: i criteri architetturali vengono applicati come su pezzo operatorio.');
   else if(LIMITED_SPECIMENS.includes(fd.specimen_type))
     warnings.push(`⚠️ ${fd.specimen_type==='fnab'?'Agoaspirato':'Core biopsy'}: architettura non valutabile. I criteri di esclusione architetturali sono sospesi — nessuna entità viene esclusa su quella base.`);
+  if(fd.p40==='abluminal' && fd.duality==='absent')
+    warnings.push('🔴 CONTRADDIZIONE: p40 abluminale (strato mioepiteliale presente) ma dualità assente. Ricontrollare.');
+  if(fd.p40==='neg' && fd.duality==='clear')
+    warnings.push('⚠️ p40 negativo con dualità netta: p40 può essere a mosaico o il campione non rappresentativo. Verificare.');
+  if(fd.p40==='neg' && fd.p63==='pos')
+    warnings.push('⚠️ p63+ con p40 negativo: p63 è aspecifico nei monofasici ghiandolari (polimorfo/cribriforme, MSA); non leggerlo come mioepitelio.');
   if(missing>3) warnings.push('⚠️ DATI MANCANTI: più di 3 campi non compilati. Risultati poco affidabili.');
   if(fd.cribriform==='yes' && fd.duality==='absent')
     warnings.push('🔴 CONTRADDIZIONE: cribriforme presente ma dualità assente. Ricontrollare.');
@@ -442,6 +529,22 @@ function recommendNextTests(g1,g2,fd){
     recs.push('→ MEF2C::SS18 fusion testing');
   if(survivors.includes('AciCC') && !isSet(fd.dog1))
     recs.push('→ DOG1 IHC (marker di riferimento AciCC)');
+  // v5.2.0: pannello di primo livello dell'articolo (p40, CD117, S100)
+  if(!isSet(fd.p40))
+    recs.push('→ Pannello di primo livello: p40 + CD117 + S100 (smista in bifasico / monofasico ghiandolare / squamoide)');
+  else{
+    const ph = PHENOTYPE_OF_P40[fd.p40];
+    if(ph==='glandular' && !isSet(fd.s100))
+      recs.push('→ S100: nel monofasico ghiandolare separa secretorio/polimorfo/microsecretorio (S100+) da acinico/mucinoso (S100−)');
+    if(ph==='glandular' && is(fd.s100,'neg') && survivors.includes('AciCC') && !isSet(fd.sox10))
+      recs.push('→ SOX10 (positivo in AciCC anche con S100 negativo) + DOG1');
+    if(ph==='squamoid' && survivors.includes('MEC') && !isSet(fd.maml2))
+      recs.push('→ MAML2 (MEC) · EWSR1::ATF1 (HCCC); mucicarminio/PAS-D per la mucina');
+    if(ph==='squamoid' && (is(fd.s100,'pos') || is(fd.sox10,'pos')))
+      recs.push('→ S100/SOX10+ in fenotipo squamoide: considerare carcinoma mioepiteliale (SMA, calponina, EWSR1) — non coperto dal modello');
+    if(ph==='biphasic' && !isSet(fd.cd117))
+      recs.push('→ CD117: conferma la componente luminale del bifasico');
+  }
   // Nuovo: raccomandazioni HRAS+PIK3CA
   if(fd.hras==='pos' && fd.pik3ca==='dual'){
     recs.push('→ SMARCA4/BRG1 IHC: perdita = SMARCA4-deficient carcinoma (DD prioritaria)');
@@ -481,8 +584,10 @@ function managementBucket(g1, g2, fd){
   if(is(fd.cribriform,'yes','partial')) indiziACC.push('pattern cribriforme');
   if(is(fd.duality,'clear')) indiziACC.push('dualità netta');
   if(is(fd.myb,'pos')) indiziACC.push('MYB+');
+  if(is(fd.p40,'abluminal')) indiziACC.push('p40 abluminale');
   if(accTop) indiziACC.push('ACC in testa al ranking');
-  const accInGioco = g1.ACC && g1.ACC.passed;
+  // p40 negativo allontana l'ACC (polimorfo/cribriforme): resta in gioco solo con MYB+
+  const accInGioco = g1.ACC && g1.ACC.passed && (!is(fd.p40,'neg') || is(fd.myb,'pos'));
 
   if(segni.length >= 2 || (segni.length >= 1 && hrasDual))
     return out('alto_grado', 'ALTO GRADO',
@@ -530,10 +635,12 @@ function checkOutsideModel(g1){
 if (typeof globalThis !== 'undefined') Object.assign(globalThis, {
   ARCHITECTURAL_FIELDS, LIMITED_SPECIMENS, UNSCORED_FIELDS,
   evaluateDealBreaker, getProConMissing, gateOne, gateTwo, checkDataQuality,
-  recommendNextTests, checkOutsideModel, managementBucket });
+  recommendNextTests, checkOutsideModel, managementBucket,
+  phenotypeOf, phenotypeAdjust, phenotypeProCon, PHENOTYPE_OF_P40, ENTITY_FAMILY });
 
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { isSet, is, isNot, ARCHITECTURAL_FIELDS, LIMITED_SPECIMENS, UNSCORED_FIELDS,
     evaluateDealBreaker, getProConMissing, gateOne, gateTwo, checkDataQuality,
-    recommendNextTests, checkOutsideModel, managementBucket };
+    recommendNextTests, checkOutsideModel, managementBucket,
+    phenotypeOf, phenotypeAdjust, phenotypeProCon, PHENOTYPE_OF_P40, ENTITY_FAMILY };
 }

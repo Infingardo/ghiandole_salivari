@@ -27,12 +27,31 @@ assente) · **non determinabile** (grado non valutato, grado intermedio, un solo
 Tre stati rispettati: un grado non valutato non è un grado basso, un solo segno non fa alto grado.
 Su core biopsy/FNAB: grado dichiarato non definitivo e suggerita la diagnosi descrittiva.
 
+### Livello fenotipico p40 / CD117 / S100 (Fig. 2 dell'articolo)
+Nuovi campi (Step 5, pannello di primo livello): **p40** (abluminale / diffuso / negativo), **CD117**
+(luminale / diffuso / negativo), **S100** (diffuso / focale / negativo), **SOX10**. p40 smista in
+bifasico (PA, ACC, EMC, Warthin), monofasico ghiandolare (SC, MSA, carcinoma polimorfo, AciCC) e
+monofasico squamoide (MEC, HCCC). **Cancello morbido**, non duro: p40 è a mosaico e il campione può
+essere limitato, quindi il fenotipo coerente dà +2 (+1 se CD117 luminale conferma il bifasico), quello
+incoerente −3 (MEC con p40 negativo solo −1: esiste in minoranza); **nessuna entità viene esclusa**.
+CaExPA non ha famiglia. Con p40 non eseguito non cambia nulla.
+- **S100** suddivide solo il monofasico ghiandolare: S100+ → SC/MSA/polimorfo +1, AciCC −2; S100− → AciCC +2
+  (+1 con SOX10+), SC/MSA/polimorfo −2. S100 focale non sposta. In fenotipo squamoide S100/SOX10+ penalizza
+  MEC e HCCC (−2) e rimanda al carcinoma mioepiteliale, **non coperto dal modello**.
+- **p63 con p40 negativo** non è più letto come strato mioepiteliale (aspecifico nei monofasici
+  ghiandolari) e produce un avviso. Nuove contraddizioni: p40 abluminale + dualità assente.
+- **Esami successivi:** pannello p40+CD117+S100 se p40 manca; S100 dopo p40 negativo; SOX10 se S100−;
+  MAML2/EWSR1::ATF1 nello squamoide; CD117 nel bifasico.
+- **Orientamento gestionale:** p40 abluminale è un indizio di ACC; con p40 negativo l'ACC resta "da
+  escludere" solo con MYB+.
+- Pagina: riga "Fenotipo" nei risultati con le note.
+
 ### Test
-230 asserzioni (176 → 230). Aggiornato il test che codificava il vecchio comportamento del PA.
+320 asserzioni (176 → 320). Aggiornato il test che codificava il vecchio comportamento del PA.
 Il motore espone `managementBucket` alla pagina (verificato dall'invariante esistente).
 
 ### Non fatto (proposto)
-Livello fenotipico p40/CD117/S100/SOX10 e nuove entità (basal cell, SDC, intraduttale, mioepiteliale, mucinoso).
+Nuove entità (basal cell, SDC, intraduttale, mioepiteliale, mucinoso).
 
 ## v5.1.0 (Settembre 2026) — Un reperto non valutato non è un reperto assente
 

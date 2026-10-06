@@ -92,7 +92,7 @@
 let currentStep=0,totalSteps=7,formData={};const SESSION_KEY='sgdt_v5_2_0_session';
 
 function save(){
-  for(let n of ['specimen_type','cribriform','solid_nests','duality','microcystic','mucin_production','serous_acinar','nuclear_grade','necrosis','neural_invasion','stromal_type','oncocytic','papillary','myoepithelial_invasive','priorPA','residualPA','lymphoid_stroma','clear_cell','varied_patterns','dog1','maml2','myb','etv6','mammaglobin','plag1','hmga2','mef2c','p63','mitotic_rate','hras','pik3ca','smarca4','nut','ck']){
+  for(let n of ['specimen_type','cribriform','solid_nests','duality','microcystic','mucin_production','serous_acinar','nuclear_grade','necrosis','neural_invasion','stromal_type','oncocytic','papillary','myoepithelial_invasive','priorPA','residualPA','lymphoid_stroma','clear_cell','varied_patterns','dog1','maml2','myb','etv6','mammaglobin','plag1','hmga2','p40','cd117','s100','sox10','mef2c','p63','mitotic_rate','hras','pik3ca','smarca4','nut','ck']){
     const v=document.querySelector(`input[name="${n}"]:checked`)?.value;
     if(v) formData[n]=v;
   }
@@ -185,6 +185,13 @@ function render(){
   else if(currentStep===5){
     h=`<div class="step active"><h3>Step 5/7: IHC (opzionale)</h3>
     <div class="guidance-text">Selezionare "Non eseguito" se il test non è disponibile.</div>
+    <h4>Pannello di primo livello</h4>
+    <div class="guidance-text">p40 smista il caso in bifasico (abluminale), monofasico ghiandolare (negativo) o squamoide (diffuso). È un criterio morbido: sposta il punteggio, non esclude.</div>
+    <div class="form-group"><label>p40</label><div class="radio-group">${mkRad('p40',[['abluminal','Abluminale / basale'],['diffuse','Diffuso'],['neg','Negativo'],['not_done','Non eseguito']])}</div></div>
+    <div class="form-group"><label>CD117</label><div class="radio-group">${mkRad('cd117',[['luminal','Luminale'],['diffuse','Diffuso'],['neg','Negativo'],['not_done','Non eseguito']])}</div></div>
+    <div class="form-group"><label>S100</label><div class="radio-group">${mkRad('s100',[['pos','Diffusamente positivo'],['focal','Focale / patchy'],['neg','Negativo'],['not_done','Non eseguito']])}</div></div>
+    <div class="form-group"><label>SOX10</label><div class="radio-group">${mkRad('sox10',[['pos','Positivo'],['neg','Negativo'],['not_done','Non eseguito']])}</div></div>
+    <h4>Altri marcatori</h4>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 -5px;">
     <div>
       <div class="form-group"><label>DOG1</label><div class="radio-group">${mkRad('dog1',[['pos','Positivo'],['neg','Negativo'],['not_done','Non eseguito']])}</div></div>
@@ -235,6 +242,7 @@ function render(){
     const nextTests=recommendNextTests(g1,g2,formData);
     const outside=checkOutsideModel(g1);
     const mgmt=managementBucket(g1,g2,formData);
+    const fen=phenotypeOf(formData);
     const ranked=passed.sort((a,b)=>(g2[b]?.score||0)-(g2[a]?.score||0));
     
     // Alert HRAS+dualPIK3CA globale
@@ -257,6 +265,8 @@ function render(){
       <div class="entity-reason"><strong>${mgmt.implicazione}</strong></div>
       ${mgmt.tests.length>0?mgmt.tests.map(t=>`<div class="next-test">→ ${t}</div>`).join(''):''}
       <div style="font-size:.8em;opacity:.75;margin-top:4px;">Schema: Higgins &amp; Cipriani, Appl Immunohistochem Mol Morphol 2026 (Fig. 1). Orienta il referto, non sostituisce la discussione multidisciplinare.</div></div>
+    <h4>🧬 Fenotipo (p40 / CD117 / S100)</h4>
+    <div class="coverage-disclaimer"><strong>${fen.label}</strong>${fen.notes.map(n=>`<br/>${n}`).join('')}</div>
     <h4>🔐 Gate 1: Morphology Validation</h4>
     <div class="gates-summary">
       ${passed.length>0?`<div style="color:#276749;font-weight:600;">✓ SUPERATO (${passed.length}):</div>${passed.map(e=>`<div class="gate-item" style="color:${g1[e].undetermined?'#975a16':'#276749'};">• ${e}${g1[e].undetermined?` <span style="font-size:.85em;opacity:.8">— non verificato: ${g1[e].reason.replace(/^Non (verificato|determinabile)[:,] ?/,'')}</span>`:''}</div>`).join('')}`:
