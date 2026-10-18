@@ -1,4 +1,4 @@
-# Salivary Gland Tool — v5.7.0
+# Salivary Gland Tool — v5.7.1
 
 **Tool di orientamento diagnostico per le neoplasie delle ghiandole salivari.**
 
@@ -82,7 +82,8 @@ Step 2  Citologia
 Step 3  Invasione e comportamento
 Step 4  Contesto clinico (anamnesi PA, PA residuo, stroma linfoide)
 Step 5  IHC (opzionale)
-Step 6  Molecolare (opzionale)
+Step 6  Molecolare (opzionale)   un test vuoto equivale a "Non eseguito"; il pulsante
+                                 "Nessuna IHC né molecolare eseguita" salta ai risultati
 Step 7  Risultati
 ```
 
@@ -158,7 +159,7 @@ I marcatori sono a tre stati: `Positivo / Negativo / Non eseguito` (con qualche 
 
 ## Persistenza
 
-Salva in `sessionStorage` con chiave `sgdt_v5_7_0_session`: la sessione si riapre allo stesso punto al refresh. **↻ Ricomincia** cancella solo la chiave del tool, non l'intera origine.
+Salva in `sessionStorage` con chiave `sgdt_v5_7_1_session`: la sessione si riapre allo stesso punto al refresh. **↻ Ricomincia** cancella solo la chiave del tool, non l'intera origine.
 
 ---
 
@@ -169,6 +170,7 @@ index.html     interfaccia (wizard a 8 passi)
 engine.js      logica pura, senza DOM: cancelli, punteggio, orientamento
 tests/run.mjs  test del motore, senza framework
 CHANGELOG.md   storia delle versioni
+CLAUDE.md, AGENTS.md   regole per le modifiche (contenuti diagnostici curati da Filippo)
 ```
 
 L'applicazione è **`index.html` più `engine.js`**, da servire dalla stessa cartella (la pagina carica `engine.js?v=…`). Nessuna dipendenza esterna, funziona offline in un browser moderno.

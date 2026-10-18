@@ -1,5 +1,23 @@
 # 📝 Salivary Gland Tool - Changelog
 
+## v5.7.1 (Ottobre 2026) — Interfaccia e testi, nessuna modifica al motore
+
+Solo pagina e documentazione: `engine.js` è invariato e gli esiti per uno stesso input non cambiano.
+
+- **Pulsante "Nessuna IHC né molecolare eseguita → Risultati"** (Step 5). Azzera i 28 campi di IHC e molecolare
+  (lista `TEST_FIELDS`) e va ai risultati. Per il motore un campo vuoto e `not_done` sono la stessa cosa, quindi
+  l'esito è identico a barrarli uno per uno.
+- **Testi di aiuto corretti** (Step 5 e 6): un test lasciato vuoto equivale a "Non eseguito", non serve barrarlo.
+- **Avviso di copertura corretto:** "non copre le entità duttali (carcinoma dei dotti intercalati)" era falso dalla
+  5.7.0. Ora elenca ciò che manca davvero: adenoma canalicolare, adenoma del dotto striato, oncocitoma, carcinoma
+  squamocellulare metastatico, keratocistoma.
+- **Readme** riscritto sulla 5.7.0 (era fermo alla 5.1) e allineato a queste modifiche; aggiunte `CLAUDE.md` e
+  `AGENTS.md` con le regole per le modifiche ai contenuti diagnostici.
+- **Test:** due invarianti nuovi: `TEST_FIELDS` deve contenere esattamente i campi di Step 5 e 6, così la lista del
+  pulsante non può divergere dal form.
+- La chiave di sessione segue la versione (`sgdt_v5_7_1_session`): un caso aperto nel browser sotto la 5.7.0 non
+  si riapre.
+
 ## v5.7.0 (Ottobre 2026) — Carcinoma intraduttale
 
 Fonte: Higgins & Cipriani, AIMM 2026. È l'ultima entità proposta dopo la 5.2.0. Il problema pratico:

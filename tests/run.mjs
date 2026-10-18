@@ -942,6 +942,18 @@ section('purezza e invarianti di progetto');
   const nonSalvati = campiForm.filter(f => !raccolti.includes(f));
   eq('nessun campo del form resta fuori dal salvataggio', nonSalvati.join(','), '');
   check('PLAG1 arriva al motore', raccolti.includes('plag1'));
+
+  // il pulsante "Nessuna IHC né molecolare eseguita" azzera TEST_FIELDS: la lista e' scritta a mano
+  // nella pagina e deve coincidere con i campi di Step 5 e 6, altrimenti il pulsante ne dimentica
+  // qualcuno (o ne azzera uno morfologico).
+  const testFields = ((html.match(/const TEST_FIELDS=\[([^\]]+)\]/) || [,''])[1])
+                       .split(',').map(x => x.trim().replace(/^'|'$/g, '')).filter(Boolean);
+  const i5 = html.indexOf('currentStep===5'), i7 = html.indexOf('currentStep===7');
+  const campiStep56 = [...new Set([...html.slice(i5, i7).matchAll(/mkRad\('([A-Za-z0-9_]+)'/g)].map(m => m[1]))];
+  eq('TEST_FIELDS contiene esattamente i campi di Step 5 e 6',
+    testFields.slice().sort().join(','), campiStep56.slice().sort().join(','));
+  check('TEST_FIELDS non e vuota', testFields.length > 20, String(testFields.length));
+  eq('ogni campo di TEST_FIELDS e salvato dal wizard', testFields.filter(f => !raccolti.includes(f)).join(','), '');
   const opzioni = f => {
     const i = html.indexOf(`mkRad('${f}',[`);
     if (i < 0) return [];
