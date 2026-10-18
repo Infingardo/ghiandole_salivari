@@ -132,6 +132,17 @@ function updateProgress(){
 function next(){save();currentStep++;if(currentStep>totalSteps)currentStep=totalSteps;render();window.scrollTo(0,0);}
 function prev(){save();currentStep--;if(currentStep<0)currentStep=0;render();window.scrollTo(0,0);}
 
+// Nessuna IHC né molecolare eseguita: azzera i campi degli Step 5 e 6 e va ai risultati.
+// Per il motore un campo vuoto e "not_done" sono la stessa cosa (isSet), quindi l'esito è
+// identico a barrarli uno per uno.
+const TEST_FIELDS=['p40','cd117','s100','sox10','dog1','maml2','ar','her2','ck','mammaglobin','p63','smarca4','plag1','bcatenin','muc4','myogenic','nkx31','hmga2','nut','myb','basal_driver','ewsr1','ret','akt1','mef2c','etv6','hras','pik3ca'];
+function skipTests(){
+  save();
+  for(const n of TEST_FIELDS) delete formData[n];
+  sessionStorage.setItem(SESSION_KEY,JSON.stringify(formData));
+  currentStep=7;render();window.scrollTo(0,0);
+}
+
 function mkRad(name,opts){return opts.map(([v,l])=>`<label><input type="radio" name="${name}" value="${v}" ${formData[name]===v?'checked':''}><span>${l}</span></label>`).join('');}
 
 function render(){
@@ -187,7 +198,8 @@ function render(){
   
   else if(currentStep===5){
     h=`<div class="step active"><h3>Step 5/7: IHC (opzionale)</h3>
-    <div class="guidance-text">Selezionare "Non eseguito" se il test non è disponibile.</div>
+    <div class="guidance-text">Un test lasciato vuoto equivale a "Non eseguito": non serve barrarlo.</div>
+    <div class="buttons" style="margin:8px 0 14px;"><button class="btn-secondary" onclick="skipTests()">Nessuna IHC né molecolare eseguita → Risultati</button></div>
     <h4>Pannello di primo livello</h4>
     <div class="guidance-text">p40 smista il caso in bifasico (abluminale), monofasico ghiandolare (negativo) o squamoide (diffuso). È un criterio morbido: sposta il punteggio, non esclude.</div>
     <div class="form-group"><label>p40</label><div class="radio-group">${mkRad('p40',[['abluminal','Abluminale / basale'],['diffuse','Diffuso'],['neg','Negativo'],['not_done','Non eseguito']])}</div></div>
@@ -223,7 +235,7 @@ function render(){
   
   else if(currentStep===6){
     h=`<div class="step active"><h3>Step 6/7: Molecolare (opzionale)</h3>
-    <div class="guidance-text">Test molecolari confermatori. Selezionare "Not done" se non eseguiti.</div>
+    <div class="guidance-text">Test molecolari confermatori. Un test lasciato vuoto equivale a "Non eseguito".</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 -5px;">
     <div>
       <div class="form-group"><label>MYB</label><div class="radio-group">${mkRad('myb',[['pos','Positivo'],['neg','Negativo'],['not_done','Non eseguito']])}</div></div>
