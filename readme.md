@@ -1,4 +1,4 @@
-# Salivary Gland Tool — v5.7.2
+# Salivary Gland Tool — v5.7.3
 
 **Tool di orientamento diagnostico per le neoplasie delle ghiandole salivari.**
 
@@ -159,7 +159,7 @@ I marcatori sono a tre stati: `Positivo / Negativo / Non eseguito` (con qualche 
 
 ## Persistenza
 
-Salva in `sessionStorage` con chiave `sgdt_v5_7_2_session`: la sessione si riapre allo stesso punto al refresh. **↻ Ricomincia** cancella solo la chiave del tool, non l'intera origine.
+Salva in `sessionStorage` con chiave `sgdt_v5_7_3_session`: la sessione si riapre allo stesso punto al refresh. **↻ Ricomincia** cancella solo la chiave del tool, non l'intera origine.
 
 ---
 

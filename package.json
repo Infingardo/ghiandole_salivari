@@ -1,6 +1,6 @@
 {
   "name": "salivary-gland-tool",
-  "version": "5.7.2",
+  "version": "5.7.3",
   "private": true,
   "description": "Modello a due cancelli per le neoplasie delle ghiandole salivari (WHO 2022)",
   "scripts": {
