@@ -971,6 +971,10 @@ section('purezza e invarianti di progetto');
   const campiStep56 = [...new Set([...html.slice(i5, i7).matchAll(/mkRad\('([A-Za-z0-9_]+)'/g)].map(m => m[1]))];
   eq('TEST_FIELDS contiene esattamente i campi di Step 5 e 6',
     testFields.slice().sort().join(','), campiStep56.slice().sort().join(','));
+  // v5.7.3: render() dello Step 7 chiama save(), che rilegge i radio ancora nel DOM: senza
+  // deselezionarli, i valori compilati nella schermata dello Step 5 tornavano in formData.
+  check('skipTests deseleziona i radio dei test ancora a video',
+    /function skipTests\(\)\{[\s\S]*?checked\s*=\s*false[\s\S]*?currentStep=7/.test(html));
   check('TEST_FIELDS non e vuota', testFields.length > 20, String(testFields.length));
   eq('ogni campo di TEST_FIELDS e salvato dal wizard', testFields.filter(f => !raccolti.includes(f)).join(','), '');
   const opzioni = f => {

@@ -1,5 +1,19 @@
 # 📝 Salivary Gland Tool - Changelog
 
+## v5.7.3 (Ottobre 2026) — Pulsante "Nessuna IHC né molecolare eseguita"
+
+`engine.js` invariato. Correzione solo di `index.html`.
+
+- **Difetto:** il pulsante azzerava `formData` ma i radio dello Step 5 compilati nella schermata restavano
+  selezionati; il rendering dello Step 7 chiama `save()`, li rileggeva e i valori (p40, S100, ecc.) tornavano nel caso.
+  Con p40 compilato il risultato mostrava il fenotipo come se il test fosse stato eseguito. I campi dello Step 6
+  e quelli salvati in passaggi precedenti venivano invece azzerati correttamente.
+- **Correzione:** `skipTests()` deseleziona anche i radio dei `TEST_FIELDS` ancora a video.
+- **Verifica:** engine con form vuoto e con tutti i `TEST_FIELDS` a `not_done`: esiti identici (cancelli,
+  punteggi, orientamento, avvisi, esami successivi, fenotipo). Prova nel browser (Chromium headless): p40 e S100
+  compilati, pulsante, risultato "Fenotipo non valutato", `formData` senza campi di test. Test statico nella suite.
+- La chiave di sessione segue la versione (`sgdt_v5_7_3_session`).
+
 ## v5.7.2 (Ottobre 2026) — Legenda sigle e nota S100 focale
 
 Nessun punteggio, esclusione o orientamento gestionale cambia: gli esiti per uno stesso input sono identici.
