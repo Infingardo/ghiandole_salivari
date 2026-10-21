@@ -414,6 +414,12 @@ section('v5.2.0 — livello fenotipico p40 / CD117 / S100 (Fig. 2)');
   check('bifasico con CD117 non eseguito: nessun giudizio',
     phenotypeOf({ p40:'abluminal', cd117:'not_done' }).notes.length === 0);
   check('ghiandolare senza S100: dice che serve', phenotypeOf({ p40:'neg' }).notes.some(n => /S100 non valutato/.test(n)));
+  check('ghiandolare con S100 focale: non lo dice "non valutato"',
+    !phenotypeOf({ p40:'neg', s100:'focal' }).notes.some(n => /S100 non valutato/.test(n)) &&
+    phenotypeOf({ p40:'neg', s100:'focal' }).notes.some(n => /focale/.test(n)));
+  check('S100 focale non sposta il punteggio rispetto a S100 non eseguito',
+    JSON.stringify(gateTwo(gateOne({ p40:'neg', s100:'focal' }), { p40:'neg', s100:'focal' })) ===
+    JSON.stringify(gateTwo(gateOne({ p40:'neg' }), { p40:'neg' })));
   check('ghiandolare con p63+: avverte', phenotypeOf({ p40:'neg', p63:'pos' }).notes.some(n => /aspecifico/.test(n)));
   check('squamoide con S100+: rimanda al carcinoma mioepiteliale',
     phenotypeOf({ p40:'diffuse', s100:'pos' }).notes.some(n => /mioepiteliale/.test(n)));
@@ -901,6 +907,19 @@ section('v5.7.0 — carcinoma intraduttale');
 
 section('purezza e invarianti di progetto');
 {
+  // v5.7.2: le funzioni del motore non dipendono piu' dalla globale `formData` della pagina
+  check('gateOne/checkDataQuality/recommendNextTests senza fd non lanciano', (() => {
+    try { gateOne(); checkDataQuality(); recommendNextTests({}, {}); return true; } catch(e) { return false; }
+  })());
+  {
+    const h = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+    const legenda = h.slice(h.indexOf('Legenda sigle'), h.indexOf('<div class="progress-bar">'));
+    check('legenda: ACC = adenoido-cistico', /ACC=Adenoid Cystic Carcinoma/.test(legenda));
+    check('legenda: MSA = adenocarcinoma microsecretorio', /MSA=Microsecretory Adenocarcinoma/.test(legenda));
+    check('legenda: MAML2 ed ETV6 con il nome corretto', /MAML2=Mastermind-like 2/.test(legenda) && /ETV6=ETS variant transcription factor 6/.test(legenda));
+    check('legenda: nessuna definizione errata residua', !/Sialadenitis|Echinoderm|Mucin-Associated|\(alt\.\)/.test(legenda));
+  }
+
   const fd = { specimen_type:'resection', cribriform:'yes', duality:'clear', myb:'pos' };
   const snap = JSON.stringify(fd);
   const g1 = gateOne(fd); gateTwo(g1, fd); checkDataQuality(fd); recommendNextTests(g1, {}, fd);
