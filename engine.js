@@ -758,7 +758,7 @@ function recommendNextTests(g1,g2,fd){
   const recs=[];
   // v5.7.5: ACC solido / con trasformazione di alto grado: MYB IHC poco specifica, serve la fusione
   if(survivors.includes('ACC') && fd.cribriform==='no' && fd.duality==='absent' && fd.solid_nests==='prominent')
-    recs.push('→ Fusione MYB/MYBL1 (FISH/NGS; MYB RNA ISH se disponibile): ACC solido o con trasformazione di alto grado è diagnosi di esclusione, la MYB IHC è poco specifica in questi tumori (Wong 2024)');
+    recs.push('→ Fusione MYB/MYBL1 con FISH o NGS (conferma del riarrangiamento): ACC solido o con trasformazione di alto grado è diagnosi di esclusione salvo conferma. MYB RNA ISH solo come supporto, non conferma (positiva anche nel 19% dei carcinomi basaloidi sinonasali); MYB IHC poco specifica in questi tumori (Wong 2024)');
   if(survivors.includes('ACC') && survivors.includes('MEC'))
     recs.push('→ MAML2 (MEC+) vs MYB (ACC+) molecular testing');
   if(survivors.includes('SC') && !isSet(fd.mammaglobin))
@@ -844,12 +844,15 @@ function managementBucket(g1, g2, fd){
   const punteggi = Object.values(g2 || {}).map(x => x.score);
   const maxScore = Math.max(0, ...punteggi);
   const accTop = !!(g2 && g2.ACC && g2.ACC.score > 0 && g2.ACC.score === maxScore);
-  const indiziACC = [], indiziGenerici = [];
-  if(is(fd.cribriform,'yes','partial')) indiziACC.push('pattern cribriforme');
-  if(is(fd.myb,'pos')) indiziACC.push('MYB+');
-  if(accTop) indiziACC.push('ACC in testa al ranking');
-  if(is(fd.duality,'clear')) indiziGenerici.push('dualità netta');
-  if(is(fd.p40,'abluminal')) indiziGenerici.push('p40 abluminale');
+  // l'ordine di elenco resta quello originale (cribriforme, dualità, MYB, p40, ACC in testa): cambia solo
+  // quali indizi bastano a far scattare il bucket
+  const indiziACC = [];
+  let specifico = false;
+  if(is(fd.cribriform,'yes','partial')){ indiziACC.push('pattern cribriforme'); specifico = true; }
+  if(is(fd.duality,'clear')) indiziACC.push('dualità netta');
+  if(is(fd.myb,'pos')){ indiziACC.push('MYB+'); specifico = true; }
+  if(is(fd.p40,'abluminal')) indiziACC.push('p40 abluminale');
+  if(accTop){ indiziACC.push('ACC in testa al ranking'); specifico = true; }
   // p40 negativo allontana l'ACC (polimorfo/cribriforme): resta in gioco solo con MYB+
   const accInGioco = g1.ACC && g1.ACC.passed && (!is(fd.p40,'neg') || is(fd.myb,'pos'));
 
@@ -862,8 +865,8 @@ function managementBucket(g1, g2, fd){
        (sdcAlto && !(segni.length >= 2 || (segni.length >= 1 && hrasDual)) ? ' Carcinoma duttale salivare in testa al ranking: alto grado per definizione.' : '')].map(x => x.trim()),
       'Orientamento (Fig. 1): resezione con margini ampi e dissezione laterocervicale; sacrificio di strutture adiacenti se necessario. Discutere con il clinico eventuali bersagli terapeutici (es. NTRK, AR/HER2).');
 
-  if(accInGioco && indiziACC.length > 0){
-    const rat = ['Morfologia basaloide non apertamente di alto grado: ACC non esclusa (' + indiziACC.concat(indiziGenerici).join(', ') + ').'];
+  if(accInGioco && specifico){
+    const rat = ['Morfologia basaloide non apertamente di alto grado: ACC non esclusa (' + indiziACC.join(', ') + ').'];
     if(segni.length === 1) rat.push('Segno isolato di alto grado: ' + segni[0] + '.');
     const basalTop = !!(g2 && g2.BasalCell && g2.BasalCell.score > 0 && g2.BasalCell.score === maxScore);
     if(basalTop) rat.push('Neoplasia basocellulare in testa al ranking (stroma fusato / β-catenina / CTNNB1-CYLD): ACC meno probabile, ma non esclusa senza MYB/MYBL1::NFIB.');

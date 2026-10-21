@@ -17,8 +17,9 @@ confirms MYB/MYBL1 rearrangement". Modifica su istruzione di Filippo dopo la rev
   Negli altri casi con mucina abbondante cambia solo il testo del motivo. Su core/FNAB con mucina non abbondante l'ACC
   resta "non determinata" come prima, ma il motivo mostrato è la nota sul solido/HGT invece di "Non determinabile su
   core biopsy…".
-- **Esami successivi:** con ACC non escluso in questo contesto compare "Fusione MYB/MYBL1 (FISH/NGS; MYB RNA ISH se
-  disponibile)": la MYB IHC non basta.
+- **Esami successivi:** con ACC non escluso in questo contesto compare "Fusione MYB/MYBL1 con FISH o NGS (conferma del
+  riarrangiamento)". MYB RNA ISH è indicata solo come supporto, non conferma (positiva anche nel 19% dei carcinomi
+  basaloidi sinonasali); la MYB IHC non basta.
 - **Punteggi, fenotipo, avvisi, orientamento gestionale:** nessuna modifica di regola. Con ACC ora sopravvissuta il
   bucket "ACC da escludere" può comparire se c'è un indizio specifico (es. MYB+), come per ogni altro caso.
 - **Verifica:** 20000 input casuali, vecchio contro nuovo motore: le differenze sono solo i casi con cribriforme "no",
@@ -39,7 +40,7 @@ Punteggi, esclusioni di Gate 1, fenotipo, avvisi ed esami successivi non cambian
   erano contati come indizi ACC, ma sono comuni a tutta la famiglia bifasica (PA, EMC, basocellulare).
 - **Regola ora:** il bucket scatta con almeno un indizio *specifico* — pattern cribriforme (sì o parziale), MYB+,
   ACC in testa al ranking — e ACC non esclusa da Gate 1 (e non p40 negativo senza MYB+, come prima).
-  Dualità netta e p40 abluminale restano elencati nella motivazione quando c'è un indizio specifico, ma da soli non bastano.
+  Dualità netta e p40 abluminale restano elencati nella motivazione (nell'ordine di prima) quando c'è un indizio specifico, ma da soli non bastano.
 - **Output che cambiano:** solo i casi in cui gli unici indizi erano dualità netta e/o p40 abluminale e l'ACC non è
   in testa: prima ACC da escludere, ora seguono il percorso normale (basso grado / alto grado / non determinabile).
   Casi con cribriforme, MYB+ o ACC primo: invariati.

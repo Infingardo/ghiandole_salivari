@@ -146,6 +146,8 @@ section('campioni limitati: architettura non valutabile');
   check('MYB+ da solo non basta a riammettere l\'ACC senza nidi solidi',
     r({ specimen_type:'resection', cribriform:'no', duality:'absent', myb:'pos' }).g1.ACC.passed === false);
   const g = r({ ...solido, myb:'pos' });
+  check('la fusione si conferma con FISH/NGS; l\'ISH è solo supporto',
+    recommendNextTests(g.g1, g.g2, { ...solido, myb:'pos' }).some(t => /FISH o NGS \(conferma/.test(t) && /ISH solo come supporto, non conferma/.test(t)));
   check('consiglia la fusione MYB/MYBL1 (MYB IHC poco specifica)',
     recommendNextTests(g.g1, g.g2, { ...solido, myb:'pos' }).some(t => /Fusione MYB\/MYBL1/.test(t)));
   const g0 = r({ specimen_type:'resection', cribriform:'no', duality:'absent' });
@@ -373,6 +375,9 @@ section('v5.2.0 — orientamento gestionale (Fig. 1)');
   check('con un indizio specifico, dualità e p40 restano elencati',
     /dualità netta/.test(bucket({ nuclear_grade:'low', necrosis:'no', duality:'clear', cribriform:'yes' }).rationale.join(' ')) &&
     /pattern cribriforme/.test(bucket({ nuclear_grade:'low', necrosis:'no', duality:'clear', cribriform:'yes' }).rationale.join(' ')));
+  eq('l\'ordine degli indizi elencati resta quello originale',
+    bucket({ cribriform:'partial', duality:'clear', myb:'pos', p40:'abluminal', nuclear_grade:'low', necrosis:'no' }).rationale[0],
+    'Morfologia basaloide non apertamente di alto grado: ACC non esclusa (pattern cribriforme, dualità netta, MYB+, p40 abluminale, ACC in testa al ranking).');
   eq('dualità + p40 abluminale senza altri dati: ACC primo in classifica → ACC da escludere',
     bucket({ nuclear_grade:'low', necrosis:'no', duality:'clear', p40:'abluminal' }).id, 'basaloide_acc');
 
