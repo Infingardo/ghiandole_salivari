@@ -42,11 +42,18 @@ function evaluateDealBreaker(entity, fd){
               note: fd.nuclear_grade==='high' ? 'Atipia nucleare alta isolata: nel PA non basta per la malignità (atipia bizzarra, guadagno 12q); cercare necrosi, mitosi, invasione.' : null};
       
     case 'ACC':
-      if(fd.cribriform==='no' && fd.duality==='absent') 
+      // v5.7.5: l'ACC con trasformazione di alto grado ha crescita solida e perde la differenziazione
+      // mioepiteliale all'IHC, quindi può non mostrare dualità (Wong 2024, p. 8); resta diagnosi di
+      // esclusione salvo fusione MYB/MYBL1. Con nidi solidi prominenti l'assenza non esclude: resta non verificato.
+      const accSolido = fd.cribriform==='no' && fd.duality==='absent' && fd.solid_nests==='prominent';
+      if(fd.cribriform==='no' && fd.duality==='absent' && !accSolido)
         return {hit:true,msg:'Both cribriform AND duality absent: ACC less likely.',
                 needs:['cribriform','duality'],absence:true};
       if(fd.mucin_production==='abundant') 
         return {hit:true,msg:'Abundant mucin suggests MEC.'};
+      if(accSolido)
+        return {hit:false,uncertain:true,needs:['cribriform','duality','mucin_production'],
+                note:'Cribriforme e dualità assenti con nidi solidi prominenti: ACC solido / con trasformazione di alto grado non escluso. Diagnosi di esclusione: serve la fusione MYB/MYBL1 (MYB IHC poco specifica in questi tumori).'};
       return {hit:false,needs:['cribriform','duality','mucin_production']};
       
     case 'SC':
@@ -595,7 +602,7 @@ function gateOne(fd){
     const mancanti = needs.filter(f => !isSet(fd[f]));
     result[e]={
       passed:!db.hit,
-      undetermined: !db.hit && mancanti.length>0,
+      undetermined: !db.hit && (mancanti.length>0 || db.uncertain===true),
       reason: db.hit ? db.msg
             : mancanti.length>0 ? `Non verificato: manca ${mancanti.join(', ')}.` + (db.note ? ' ' + db.note : '')
             : (db.note || 'Gate 1 superato')
@@ -749,6 +756,9 @@ function recommendNextTests(g1,g2,fd){
   fd = fd || {};
   const survivors=Object.keys(g1).filter(k=>g1[k].passed);
   const recs=[];
+  // v5.7.5: ACC solido / con trasformazione di alto grado: MYB IHC poco specifica, serve la fusione
+  if(survivors.includes('ACC') && fd.cribriform==='no' && fd.duality==='absent' && fd.solid_nests==='prominent')
+    recs.push('→ Fusione MYB/MYBL1 con FISH o NGS (conferma del riarrangiamento): ACC solido o con trasformazione di alto grado è diagnosi di esclusione salvo conferma. MYB RNA ISH solo come supporto, non conferma (positiva anche nel 19% dei carcinomi basaloidi sinonasali); MYB IHC poco specifica in questi tumori (Wong 2024)');
   if(survivors.includes('ACC') && survivors.includes('MEC'))
     recs.push('→ MAML2 (MEC+) vs MYB (ACC+) molecular testing');
   if(survivors.includes('SC') && !isSet(fd.mammaglobin))
@@ -828,16 +838,21 @@ function managementBucket(g1, g2, fd){
   if(is(fd.mitotic_rate,'high')) segni.push('indice mitotico alto');
   const hrasDual = fd.hras==='pos' && fd.pik3ca==='dual';
 
-  // ACC da escludere: basta un indizio di basaloide/ACC e che Gate 1 non l'abbia esclusa
+  // ACC da escludere: serve un indizio SPECIFICO (cribriforme sì/parziale, MYB+, ACC in testa) e che
+  // Gate 1 non l'abbia esclusa. Dualità netta e p40 abluminale sono comuni a tutta la famiglia bifasica
+  // (PA, EMC, basocellulare): da soli non bastano, ma se c'è un indizio specifico restano elencati.
   const punteggi = Object.values(g2 || {}).map(x => x.score);
   const maxScore = Math.max(0, ...punteggi);
   const accTop = !!(g2 && g2.ACC && g2.ACC.score > 0 && g2.ACC.score === maxScore);
+  // l'ordine di elenco resta quello originale (cribriforme, dualità, MYB, p40, ACC in testa): cambia solo
+  // quali indizi bastano a far scattare il bucket
   const indiziACC = [];
-  if(is(fd.cribriform,'yes','partial')) indiziACC.push('pattern cribriforme');
+  let specifico = false;
+  if(is(fd.cribriform,'yes','partial')){ indiziACC.push('pattern cribriforme'); specifico = true; }
   if(is(fd.duality,'clear')) indiziACC.push('dualità netta');
-  if(is(fd.myb,'pos')) indiziACC.push('MYB+');
+  if(is(fd.myb,'pos')){ indiziACC.push('MYB+'); specifico = true; }
   if(is(fd.p40,'abluminal')) indiziACC.push('p40 abluminale');
-  if(accTop) indiziACC.push('ACC in testa al ranking');
+  if(accTop){ indiziACC.push('ACC in testa al ranking'); specifico = true; }
   // p40 negativo allontana l'ACC (polimorfo/cribriforme): resta in gioco solo con MYB+
   const accInGioco = g1.ACC && g1.ACC.passed && (!is(fd.p40,'neg') || is(fd.myb,'pos'));
 
@@ -850,7 +865,7 @@ function managementBucket(g1, g2, fd){
        (sdcAlto && !(segni.length >= 2 || (segni.length >= 1 && hrasDual)) ? ' Carcinoma duttale salivare in testa al ranking: alto grado per definizione.' : '')].map(x => x.trim()),
       'Orientamento (Fig. 1): resezione con margini ampi e dissezione laterocervicale; sacrificio di strutture adiacenti se necessario. Discutere con il clinico eventuali bersagli terapeutici (es. NTRK, AR/HER2).');
 
-  if(accInGioco && indiziACC.length > 0){
+  if(accInGioco && specifico){
     const rat = ['Morfologia basaloide non apertamente di alto grado: ACC non esclusa (' + indiziACC.join(', ') + ').'];
     if(segni.length === 1) rat.push('Segno isolato di alto grado: ' + segni[0] + '.');
     const basalTop = !!(g2 && g2.BasalCell && g2.BasalCell.score > 0 && g2.BasalCell.score === maxScore);

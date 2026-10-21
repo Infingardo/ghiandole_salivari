@@ -1,5 +1,56 @@
 # 📝 Salivary Gland Tool - Changelog
 
+## v5.7.5 (Ottobre 2026) — ACC solido / con trasformazione di alto grado non più escluso dal Gate 1
+
+Fonte: Wong KS, *Navigating Ancillary Studies in Basaloid/Blue Salivary Tumors*, Head Neck Pathol 2024;18:24
+(PMID 38526755), p. 8: nell'ACC con trasformazione di alto grado la crescita è solida e si perde la
+differenziazione mioepiteliale all'IHC; MYB IHC ha specificità bassa in questi tumori (positiva nel 42% dei carcinomi
+basaloidi sinonasali, 19% con ISH); l'ACC con HGT è "a diagnosis of exclusion unless FISH or a sequencing-based assay
+confirms MYB/MYBL1 rearrangement". Modifica su istruzione di Filippo dopo la revisione di ottobre 2026.
+
+- **Gate 1, ACC:** l'esclusione "cribriforme assente **e** dualità assente" non scatta più con **nidi solidi
+  prominenti**. L'ACC resta, segnata "non determinata", con la nota che è diagnosi di esclusione e serve la fusione
+  MYB/MYBL1. Con nidi solidi focali, assenti o non compilati l'esclusione resta com'era.
+- **Mucina abbondante:** esclude l'ACC come prima anche con nidi solidi prominenti. Effetto collaterale: su core/FNAB
+  con cribriforme assente, dualità assente e nidi solidi prominenti la mucina abbondante ora esclude (prima
+  l'esclusione per assenza, sospesa su campione limitato, veniva restituita per prima e la mucina non veniva guardata).
+  Negli altri casi con mucina abbondante cambia solo il testo del motivo. Su core/FNAB con mucina non abbondante l'ACC
+  resta "non determinata" come prima, ma il motivo mostrato è la nota sul solido/HGT invece di "Non determinabile su
+  core biopsy…".
+- **Esami successivi:** con ACC non escluso in questo contesto compare "Fusione MYB/MYBL1 con FISH o NGS (conferma del
+  riarrangiamento)". MYB RNA ISH è indicata solo come supporto, non conferma (positiva anche nel 19% dei carcinomi
+  basaloidi sinonasali); la MYB IHC non basta.
+- **Punteggi, fenotipo, avvisi, orientamento gestionale:** nessuna modifica di regola. Con ACC ora sopravvissuta il
+  bucket "ACC da escludere" può comparire se c'è un indizio specifico (es. MYB+), come per ogni altro caso.
+- **Verifica:** 20000 input casuali, vecchio contro nuovo motore: le differenze sono solo i casi con cribriforme "no",
+  dualità "assente" e nidi solidi prominenti (ACC esclusa → non determinata; con mucina abbondante solo il testo, tranne
+  su core/FNAB dove l'ACC passa da non determinata a esclusa). Revisione indipendente: conforme alla spec.
+  Test: 11 nuovi (sezione "ACC solido").
+- **Non fatto:** il campo `myb` continua a non distinguere IHC, ISH e fusione (il Wong riporta ISH 92%/95% contro IHC
+  con specificità tra 52% e ~90%); nessuna modifica ai pesi di HRAS/PLAG1/LEF1.
+- La chiave di sessione segue la versione (`sgdt_v5_7_5_session`).
+
+## v5.7.4 (Ottobre 2026) — "ACC da escludere": serve un indizio specifico
+
+Modifica di `managementBucket()` su istruzione di Filippo (scelta tra 4 opzioni dopo la revisione di ottobre 2026).
+Punteggi, esclusioni di Gate 1, fenotipo, avvisi ed esami successivi non cambiano.
+
+- **Problema:** un PA tipico (stroma mixoide, grado basso, p40 abluminale, dualità netta, PLAG1+), con il PA primo
+  in classifica (9 punti contro 6 dell'ACC), usciva come "BASALOIDE — ACC DA ESCLUDERE". Dualità netta e p40 abluminale
+  erano contati come indizi ACC, ma sono comuni a tutta la famiglia bifasica (PA, EMC, basocellulare).
+- **Regola ora:** il bucket scatta con almeno un indizio *specifico* — pattern cribriforme (sì o parziale), MYB+,
+  ACC in testa al ranking — e ACC non esclusa da Gate 1 (e non p40 negativo senza MYB+, come prima).
+  Dualità netta e p40 abluminale restano elencati nella motivazione (nell'ordine di prima) quando c'è un indizio specifico, ma da soli non bastano.
+- **Output che cambiano:** solo i casi in cui gli unici indizi erano dualità netta e/o p40 abluminale e l'ACC non è
+  in testa: prima ACC da escludere, ora seguono il percorso normale (basso grado / alto grado / non determinabile).
+  Casi con cribriforme, MYB+ o ACC primo: invariati.
+- **Non risolto di proposito:** con dualità + p40 abluminale e nessun altro dato l'ACC è primo (5 punti) e il bucket
+  scatta ancora; cribriforme *parziale* con PA primo scatta ancora. Sono la conseguenza della regola scelta.
+- **Test:** 7 nuovi nella sezione orientamento gestionale (PA tipico, dualità sola, dualità+MYB+, cribriforme parziale,
+  indizi elencati, ACC primo senza altri dati). Fonte dello schema: Higgins & Cipriani 2026, Fig. 1; la soglia
+  "indizio specifico" è una scelta di progetto, non una citazione.
+- La chiave di sessione segue la versione (`sgdt_v5_7_4_session`).
+
 ## v5.7.3 (Ottobre 2026) — Pulsante "Nessuna IHC né molecolare eseguita"
 
 `engine.js` invariato. Correzione solo di `index.html`.

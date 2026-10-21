@@ -125,6 +125,38 @@ section('campioni limitati: architettura non valutabile');
     run({ specimen_type:'resection', cribriform:'no', duality:'absent' }).g1.ACC.passed, false);
 }
 
+// v5.7.5 — ACC solido / con trasformazione di alto grado (Wong 2024)
+{
+  const solido = { specimen_type:'resection', cribriform:'no', duality:'absent', solid_nests:'prominent' };
+  const r = fd => run(fd);
+  check('ACC con nidi solidi prominenti, senza cribriforme né dualità: non escluso',
+    r(solido).g1.ACC.passed === true);
+  check('...ma segnato non determinato, con nota sulla fusione MYB/MYBL1',
+    r(solido).g1.ACC.undetermined === true && /MYB\/MYBL1/.test(r(solido).g1.ACC.reason));
+  eq('nidi solidi solo focali: l\'esclusione resta',
+    r({ ...solido, solid_nests:'focal' }).g1.ACC.passed, false);
+  eq('nidi solidi assenti: l\'esclusione resta',
+    r({ ...solido, solid_nests:'absent' }).g1.ACC.passed, false);
+  eq('nidi solidi non compilati: l\'esclusione resta',
+    r({ specimen_type:'resection', cribriform:'no', duality:'absent' }).g1.ACC.passed, false);
+  eq('con nidi solidi prominenti la mucina abbondante esclude ancora l\'ACC',
+    r({ ...solido, mucin_production:'abundant' }).g1.ACC.passed, false);
+  eq('con cribriforme parziale e dualità assente l\'ACC non era esclusa (invariato)',
+    r({ specimen_type:'resection', cribriform:'partial', duality:'absent', solid_nests:'prominent' }).g1.ACC.passed, true);
+  check('MYB+ da solo non basta a riammettere l\'ACC senza nidi solidi',
+    r({ specimen_type:'resection', cribriform:'no', duality:'absent', myb:'pos' }).g1.ACC.passed === false);
+  const g = r({ ...solido, myb:'pos' });
+  check('la fusione si conferma con FISH/NGS; l\'ISH è solo supporto',
+    recommendNextTests(g.g1, g.g2, { ...solido, myb:'pos' }).some(t => /FISH o NGS \(conferma/.test(t) && /ISH solo come supporto, non conferma/.test(t)));
+  check('consiglia la fusione MYB/MYBL1 (MYB IHC poco specifica)',
+    recommendNextTests(g.g1, g.g2, { ...solido, myb:'pos' }).some(t => /Fusione MYB\/MYBL1/.test(t)));
+  const g0 = r({ specimen_type:'resection', cribriform:'no', duality:'absent' });
+  check('senza nidi solidi prominenti nessun consiglio dedicato',
+    !recommendNextTests(g0.g1, g0.g2, { specimen_type:'resection', cribriform:'no', duality:'absent' }).some(t => /Fusione MYB\/MYBL1/.test(t)));
+  check('l\'esclusione dell\'ACC su campione limitato resta sospesa (invariato)',
+    r({ specimen_type:'trucut', cribriform:'no', duality:'absent' }).g1.ACC.undetermined === true);
+}
+
 section('Gate 2: ogni entita ha criteri propri');
 {
   // nessuna deve cadere nel ramo generico score=1
@@ -328,6 +360,26 @@ section('v5.2.0 — orientamento gestionale (Fig. 1)');
     bucket({ cribriform:'yes', necrosis:'yes', nuclear_grade:'high' }).id, 'alto_grado');
   eq('MEC con mucina e MAML2+ → basso grado, non basaloide',
     bucket({ mucin_production:'abundant', maml2:'pos', nuclear_grade:'low', necrosis:'no' }).id, 'basso_grado');
+
+  // v5.7.4: dualità netta e p40 abluminale sono comuni a tutta la famiglia bifasica: da soli non bastano
+  eq('PA tipico (mixoide, PLAG1+, dualità, p40 abluminale) → basso grado, non ACC da escludere',
+    bucket({ specimen_type:'resection', stromal_type:'myxoid', nuclear_grade:'low', necrosis:'no', p40:'abluminal', cd117:'luminal', plag1:'pos', duality:'clear' }).id, 'basso_grado');
+  eq('dualità netta + p40 abluminale con PA in testa → basso grado',
+    bucket({ stromal_type:'myxoid', plag1:'pos', nuclear_grade:'low', necrosis:'no', duality:'clear', p40:'abluminal' }).id, 'basso_grado');
+  eq('dualità netta da sola con PA in testa → basso grado',
+    bucket({ stromal_type:'myxoid', plag1:'pos', nuclear_grade:'low', necrosis:'no', duality:'clear' }).id, 'basso_grado');
+  eq('dualità netta + MYB+ → ACC da escludere',
+    bucket({ nuclear_grade:'low', necrosis:'no', duality:'clear', myb:'pos', stromal_type:'myxoid', plag1:'pos' }).id, 'basaloide_acc');
+  eq('cribriforme parziale + dualità: resta ACC da escludere anche con PA in testa',
+    bucket({ nuclear_grade:'low', necrosis:'no', duality:'clear', cribriform:'partial', stromal_type:'myxoid', plag1:'pos', p40:'abluminal' }).id, 'basaloide_acc');
+  check('con un indizio specifico, dualità e p40 restano elencati',
+    /dualità netta/.test(bucket({ nuclear_grade:'low', necrosis:'no', duality:'clear', cribriform:'yes' }).rationale.join(' ')) &&
+    /pattern cribriforme/.test(bucket({ nuclear_grade:'low', necrosis:'no', duality:'clear', cribriform:'yes' }).rationale.join(' ')));
+  eq('l\'ordine degli indizi elencati resta quello originale',
+    bucket({ cribriform:'partial', duality:'clear', myb:'pos', p40:'abluminal', nuclear_grade:'low', necrosis:'no' }).rationale[0],
+    'Morfologia basaloide non apertamente di alto grado: ACC non esclusa (pattern cribriforme, dualità netta, MYB+, p40 abluminale, ACC in testa al ranking).');
+  eq('dualità + p40 abluminale senza altri dati: ACC primo in classifica → ACC da escludere',
+    bucket({ nuclear_grade:'low', necrosis:'no', duality:'clear', p40:'abluminal' }).id, 'basaloide_acc');
 
   eq('nessuna sopravvissuta → non determinabile', managementBucket({ A:{passed:false} }, {}, {}).id, 'indeterminato');
 
