@@ -160,6 +160,7 @@ function phenotypeOf(fd){
   if(id === 'glandular'){
     if(is(fd.s100,'pos')) notes.push('S100 diffusamente positivo: secretorio, polimorfo/cribriforme, microsecretorio (canalicolare e dotto striato non coperti).');
     else if(is(fd.s100,'neg')) notes.push('S100 negativo: acinico (DOG1+, SOX10+) o mucinoso (NKX3.1, AKT1).');
+    else if(is(fd.s100,'focal')) notes.push('S100 focale/patchy: non assegnabile a S100+ diffuso né a S100−; non sposta il punteggio.');
     else notes.push('S100 non valutato: serve per suddividere il monofasico ghiandolare.');
     if(is(fd.p63,'pos')) notes.push('p63+ con p40 negativo: p63 è aspecifico nei monofasici ghiandolari, non va letto come strato mioepiteliale.');
   }
@@ -574,7 +575,7 @@ function getProConMissing(entity, fd){
 }
 
 function gateOne(fd){
-  fd = fd || formData;
+  fd = fd || {};
   const entities=['PA','ACC','MEC','AciCC','SC','MSA','CaExPA','Warthin','EMC','PolymorphousAC','HCCC','BasalCell','SDC','MucinousAC','MyoCa','IntraductalCa'];
   const limited = LIMITED_SPECIMENS.includes(fd.specimen_type);
   const result={};
@@ -716,7 +717,7 @@ function gateTwo(survivors, fd){
 }
 
 function checkDataQuality(fd){
-  fd = fd || formData;
+  fd = fd || {};
   const required=['cribriform','duality','mucin_production','serous_acinar','nuclear_grade','necrosis','neural_invasion'];
   const missing=required.filter(v=>!isSet(fd[v])).length;
   const warnings=[];
@@ -745,7 +746,7 @@ function checkDataQuality(fd){
 }
 
 function recommendNextTests(g1,g2,fd){
-  fd = fd || formData;
+  fd = fd || {};
   const survivors=Object.keys(g1).filter(k=>g1[k].passed);
   const recs=[];
   if(survivors.includes('ACC') && survivors.includes('MEC'))

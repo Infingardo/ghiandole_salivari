@@ -1,5 +1,25 @@
 # 📝 Salivary Gland Tool - Changelog
 
+## v5.7.2 (Ottobre 2026) — Legenda sigle e nota S100 focale
+
+Nessun punteggio, esclusione o orientamento gestionale cambia: gli esiti per uno stesso input sono identici.
+Da una revisione del codice; le correzioni di contenuto riguardano solo testi.
+
+- **Legenda sigle (index.html) corretta.** ACC era scritta "Acinic Cell Carcinoma" (è l'adenoido-cistico) e AciCC
+  compariva due volte; MSA era "Myoepithelial Sialadenitis" (è l'adenocarcinoma microsecretorio); MAML2 era
+  "Mucin-Associated Adenocarcinoma Translocation" (Mastermind-like 2); ETV6 era la definizione di EML4
+  (ETS variant transcription factor 6).
+- **Nota fenotipica con S100 "focale".** Con p40 negativo e S100 focale/patchy il tool scriveva "S100 non valutato",
+  ma il dato era compilato. Ora dice che non è assegnabile né a S100+ diffuso né a S100− e che non sposta il punteggio.
+- **Motore senza globali nascoste.** `gateOne`, `checkDataQuality` e `recommendNextTests` usavano `formData`
+  (variabile della pagina) come valore di ripiego e fuori dal browser lanciavano ReferenceError; ora ripiegano su `{}`.
+- **Test:** S100 focale (nota e punteggio), chiamate senza `fd`, testo della legenda.
+- La chiave di sessione segue la versione (`sgdt_v5_7_2_session`).
+
+Segnalati nella revisione e **non toccati** (cambiano gli output, serve decisione e fonte): ACC escluso dal Gate 1 anche
+con MYB+ nel solido; "ACC da escludere" attivato da dualità netta + p40 abluminale in un PA tipico; CaExPA HIGH con il
+solo HRAS + dual PIK3CA; nessuna opzione "non valutato" sui campi morfologici.
+
 ## v5.7.1 (Ottobre 2026) — Interfaccia e testi, nessuna modifica al motore
 
 Solo pagina e documentazione: `engine.js` è invariato e gli esiti per uno stesso input non cambiano.
