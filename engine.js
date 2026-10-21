@@ -828,16 +828,18 @@ function managementBucket(g1, g2, fd){
   if(is(fd.mitotic_rate,'high')) segni.push('indice mitotico alto');
   const hrasDual = fd.hras==='pos' && fd.pik3ca==='dual';
 
-  // ACC da escludere: basta un indizio di basaloide/ACC e che Gate 1 non l'abbia esclusa
+  // ACC da escludere: serve un indizio SPECIFICO (cribriforme sì/parziale, MYB+, ACC in testa) e che
+  // Gate 1 non l'abbia esclusa. Dualità netta e p40 abluminale sono comuni a tutta la famiglia bifasica
+  // (PA, EMC, basocellulare): da soli non bastano, ma se c'è un indizio specifico restano elencati.
   const punteggi = Object.values(g2 || {}).map(x => x.score);
   const maxScore = Math.max(0, ...punteggi);
   const accTop = !!(g2 && g2.ACC && g2.ACC.score > 0 && g2.ACC.score === maxScore);
-  const indiziACC = [];
+  const indiziACC = [], indiziGenerici = [];
   if(is(fd.cribriform,'yes','partial')) indiziACC.push('pattern cribriforme');
-  if(is(fd.duality,'clear')) indiziACC.push('dualità netta');
   if(is(fd.myb,'pos')) indiziACC.push('MYB+');
-  if(is(fd.p40,'abluminal')) indiziACC.push('p40 abluminale');
   if(accTop) indiziACC.push('ACC in testa al ranking');
+  if(is(fd.duality,'clear')) indiziGenerici.push('dualità netta');
+  if(is(fd.p40,'abluminal')) indiziGenerici.push('p40 abluminale');
   // p40 negativo allontana l'ACC (polimorfo/cribriforme): resta in gioco solo con MYB+
   const accInGioco = g1.ACC && g1.ACC.passed && (!is(fd.p40,'neg') || is(fd.myb,'pos'));
 
@@ -851,7 +853,7 @@ function managementBucket(g1, g2, fd){
       'Orientamento (Fig. 1): resezione con margini ampi e dissezione laterocervicale; sacrificio di strutture adiacenti se necessario. Discutere con il clinico eventuali bersagli terapeutici (es. NTRK, AR/HER2).');
 
   if(accInGioco && indiziACC.length > 0){
-    const rat = ['Morfologia basaloide non apertamente di alto grado: ACC non esclusa (' + indiziACC.join(', ') + ').'];
+    const rat = ['Morfologia basaloide non apertamente di alto grado: ACC non esclusa (' + indiziACC.concat(indiziGenerici).join(', ') + ').'];
     if(segni.length === 1) rat.push('Segno isolato di alto grado: ' + segni[0] + '.');
     const basalTop = !!(g2 && g2.BasalCell && g2.BasalCell.score > 0 && g2.BasalCell.score === maxScore);
     if(basalTop) rat.push('Neoplasia basocellulare in testa al ranking (stroma fusato / β-catenina / CTNNB1-CYLD): ACC meno probabile, ma non esclusa senza MYB/MYBL1::NFIB.');

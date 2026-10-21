@@ -1,4 +1,4 @@
-# Salivary Gland Tool — v5.7.3
+# Salivary Gland Tool — v5.7.4
 
 **Tool di orientamento diagnostico per le neoplasie delle ghiandole salivari.**
 
@@ -110,7 +110,7 @@ CaExPA, MyoCa e IntraductalCa non hanno famiglia: il loro fenotipo è variabile 
 Dalla Fig. 1 di Higgins & Cipriani. Non è una diagnosi:
 
 - **Alto grado:** almeno due segni (necrosi, grado nucleare alto, mitosi alte), oppure un segno più HRAS/dual PIK3CA, oppure SDC in testa con fiducia almeno MODERATE
-- **Basaloide, ACC da escludere:** ACC non esclusa con un indizio (cribriforme, dualità netta, MYB+, p40 abluminale, ACC in testa)
+- **Basaloide, ACC da escludere:** ACC non esclusa con un indizio specifico (cribriforme sì/parziale, MYB+, ACC in testa); dualità netta e p40 abluminale, comuni a tutta la famiglia bifasica, da soli non bastano
 - **Benigno / basso grado:** grado nucleare basso e necrosi assente
 - **Non determinabile:** grado non valutato o intermedio, un solo segno di alto grado, fuori modello, oppure mioepiteliale in testa (un aspetto blando non rassicura)
 
@@ -159,7 +159,7 @@ I marcatori sono a tre stati: `Positivo / Negativo / Non eseguito` (con qualche 
 
 ## Persistenza
 
-Salva in `sessionStorage` con chiave `sgdt_v5_7_3_session`: la sessione si riapre allo stesso punto al refresh. **↻ Ricomincia** cancella solo la chiave del tool, non l'intera origine.
+Salva in `sessionStorage` con chiave `sgdt_v5_7_4_session`: la sessione si riapre allo stesso punto al refresh. **↻ Ricomincia** cancella solo la chiave del tool, non l'intera origine.
 
 ---
 

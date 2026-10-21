@@ -329,6 +329,23 @@ section('v5.2.0 — orientamento gestionale (Fig. 1)');
   eq('MEC con mucina e MAML2+ → basso grado, non basaloide',
     bucket({ mucin_production:'abundant', maml2:'pos', nuclear_grade:'low', necrosis:'no' }).id, 'basso_grado');
 
+  // v5.7.4: dualità netta e p40 abluminale sono comuni a tutta la famiglia bifasica: da soli non bastano
+  eq('PA tipico (mixoide, PLAG1+, dualità, p40 abluminale) → basso grado, non ACC da escludere',
+    bucket({ specimen_type:'resection', stromal_type:'myxoid', nuclear_grade:'low', necrosis:'no', p40:'abluminal', cd117:'luminal', plag1:'pos', duality:'clear' }).id, 'basso_grado');
+  eq('dualità netta + p40 abluminale con PA in testa → basso grado',
+    bucket({ stromal_type:'myxoid', plag1:'pos', nuclear_grade:'low', necrosis:'no', duality:'clear', p40:'abluminal' }).id, 'basso_grado');
+  eq('dualità netta da sola con PA in testa → basso grado',
+    bucket({ stromal_type:'myxoid', plag1:'pos', nuclear_grade:'low', necrosis:'no', duality:'clear' }).id, 'basso_grado');
+  eq('dualità netta + MYB+ → ACC da escludere',
+    bucket({ nuclear_grade:'low', necrosis:'no', duality:'clear', myb:'pos', stromal_type:'myxoid', plag1:'pos' }).id, 'basaloide_acc');
+  eq('cribriforme parziale + dualità: resta ACC da escludere anche con PA in testa',
+    bucket({ nuclear_grade:'low', necrosis:'no', duality:'clear', cribriform:'partial', stromal_type:'myxoid', plag1:'pos', p40:'abluminal' }).id, 'basaloide_acc');
+  check('con un indizio specifico, dualità e p40 restano elencati',
+    /dualità netta/.test(bucket({ nuclear_grade:'low', necrosis:'no', duality:'clear', cribriform:'yes' }).rationale.join(' ')) &&
+    /pattern cribriforme/.test(bucket({ nuclear_grade:'low', necrosis:'no', duality:'clear', cribriform:'yes' }).rationale.join(' ')));
+  eq('dualità + p40 abluminale senza altri dati: ACC primo in classifica → ACC da escludere',
+    bucket({ nuclear_grade:'low', necrosis:'no', duality:'clear', p40:'abluminal' }).id, 'basaloide_acc');
+
   eq('nessuna sopravvissuta → non determinabile', managementBucket({ A:{passed:false} }, {}, {}).id, 'indeterminato');
 
   const fd = { cribriform:'yes', nuclear_grade:'low', necrosis:'no' };
