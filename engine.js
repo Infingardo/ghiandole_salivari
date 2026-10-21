@@ -42,9 +42,9 @@ function evaluateDealBreaker(entity, fd){
               note: fd.nuclear_grade==='high' ? 'Atipia nucleare alta isolata: nel PA non basta per la malignità (atipia bizzarra, guadagno 12q); cercare necrosi, mitosi, invasione.' : null};
       
     case 'ACC':
-      // v5.7.5: nell'ACC solido / con trasformazione di alto grado cribriforme e dualità mancano per
-      // definizione (Wong 2024: perdita della differenziazione mioepiteliale; diagnosi di esclusione
-      // salvo fusione MYB/MYBL1). Con nidi solidi prominenti l'assenza non esclude: resta non verificato.
+      // v5.7.5: l'ACC con trasformazione di alto grado ha crescita solida e perde la differenziazione
+      // mioepiteliale all'IHC, quindi può non mostrare dualità (Wong 2024, p. 8); resta diagnosi di
+      // esclusione salvo fusione MYB/MYBL1. Con nidi solidi prominenti l'assenza non esclude: resta non verificato.
       const accSolido = fd.cribriform==='no' && fd.duality==='absent' && fd.solid_nests==='prominent';
       if(fd.cribriform==='no' && fd.duality==='absent' && !accSolido)
         return {hit:true,msg:'Both cribriform AND duality absent: ACC less likely.',

@@ -14,13 +14,16 @@ confirms MYB/MYBL1 rearrangement". Modifica su istruzione di Filippo dopo la rev
 - **Mucina abbondante:** esclude l'ACC come prima anche con nidi solidi prominenti. Effetto collaterale: su core/FNAB
   con cribriforme assente, dualità assente e nidi solidi prominenti la mucina abbondante ora esclude (prima
   l'esclusione per assenza, sospesa su campione limitato, veniva restituita per prima e la mucina non veniva guardata).
-  Negli altri casi con mucina abbondante cambia solo il testo del motivo.
+  Negli altri casi con mucina abbondante cambia solo il testo del motivo. Su core/FNAB con mucina non abbondante l'ACC
+  resta "non determinata" come prima, ma il motivo mostrato è la nota sul solido/HGT invece di "Non determinabile su
+  core biopsy…".
 - **Esami successivi:** con ACC non escluso in questo contesto compare "Fusione MYB/MYBL1 (FISH/NGS; MYB RNA ISH se
   disponibile)": la MYB IHC non basta.
 - **Punteggi, fenotipo, avvisi, orientamento gestionale:** nessuna modifica di regola. Con ACC ora sopravvissuta il
   bucket "ACC da escludere" può comparire se c'è un indizio specifico (es. MYB+), come per ogni altro caso.
 - **Verifica:** 20000 input casuali, vecchio contro nuovo motore: le differenze sono solo i casi con cribriforme "no",
-  dualità "assente" e nidi solidi prominenti (ACC esclusa → non determinata; con mucina abbondante solo il testo).
+  dualità "assente" e nidi solidi prominenti (ACC esclusa → non determinata; con mucina abbondante solo il testo, tranne
+  su core/FNAB dove l'ACC passa da non determinata a esclusa). Revisione indipendente: conforme alla spec.
   Test: 11 nuovi (sezione "ACC solido").
 - **Non fatto:** il campo `myb` continua a non distinguere IHC, ISH e fusione (il Wong riporta ISH 92%/95% contro IHC
   con specificità tra 52% e ~90%); nessuna modifica ai pesi di HRAS/PLAG1/LEF1.
