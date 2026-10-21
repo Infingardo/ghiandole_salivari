@@ -125,6 +125,36 @@ section('campioni limitati: architettura non valutabile');
     run({ specimen_type:'resection', cribriform:'no', duality:'absent' }).g1.ACC.passed, false);
 }
 
+// v5.7.5 — ACC solido / con trasformazione di alto grado (Wong 2024)
+{
+  const solido = { specimen_type:'resection', cribriform:'no', duality:'absent', solid_nests:'prominent' };
+  const r = fd => run(fd);
+  check('ACC con nidi solidi prominenti, senza cribriforme né dualità: non escluso',
+    r(solido).g1.ACC.passed === true);
+  check('...ma segnato non determinato, con nota sulla fusione MYB/MYBL1',
+    r(solido).g1.ACC.undetermined === true && /MYB\/MYBL1/.test(r(solido).g1.ACC.reason));
+  eq('nidi solidi solo focali: l\'esclusione resta',
+    r({ ...solido, solid_nests:'focal' }).g1.ACC.passed, false);
+  eq('nidi solidi assenti: l\'esclusione resta',
+    r({ ...solido, solid_nests:'absent' }).g1.ACC.passed, false);
+  eq('nidi solidi non compilati: l\'esclusione resta',
+    r({ specimen_type:'resection', cribriform:'no', duality:'absent' }).g1.ACC.passed, false);
+  eq('con nidi solidi prominenti la mucina abbondante esclude ancora l\'ACC',
+    r({ ...solido, mucin_production:'abundant' }).g1.ACC.passed, false);
+  eq('con cribriforme parziale e dualità assente l\'ACC non era esclusa (invariato)',
+    r({ specimen_type:'resection', cribriform:'partial', duality:'absent', solid_nests:'prominent' }).g1.ACC.passed, true);
+  check('MYB+ da solo non basta a riammettere l\'ACC senza nidi solidi',
+    r({ specimen_type:'resection', cribriform:'no', duality:'absent', myb:'pos' }).g1.ACC.passed === false);
+  const g = r({ ...solido, myb:'pos' });
+  check('consiglia la fusione MYB/MYBL1 (MYB IHC poco specifica)',
+    recommendNextTests(g.g1, g.g2, { ...solido, myb:'pos' }).some(t => /Fusione MYB\/MYBL1/.test(t)));
+  const g0 = r({ specimen_type:'resection', cribriform:'no', duality:'absent' });
+  check('senza nidi solidi prominenti nessun consiglio dedicato',
+    !recommendNextTests(g0.g1, g0.g2, { specimen_type:'resection', cribriform:'no', duality:'absent' }).some(t => /Fusione MYB\/MYBL1/.test(t)));
+  check('l\'esclusione dell\'ACC su campione limitato resta sospesa (invariato)',
+    r({ specimen_type:'trucut', cribriform:'no', duality:'absent' }).g1.ACC.undetermined === true);
+}
+
 section('Gate 2: ogni entita ha criteri propri');
 {
   // nessuna deve cadere nel ramo generico score=1

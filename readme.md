@@ -1,4 +1,4 @@
-# Salivary Gland Tool — v5.7.4
+# Salivary Gland Tool — v5.7.5
 
 **Tool di orientamento diagnostico per le neoplasie delle ghiandole salivari.**
 
@@ -43,7 +43,7 @@ Non è un oracolo: è un framework di ragionamento esplicito. Un reperto non com
 | Sigla | Entità | Gate 1 esclude se… |
 |-------|--------|--------------------|
 | PA | Adenoma pleomorfo | necrosi; grado nucleare alto **e** mitosi alte; PNI estesa |
-| ACC | Carcinoma adenoido-cistico | cribriforme assente **e** dualità assente; mucina abbondante |
+| ACC | Carcinoma adenoido-cistico | cribriforme assente **e** dualità assente (non con nidi solidi prominenti: ACC solido / alto grado, non escluso); mucina abbondante |
 | MEC | Carcinoma mucoepidermoide | mucina assente |
 | AciCC | Carcinoma a cellule acinari | acini sierosi assenti; cribriforme **con** dualità netta |
 | SC | Carcinoma secretorio | mammaglobina **e** ETV6-NTRK3 negativi |
@@ -159,7 +159,7 @@ I marcatori sono a tre stati: `Positivo / Negativo / Non eseguito` (con qualche 
 
 ## Persistenza
 
-Salva in `sessionStorage` con chiave `sgdt_v5_7_4_session`: la sessione si riapre allo stesso punto al refresh. **↻ Ricomincia** cancella solo la chiave del tool, non l'intera origine.
+Salva in `sessionStorage` con chiave `sgdt_v5_7_5_session`: la sessione si riapre allo stesso punto al refresh. **↻ Ricomincia** cancella solo la chiave del tool, non l'intera origine.
 
 ---
 

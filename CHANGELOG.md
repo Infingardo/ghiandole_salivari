@@ -1,5 +1,31 @@
 # 📝 Salivary Gland Tool - Changelog
 
+## v5.7.5 (Ottobre 2026) — ACC solido / con trasformazione di alto grado non più escluso dal Gate 1
+
+Fonte: Wong KS, *Navigating Ancillary Studies in Basaloid/Blue Salivary Tumors*, Head Neck Pathol 2024;18:24
+(PMID 38526755), p. 8: nell'ACC con trasformazione di alto grado la crescita è solida e si perde la
+differenziazione mioepiteliale all'IHC; MYB IHC ha specificità bassa in questi tumori (positiva nel 42% dei carcinomi
+basaloidi sinonasali, 19% con ISH); l'ACC con HGT è "a diagnosis of exclusion unless FISH or a sequencing-based assay
+confirms MYB/MYBL1 rearrangement". Modifica su istruzione di Filippo dopo la revisione di ottobre 2026.
+
+- **Gate 1, ACC:** l'esclusione "cribriforme assente **e** dualità assente" non scatta più con **nidi solidi
+  prominenti**. L'ACC resta, segnata "non determinata", con la nota che è diagnosi di esclusione e serve la fusione
+  MYB/MYBL1. Con nidi solidi focali, assenti o non compilati l'esclusione resta com'era.
+- **Mucina abbondante:** esclude l'ACC come prima anche con nidi solidi prominenti. Effetto collaterale: su core/FNAB
+  con cribriforme assente, dualità assente e nidi solidi prominenti la mucina abbondante ora esclude (prima
+  l'esclusione per assenza, sospesa su campione limitato, veniva restituita per prima e la mucina non veniva guardata).
+  Negli altri casi con mucina abbondante cambia solo il testo del motivo.
+- **Esami successivi:** con ACC non escluso in questo contesto compare "Fusione MYB/MYBL1 (FISH/NGS; MYB RNA ISH se
+  disponibile)": la MYB IHC non basta.
+- **Punteggi, fenotipo, avvisi, orientamento gestionale:** nessuna modifica di regola. Con ACC ora sopravvissuta il
+  bucket "ACC da escludere" può comparire se c'è un indizio specifico (es. MYB+), come per ogni altro caso.
+- **Verifica:** 20000 input casuali, vecchio contro nuovo motore: le differenze sono solo i casi con cribriforme "no",
+  dualità "assente" e nidi solidi prominenti (ACC esclusa → non determinata; con mucina abbondante solo il testo).
+  Test: 11 nuovi (sezione "ACC solido").
+- **Non fatto:** il campo `myb` continua a non distinguere IHC, ISH e fusione (il Wong riporta ISH 92%/95% contro IHC
+  con specificità tra 52% e ~90%); nessuna modifica ai pesi di HRAS/PLAG1/LEF1.
+- La chiave di sessione segue la versione (`sgdt_v5_7_5_session`).
+
 ## v5.7.4 (Ottobre 2026) — "ACC da escludere": serve un indizio specifico
 
 Modifica di `managementBucket()` su istruzione di Filippo (scelta tra 4 opzioni dopo la revisione di ottobre 2026).

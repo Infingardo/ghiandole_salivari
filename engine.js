@@ -42,11 +42,18 @@ function evaluateDealBreaker(entity, fd){
               note: fd.nuclear_grade==='high' ? 'Atipia nucleare alta isolata: nel PA non basta per la malignità (atipia bizzarra, guadagno 12q); cercare necrosi, mitosi, invasione.' : null};
       
     case 'ACC':
-      if(fd.cribriform==='no' && fd.duality==='absent') 
+      // v5.7.5: nell'ACC solido / con trasformazione di alto grado cribriforme e dualità mancano per
+      // definizione (Wong 2024: perdita della differenziazione mioepiteliale; diagnosi di esclusione
+      // salvo fusione MYB/MYBL1). Con nidi solidi prominenti l'assenza non esclude: resta non verificato.
+      const accSolido = fd.cribriform==='no' && fd.duality==='absent' && fd.solid_nests==='prominent';
+      if(fd.cribriform==='no' && fd.duality==='absent' && !accSolido)
         return {hit:true,msg:'Both cribriform AND duality absent: ACC less likely.',
                 needs:['cribriform','duality'],absence:true};
       if(fd.mucin_production==='abundant') 
         return {hit:true,msg:'Abundant mucin suggests MEC.'};
+      if(accSolido)
+        return {hit:false,uncertain:true,needs:['cribriform','duality','mucin_production'],
+                note:'Cribriforme e dualità assenti con nidi solidi prominenti: ACC solido / con trasformazione di alto grado non escluso. Diagnosi di esclusione: serve la fusione MYB/MYBL1 (MYB IHC poco specifica in questi tumori).'};
       return {hit:false,needs:['cribriform','duality','mucin_production']};
       
     case 'SC':
@@ -595,7 +602,7 @@ function gateOne(fd){
     const mancanti = needs.filter(f => !isSet(fd[f]));
     result[e]={
       passed:!db.hit,
-      undetermined: !db.hit && mancanti.length>0,
+      undetermined: !db.hit && (mancanti.length>0 || db.uncertain===true),
       reason: db.hit ? db.msg
             : mancanti.length>0 ? `Non verificato: manca ${mancanti.join(', ')}.` + (db.note ? ' ' + db.note : '')
             : (db.note || 'Gate 1 superato')
@@ -749,6 +756,9 @@ function recommendNextTests(g1,g2,fd){
   fd = fd || {};
   const survivors=Object.keys(g1).filter(k=>g1[k].passed);
   const recs=[];
+  // v5.7.5: ACC solido / con trasformazione di alto grado: MYB IHC poco specifica, serve la fusione
+  if(survivors.includes('ACC') && fd.cribriform==='no' && fd.duality==='absent' && fd.solid_nests==='prominent')
+    recs.push('→ Fusione MYB/MYBL1 (FISH/NGS; MYB RNA ISH se disponibile): ACC solido o con trasformazione di alto grado è diagnosi di esclusione, la MYB IHC è poco specifica in questi tumori (Wong 2024)');
   if(survivors.includes('ACC') && survivors.includes('MEC'))
     recs.push('→ MAML2 (MEC+) vs MYB (ACC+) molecular testing');
   if(survivors.includes('SC') && !isSet(fd.mammaglobin))
